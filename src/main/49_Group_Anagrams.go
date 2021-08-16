@@ -13,6 +13,8 @@ func groupAnagrams(strs []string) [][]string {
 	return p.sol1(strs)
 }
 
+// time: O(n*klogk)
+// space: O(n*k)
 func (p P49)sol1(strs []string) [][]string {
 	var res [][]string
 	var resMap = make(map[string][]string)
@@ -37,10 +39,6 @@ func (p P49)sol1(strs []string) [][]string {
 	}
 
 	return res
-}
-
-func (p P49)sol2(strs []string) [][]string {
-	return nil
 }
 
 func main()  {
