@@ -1,0 +1,35 @@
+多字符串切割
+func MultiSplit(r rune) bool {
+	return r == '=' || r == ','
+}
+
+sort.Slice(diffActIds, func(i, j int) bool {
+	return diffActIds[i] < diffActIds[j]
+})
+
+
+
+	var actIds []int64
+	var sourceStrMap = make(map[int64]string)
+	var targetStrMap = make(map[int64]string)
+
+		actIdStr := strings.Split(strings.Split(source, "act_id=")[1], ", sta_code")[0]
+		actId, _ := strconv.ParseInt(actIdStr, 10, 64)
+
+	//local, _ := time.LoadLocation("Local")
+	//createTime, _ := time.ParseInLocation("2006-01-02 15:04:05", fieldsFunc[11], local)
+	//fmt.Println(createTime)
+
+
+
+ascii: int char互转
+// character to ASCII
+char := 'a' // rune, not string
+ascii := int(char)
+fmt.Println(string(char), " : ", ascii)
+
+// ASCII to character
+
+asciiNum := 65  // Uppercase A
+character := string(asciiNum)
+fmt.Println(asciiNum, " : ", character)
