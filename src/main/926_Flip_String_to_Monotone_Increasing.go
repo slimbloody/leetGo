@@ -16,40 +16,37 @@ func If(cond bool, a, b interface{}) interface{} {
 }
  */
 
+type P926 struct {
+}
+
 func minFlipsMonoIncr(s string) int {
-	res := 0
-	start, end := 0, len(s) - 1
+	var p P926
+	return p.sol1(s)
+}
 
-	for start < end {
-		if s[start] == '0' {
-			start++
-		} else {
-			break
+func (p P926)sol1(s string) int {
+	var dp = make([]int, len(s) + 1)
+	var res = int(^uint(0) >> 1)
+
+	for i := 0; i < len(dp); i++ {
+		var temp = i - dp[i] + (len(dp) - i - (dp[len(dp) - 1] - dp[i]))
+		//var temp = len(dp) - dp[len(dp) - 1]
+		if temp < res {
+			res = temp
 		}
 	}
 
-	//var dp [end - start +1]int
-	for start < end {
-		if s[end] == '1' {
-			end--
-		} else {
-			break
-		}
-	}
-	for i, c := start, 0; i <= end; i, c = i + 1, c + 1 {
-		temp := 0
-		for {
-		}
-	}
-
-	if start < end {
-	} else {
-		return res
-	}
+	return res
 }
 
 func main()  {
+	// 1
+	// [0 0 0 1 2 2]
 	fmt.Println(minFlipsMonoIncr("00110"))
+	// 2
+	// [0 0 1 1 2 3 3]
 	fmt.Println(minFlipsMonoIncr("010110"))
+	// 2
+	// [0 0 0 0 1 2 2 2 2]
 	fmt.Println(minFlipsMonoIncr("00011000"))
 }
