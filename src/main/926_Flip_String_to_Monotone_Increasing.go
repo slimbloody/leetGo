@@ -28,9 +28,16 @@ func (p P926)sol1(s string) int {
 	var dp = make([]int, len(s) + 1)
 	var res = int(^uint(0) >> 1)
 
+	for i, c := range s {
+		if c == '1' {
+			dp[i + 1] = dp[i] + 1
+		} else {
+			dp[i + 1] = dp[i]
+		}
+	}
+
 	for i := 0; i < len(dp); i++ {
-		var temp = i - dp[i] + (len(dp) - i - (dp[len(dp) - 1] - dp[i]))
-		//var temp = len(dp) - dp[len(dp) - 1]
+		var temp =  dp[i] + (len(dp) - 1 - i - (dp[len(dp) - 1] - dp[i]))
 		if temp < res {
 			res = temp
 		}
@@ -47,6 +54,6 @@ func main()  {
 	// [0 0 1 1 2 3 3]
 	fmt.Println(minFlipsMonoIncr("010110"))
 	// 2
-	// [0 0 0 0 1 2 2 2 2]
+	// [0 0 1 1 2 3 3]
 	fmt.Println(minFlipsMonoIncr("00011000"))
 }
