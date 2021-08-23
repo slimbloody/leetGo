@@ -18,10 +18,10 @@ func (p P1662)sol1(word1 []string, word2 []string) bool {
 		return false
 	}
 
-	for i := 0; i < len(channel1); i++ {
+	var length = len(channel1)
+	for i := 0; i < length; i++ {
 		c1, _ := <- channel1
 		c2, _ := <- channel2
-		fmt.Println(string(c1), string(c2))
 		if c1 != c2 {
 			return false
 		}
@@ -50,9 +50,9 @@ func (p P1662)sol2(word1 []string, word2 []string) bool {
 }
 
 func main()  {
-	//fmt.Println(arrayStringsAreEqual([]string{"ab", "c"}, []string{"a", "bc"}))
-	//fmt.Println(arrayStringsAreEqual([]string{"a", "cb"}, []string{"ab", "c"}))
-	//fmt.Println(arrayStringsAreEqual([]string{"abc", "d", "defg"}, []string{"abcddefg"}))
+	fmt.Println(arrayStringsAreEqual([]string{"ab", "c"}, []string{"a", "bc"}))
+	fmt.Println(arrayStringsAreEqual([]string{"a", "cb"}, []string{"ab", "c"}))
+	fmt.Println(arrayStringsAreEqual([]string{"abc", "d", "defg"}, []string{"abcddefg"}))
 	fmt.Println(arrayStringsAreEqual(
 		[]string{"wxgdwznoledlfeoilewsjziotnncyebhwpdnnimcorzovuiig","lycfb"},
 		[]string{"wxgdwznoledlfeoilewsjzio","tnncyebhwpdnnimcor","iigl","yc","f","b","hnjm"}))
