@@ -316,9 +316,243 @@ A: logs.
 
 Q: What are the latency requirements?
 A: 100 ms 99 percentile.
+server上可能只有30ms
 
 Q: VM spec?
 A: 4 CPUS, 16GB RAM, 20GB shared disk.
+
+
+
+Using a trie to store the queries.
+Each node stores top k frequent of all its children's.
+Built offline every week.
+Online query: O(L) time
+
+1. (慢)每个节点都返回top10, 然后做merge sort
+2. (快)
+
+
+
+==================
+秒杀系统设计
+==================
+解决问题
+1.瞬时大流量高并发:
+服务器、数据库等能承载的QPS有限,如数据库一般是单机1000 QPS。需要根据业务预估并发量。
+2.有限库存，不能超卖:
+库存是有限的,需要精准地保证,就是卖掉了N个商品。不能超卖,当然也不能少卖了。
+3.黄牛恶意请求:
+使用脚本模拟用户购买,模拟出十几万个请求去抢购。
+4.固定时间开启:
+时间到了才能购买,提前- -秒都不可以(以商家「京东」「淘宝」 的时间为准)。
+5.严格限购:
+一个用户,只能购买1个或N个。
+
+
+架构:
+单体问题:
+1. 功能耦合严重
+2. 系统复杂, 一个模块升级导致整个服务都升级
+3. 扩展性差, 难以对单个模块扩展
+4. 开发协作困难, 所有人都在开发同一个仓库
+5. cascading failure 级联故障, 一个模块的故障导致整个服务不可用
+6. 只能用单一语言
+7. 数据库崩溃导致整个服务崩溃(数据库没有分库分表)
+
+
+micro_service:
+1. 秒杀
+2. 商品数据库
+3. 订单
+4. 支付
+优势:
+1. 各功能模块解耦,保证单一-职责。
+2. 系统简单,升级某个服务不影响其他服务。
+3. 扩展性强。可对某个服务进行单独扩容或缩容。
+4. 各个部门]协作明晰。
+5. 故障隔离。某个服务出现故障不完全影响其他服务。
+6. 可对不同的服务选用更合适的技术架构或语言。
+7. 数据库独立,互不干扰。
+
+
+商品信息表 commodity_info
+商品id 商品名称       商品描述 价格
+id    name          desc   price
+189   iPhone 11 64G XXXX   5999
+
+
+秒杀活动表 seckill_info
+秒杀id 秒杀名称        商品id        价格    数量
+id    name           commodity_id price  number
+28|618 iPhone 11 64G|189          |4000| 100
+
+库存信息表 stock_info
+库存id  |商品id        |活动id     库存   锁定
+id     |commodity_id |seckill_id stock lock
+1       189           0          1000000 0
+2       189           28         100     5
+
+订单信息表 order_info
+订单id 商品id       活动id      用户id    是否付款
+id   |commodity_id|seckill_id|user_id| paid
+1     189          28         Jack     1
+
+信息流:
+商家c端
+1. 选择商品信息 commodity_info
+2. insert seckill_info
+3. insert stock_info
+
+用户侧
+1. select seckill_info commodity_info stock_info
+2. insert order_info
+3. update stock_info
+
+
+并发导致的超卖: 大家都读到库存是1, 100个人去买, 然后都去减1, 导致超卖
+
+解决方案:
+1. 读取 判断的过程加上事务: mysql的并发度很低
+1)事务开始:START TRANSACTION;
+2)查询库存余量,并锁住数据
+SELECT stock FROM 'stock_info'
+WHERE commodity_id = 189 AND seckill_id = 28 FOR UPDATE;
+for update 是一个行锁
+3)扣减库存
+UPDATE 'stock_info' SET stock = stock - 1
+WHERE commodity_id=189 AND seckill_id= 28;
+4)事务提交
+
+2. 使用UPDATE语句自带的行锁
+1)查询库存余量
+SELECT stock FROM 'stock_info'
+WHERE commodity_ jd = 189 AND seckill_id = 28;
+
+2)扣减库存
+UPDATE 'stock_info' SET stock = stock - 1
+WHERE commodity_id = 189 AND seckill_id = 28 AND stock > 0;
+stock > 0 才能操作成功
+超卖问题解决了,其他问题呢?
+1.大量请求都访问MySQL，导致MySQL崩溃。
+对于抢购活动来说,可能几十万人抢100台iPhone ,实际大部分请求都是无效的,不需要下沉到MySQL。
+
+秒杀操作-库存预热
+秒杀的本质,就是对库存的抢夺:
+每个秒杀的用户来都去数据库查询库存校验库存,然后扣减库存,导致数据库崩溃。
+
+MySQL数据库单点能支撑1000 QPS ,但是Redis单点能支撑10万QPS ,可以考虑将库存信息加载到Redis中:
+直接通过Redis来判断并扣减库存。
+
+单线程的数据库。
+支持数据的主备容灾(Disaster Tolerance)存储 (有主从)
+所有单个指令操作都是原子的，即要么完全执行成功,要么完全执行失败。多个指令也可以通过Lua脚本事务操作
+实现原子性。
+因为都在内存中操作,性能极高,单机一般可支撑10万数量级的QPS。
+
+什么时候进行预热(Warm-up) ?
+活动开始前 双11晚上8点的时候跑定时任务库存预热 把所有库存信息都放到redis里面去
+
+----------
+redis扣减库存
+redis先读看有没有库存, 再扣减库存
+大部分请求都被Redis 挡住了,实际下沉到MySQL的理论上应该就是能创建的订单了。比如只有100台iPhone ,那么到MySQL的请求量理论.上是100。
+----------
+这个流程有没有问题?
+1.检查Redis库存和扣减Redis库存是两步操作。
+2.有并发问题仍然会导致超卖。
+解决方案
+哪怕Redis侧放行,可以创建订单了，到MySQL的时候也需要再检查一次。
+----------
+新的问题
+如果并发量超高, Redis 侧实际超卖的量过大, 如100万个请求同时到达, Redis全部放行。再到MySQL去检测,那Redis作用等于没有。
+
+lua把读库存和写库存放在一起解决这个问题
+Lua脚本功能是Reids在2.6版本中推出，通过内嵌对Lua环境的支持Redis解决了长久以来不能高效地处理CAS (check-and-set)命令的缺点，并且可以通过组合使用多个命令轻松实现以前很难实现或者不能高效实现的模式
+Lua脚本是类似Redis事务,有一定的原子性,不会被其他命令插队,可以完成一些 Redis事务性的操作
+
+如果秒杀数量是1万台,或者10万台呢?
+因为Redis 和MySQL 处理能力的巨大差异。实际下沉到MySQL的量还是巨大, MySQL无法承受
+解决思路: 可不可以在通过Redis扣库存后,到MySQL的请求慢一点
+解决方案: 通过消息队列(Message Queue , MQ)进行削峰(Peak Clipping)操作
+
+
+消息队列:
+生产者可以高速地向消息队列中投递(生产)消息。
+消费者可以按照自己的节奏去消费生产者投递的消息。
+消息队列一般带有重试的能力。可以持续投递,直到消费者消费成功。
+
+------------------------
+如果消息队列出现部分投递失败怎么办?
+Redis中的库存量,可以比实际的库存量多一点,比如1.5倍或者2倍。
+
+创建订单的时候还会对库存进行锁定判断, 就不会导致超卖
+------------------------
+库存扣减时机
+
+1. 下单时立即减库存。
+用户体验最好,控制最精准,只要下单成功,利用数据库锁机制,用户-定能成功付款。
+可能被恶意下单。”下单后不付款 ,别人也买不了了。
+2. 先下单,不减库存。实际支付成功后减库存。
+可以有效避免恶意下单。
+对用户体验极差,因为下单时没有减库存，可能造成用户下单成功但无法付款。
+3. 下单后锁定库存,支付成功后,减库存。
+
+
+============
+hr
+============
+
+
+
+
+
+
+
+
+
+
+
+
+
+============
+hr
+============
+1. 避免上一家薪水低的问题, 可以给出其他公司给出的薪水
+
+1. 先定title(先看level是否满意)
+2. 整个title的salary range是什么
+
+1. 拿到竞争对手的 competitive offer, negotiation更有力
+2. 可以讲一个竞争对手的范围xxx~xxx多了xxx
+
+
+==================
+Uber Project Lead揭秘：在科技巨头如何从0到1，主导项目
+==================
+
+分析
+1. 研究当前市场机会点是什么
+2. 模拟分析, 新的项目上线了能创造多少利润, ROI怎么样
+3. 短期 长期 带来的利润和机会
+
+市场潜力
+1. Total Addressable Market
+2. Serviceable Available Market
+3. Serviceable Obtainable Market
+
+技术可行性:
+1. 半年或者一年要做得完
+2. 技术的成熟的速度和空间
+
+选到小而美的点
+
+===========================
+Lyft Manager袁林：如何高效准备软件工程师（Software Engineer)面试？
+===========================
+1. 白板面试
+2. system design
+
+
 
 
 
