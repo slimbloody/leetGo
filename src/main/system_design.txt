@@ -1,3 +1,6 @@
+核心: 练习要和考试的环节对等
+
+
 系统设计中常说的Tradeoff是什么
 什么叫做SOA (Service Oriented Architecture)
 什么是Pull Model &什么是Push Model
@@ -484,39 +487,549 @@ Lua脚本是类似Redis事务,有一定的原子性,不会被其他命令插队,
 ------------------------
 如果消息队列出现部分投递失败怎么办?
 Redis中的库存量,可以比实际的库存量多一点,比如1.5倍或者2倍。
+Redis在抢购的时候只有扣减
 
 创建订单的时候还会对库存进行锁定判断, 就不会导致超卖
 ------------------------
 库存扣减时机
 
 1. 下单时立即减库存。
-用户体验最好,控制最精准,只要下单成功,利用数据库锁机制,用户-定能成功付款。
-可能被恶意下单。”下单后不付款 ,别人也买不了了。
+用户体验最好,控制最精准,只要下单成功,利用数据库锁机制,用户一定能成功付款
+可能被恶意下单: 下单后不付款 ,别人也买不了了。
+
 2. 先下单,不减库存。实际支付成功后减库存。
-可以有效避免恶意下单。
-对用户体验极差,因为下单时没有减库存，可能造成用户下单成功但无法付款。
-3. 下单后锁定库存,支付成功后,减库存。
+1) 可以有效避免恶意下单
+2) 对用户体验极差,因为下单时没有减库存，可能造成用户下单成功但无法付款。
+
+3. 下单后锁定库存,支付成功后,减库存(体验较好)
+
+
+------------------------
+如何限购
+------------------------
+用户是否有该订单, 无就创建订单
+               有就购买失败
+要扫所有的订单里面有没有这个商品, 代价很大, 不能用mysql了
+
+把限购商品作为key, 然后把用户的id放到redis set里面
+
+
+------------------------
+付款和减库存的数据一致性
+------------------------
+付款 -> 支付 -> 订单成功付款 -> 库存扣减
+分布式事务: 多个存在于不同数据库的操作, 同时成功或者同时失败
+
+1. 询问是否可以提交 支付 订单 商品
+2. 是否可以预执行 支付 订单 商品(先生成一条操作记录 但是不提交)
+   执行事务操作, 并将undo(回滚)和redo(重新做)信息记录到事务日志中
+3. 提交
+   执行事务提交, 或者undo
+
+------------------------
+redis扣减库存完毕后, 是否后面请求可以直接拒绝了
+------------------------
+库存扣减完毕后, 下单按钮置灰
+
+------------------------
+防止刷爆商品页面
+------------------------
+1. cdn eg: 商品图片
+2. 点击一次后, 前端下单按钮置灰
+3. 部分请求直接跳转到,繁忙页(限流)
+4. 未开始抢购时, 禁用抢购按钮
+    如何计算倒计时?
+    1)打开页面获取活动开始时间, 然后前端页面开始倒计时(如果担心时区不准)
+    2)打开页面获取距离活动开始的时间差, 然后前端页面开始倒计时
+    3)前端轮询(poll)服务器的时间(校准时钟), 并获取距离活动开始的时间差(时间以服务区为准)
+
+轮训时间会提前一点, 不是完全准确的时间
+
+------------------------
+秒杀服务器挂掉,怎么办?
+------------------------
+尽量不要影响其他服务,尤其是非秒杀商品的正常购买。
+服务雪崩(Avalanche)
+多个微服务之间调用的时候,假设微服务A调用微服务B和微服务C ,微服务B和微服务C又调用其他的微服务,这就是所谓的”扇出(Fan-out)” , 如扇出的链路上某个微服务的调用响应式过长或者不可用,对微服务A的调用就会占用越来越多的系统资源,进而引起系统雪崩,所谓的”雪崩效应”。
+服务雪崩效应是一种因”服务提供者”的不可用导致"服务消费着”的不可用并将这种不可用逐渐放大的过程。
+
+
+服务熔断(Fuse or Circuit-breaker)
+熔断机制是应对雪崩效应的一种微服务链路保护机制,当扇出链路的某个微服务不可用或者响应时间太长时,熔断该节点微服务的调用,快速返回”错误”的响应信息。当检测到该节点微服务响应正常后恢复调用链路。
+
+eg:
+Netflix Hystrix
+Alibaba Sentinel
+
+------------------------
+防止恶意刷请求或者爬虫请求
+------------------------
+1. 验证码机制(Verification Code Mechanism)
+点抢购按钮的时候输入一个验证码
+
+2. 限流机制
+限流机制
+Ratelimit Mechanism
+1. 同一个ip地址, 同一个用户id
+
+------------------------
+黑名单机制(风控部门)
+------------------------
+1. 黑名单ip地址
+2. 黑名单用户id
+
+------------------------
+秒杀系统 和 订票系统的差异
+------------------------
+差异主要在 火车票的座位 时段不一样, 每一张票编号都不一样
+
+
+车次id 车次 车次描述 价格
+id  number desc price
+189 G1100 xxxx 100
+
+
+库存信息表: stock_info
+库存id 商品id        座位号 库存     锁定
+id    commodity_id  seat stock    lock
+1       189         1A      1       0
+2       189         1B      1       1
+
+
+
+
+
+============
+OOD
+============
+ODD: viability 能不能实现要求的所有功能 eg: design elevator
+System Design: Scalability 能不能扩展 eg: design twitter
+
+一亩三分地  面经
+glassdoor 面经
+--------------
+
+
+
+
+solid:
+S: Single responsibility principle
+O: Open close principle
+L: Liskov substitution principle
+I: Interface segregation principle
+D: Dependency inversion principle
+
+Single responsibility principle
+
+
+
+-------------------------
+bad design:
+1. print不属于计算类的职责
+2. 不好扩展, 如果要加一个xml打印又要在里面加一个函数
+
+public class AreaCalculator
+  private float result;
+  public float getResult() {
+    return this. result;
+  }
+  public float calculateArea(Triangle t) {
+    this.result=h*b/2;
+  }
+  public void printResultInJson() {
+    jsonPrinter.initialize();
+    jsonPrinter.print(this. result);
+    jsonPrinter.close();
+  }
+}
+
+-------------------------
+public class AreaCalculator {
+  private float result;
+  public float getResult() {
+    return this. result;
+  }
+  public float calculateArea(Triangle t) {
+    this.result = h * b / 2;
+  }
+}
+
+public class Printer {
+  public printInJson( float number) {
+    jsonPrinter. initialize();
+    jsonPrinter. print(this. result);
+    jsonPrinter.close();
+  }
+}
+---------------------------------------------
+Open close principle
+对象或实体应该对扩展开放，对修改封闭(Open to extension, close to modification)
+
+public class AreaCalculator
+  public float calculateArea(Triangle t) {
+    //calculates the area for triangle
+  }
+
+  public float calculateArea(Rectangle r) {
+    //calculates the area for rectangle
+  }
+}
+
+如果要打不同的图形时要加不同的函数, 很难扩展
+
+解决办法: 用抽象类
+public class AreaCalculator {
+    private float result;
+    public float getResult() {
+        return this. result;
+    }
+    public float calculateArea(Shape s) {
+        this.result = s.getArea();
+    }
+}
+
+----------------
+Liskov substitution principle
+任何一个子类或派生类应该可以替换它们的基类或父类
+
+I: Interface segregation principle
+不应该强迫一个类实现它用不上的接口
+----------------
+eg:
+public class Shape {
+  abstract public float calculateVolumn();
+  abstract public float calculateArea();
+}
+
+平面图形没有体积, calculateVolumn 不应该放进去, 可以搞一个平面图形, 一个立体体积
+public class Rectangle extends Shape {
+  //...
+}
+
+public class Cube extends Shape {
+  //...
+}
+
+
+----------------
+Dependency inversion principle
+抽象不应该依赖于具体实现，具体实现应该依赖于抽象
+High-level的实体不应该依赖于low-level的实体
+----------------
+违背了 open-close 原则:
+
+public class AreaCalculator {
+  private float result;
+  private Triangle t;
+
+  public float getResult() {
+    return this.result;
+  }
+  public float calculateArea() {
+    this. result = t.h * t.b / 2;
+  }
+}
+
+
+AreaCalculator 对 Triangle 有依赖
+eg:
+1. Triangle 被删除了 AreaCalculator不能编译了
+2. Triangle的h和b属性改为私有了 AreaCalculator不能编译了
+
+
+面积计算器 不应该依赖于具体的实现, 应该依赖一个抽象的东西 比如 Shape
+
+
+
+
+=========
+OOD 5c
+=========
+----------------------------
+design: glass of water
+----------------------------
+self ans:
+1. 容器: 容量, 形状, 高度
+2. 液体的材质, 密度
+
+clarify -> what: 通过和面试官交流，去除题目中的歧义，确定答题范围
+            1. 针对关键字通过不断问问题, 帮助自己更好的确定答题范围, 看看需要设计哪种水杯
+            2. 大多数的关键字为名词，通过名词的属性来考虑
+        -> how: 问哪些问题
+
+Core objects: 确定题目所涉及的类，以及类之间的映射关系
+
+Cases: 确定题目中所需要实现的场景和功能
+
+Classes: 通过类图的方式，具体填充题目中涉及的类
+
+Correctness: 检查自己的设计，是否满足关键点
+
+---------------------------
+elevator
+---------------------------
+clarify:
+获取每辆电梯目前的重量
+1. What's the weight limit of the elevator?
+2. Do we need to consider overweight for our elevator system ?
+
+是否需要设计两种类，如果需要它们之间是什么关系?
+客梯和货梯有什么区别?
+1. 承重不一样
+2. 抵达楼层不一样
+
+所有电梯厢均为相同规格
+
+
+---------------------------
+building
+---------------------------
+1.楼有多大/楼有多高/楼内能容纳多少人? 通用属性，对于题目帮助不大
+
+2.是否有多处能搭乘的电梯口?
+  当收到一个搭乘电梯的请求时，有多少电梯能够响应?
+
+针对本题:每层仅一处能搭乘，所有电梯均可响应
+
+
+- How
+针对问题主题的规则来提问，帮助自己明确解题方向。
+此类问题没有标准答案，你可以提出一些解决方法，通过面试官的反应，选择一个你比较有信心(简单)的方案
+
+eg: 如何判断电梯是否超重?
+1. Passenger class包含重量
+2. 电梯能够自动感应当前重量
+
+eg: 当按下按钮时，哪一台电梯会响应?
+1. 同方向>静止>反向
+2. 半负责奇数楼层，一半负责偶数楼层
+
+eg: 当电梯在运行时，哪些按键可以响应?
+是否能按下反向的楼层
+
+-------------------------------
+
+
+
+
+
+Core Object
+1. 什么是Core Object: 要用到哪些类
+2. 为什么要定义Core Object ?
+  1) 这是和面试官初步的纸面contract
+  2) 承上启下，来自于Clarify的结果，成为Use case的依据
+  3) 为画类图打下基础
+3. 如何定义Core Object ?
+  1) 以一个Object作为基础，线性思考
+  2) 确定Objects之间的映射关系
+
+Object:
+ElevatorSystem
+
+输入input 输出output
+
+Request -> ElevatorSystem -> Elevator -> ElevatorButton
+定义好输入输出
+1. 一个请求进来, 会有一个电梯响应这个请求
+2. 对应关系:
+Request -> ElevatorSystem: 没什么mapping关系
+ElevatorSystem -> Elevator: 1对多
+Elevator -> ElevatorButton: 1对多
+
+best practice: 写法
+
+Access modifier:
+package: 什么都不声明
+public: +
+private: -
+protected: #
+如果声明为protected,变量和函数在能被定义他们的类访问的基础上，还能够被该类的子类所访问
+
+在类图中, 避免使用default的package level access
+只有写unit test的时候, 才会用这个package level access, 除此之外不用
+---------------
+cases: use case
+---------------
+1.什么是Use case ?
+在你设计的系统中，需要支持哪些功能?
+2.为什么要写Use cases ?
+    1) 这是你和面试官白纸黑字达成的第二份共识，把你将要实现的功能列在白板上
+    2) 帮助你在解题过程中，理清条例，一个一个Case实现
+    3) 作为检查的标准
+3.如何写Use cases ?
+利用定义的Core Object, 列举出每个Object对应产生的use case.
+每个use case只需要先用一句简单的话来描述即可
+
+
+看看每个类要支持实现哪些场景
+(把这些步骤列出来在纸板上 也是为了让面试官一个帮助自己的机会)
+
+ElevatorSystem
+1. Handle request
+
+Request
+1. N/A
+
+Elevator
+1. Take external request
+2. Take internal request
+3. Open gate
+4. Close gate
+5. Check weight
+
+ElevatorButton
+1. Press button
+-----------------------
+用类图解答ood
+
+class:
+1. 什么是类图?
+  类名
+  attribute
+  function
+  通过线段展现之间的关系
+2. 为什么要画类图?
+  1) 可交付, Minimal Viable Product
+  2) 节省时间, 不容易在Coding上挣扎
+  3) 建立在Use case上, 和之前的步骤层层递进, 条例清晰, 便于交流和修改
+  4) 如果时间允许/面试官要求，便于转化成Code
+3. 怎么画类图?
+  1) 遍历你所列出的use cases
+  2) 对于每-一个use case，更加详细的描述这个use case在做什么事情
+  eg: take external request ->
+        1. ElevatorSystem takes an external request
+        2. and decide to push this request to an appropriate elevator
+  3) 针对这个描述，在已有的 core objects 里填充进所需要的信息
+
+把use case当成是这个core object的函数
+不需要具体些里面函数的实现
+
+
+
+Good Practice
+如何知道一一个函数, 是否成功完成任务?
+地下一层电梯关闭, 这时有人在地下一层按了向上的按钮, 会发生什么?
+
+1. 设计一个灯, 看灯亮不亮, 多了一个core object, 实现麻烦
+2. Use boolean instead of void
+   成功的话返回true,否则返回false
+   但是不知道里面到底是出了什么问题返回的false
+3. 用exception eg: invalidExternalRequestException
+
+
+怎么设计电梯调度系统
+void handleRequest(ExternalRequest r)
+
+1. How do you handle an external request?
+2. What if I want to apply different ways to handle external requests during different time of a day?
+sol1:
+if else
+不同时段用不同的handle request
+disadvantage: 如果时间一改就很麻烦, 没有open to extension
+sol2: strategy design pattern
+1. 封装了多种算法/策略, 方便找问题
+2. 使得算法/策略之间能够互相替换
+
+一般都是用策略模式组合工厂模式
+
+3. Can you implement it in code?
+
+
+
+
+
+---------------
+其他设计题
+parking lot|landing machine
+================
+interview
+================
+Good:
+1. asked about input
+2. asked about null value case
+
+
+
+Q: reverse a linked list
+Needs improvement
+1. 拿到白板题, 先多问点问题, 看看对方想考什么
+did not ask enough clarifying question, started coding immediately
+
+2. did not ask about list type
+单链表 双链表
+3. did not ask output type
+4. did not ask about the definition of "reverse"
+要清楚定义, 不清楚的当没讲,
+eg:
+1 2 3 4 5 => 5 4 3 2 1
+          => 2 1 4 3 5
+
+5. did not explain his algo, started right away
+先解释思路, 解释完再写
+6. did not do any null check
+   node 本身是null
+
+7. too lttle explanation during the interview process
+8. communication needs major improvement
+写的过程多和面试官交流, 边写边解释, 参考ted边打war3边解释目的
+
+9. no testing at all
+自己写测试用例
+
+10. code not working
+
+------------------
+good sol:
+------------------
+let's assume that all the ambiguity has been clarified
+meaning this a singular linked list
+there's no circular
+and by reverse meaning 1 2 3 4 5 become 5 4 3 2 1
+and we are going to return the head of linked list
+
+assume this is our input:   1 -> 2 -> 3 -> null
+expected output:            3 -> 2 -> 1 -> null
+
+解释 prev cur next三个节点怎么做
+
+----------------------
+核心: 练习要和考试的环节对等
+
+算法/数据结构
+CS基础知识
+系统设计/OOD
+行为类问题
+简历准备
+面试套路
+各大公司面试偏好
+Offer谈判能力
+英语口语听力
+处理模糊信息能力
+
+
+
+非技术方面
+1.稳定的网络环境
+2.合理得体的着装
+
+技术方面
+3.提前熟悉工具(Coderpad/Google Doc等)
+4.描述能力/阐述能力/解释问题的能力(重中之重)
+
+
+todo: find an element in a rotated sorted array
+the essence of binary search: eliminate half of the unqualified candidates
+每一步是如何抛弃掉不合格的一步的
+
 
 
 ============
 hr
 ============
+有部分年轻人的有名气的大中型公司
+有年轻人: 交友 话题多
+也有老年人: 有人带
 
-
-
-
-
-
-
-
-
-
-
-
-
-============
-hr
-============
 1. 避免上一家薪水低的问题, 可以给出其他公司给出的薪水
 
 1. 先定title(先看level是否满意)
