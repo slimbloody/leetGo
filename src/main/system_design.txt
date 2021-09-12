@@ -283,6 +283,29 @@ Performance: cache 开多少内存
 这里最好讲一下你把什么东西存到了cache里，大概估算的用到多少cache的capacity之类的，不然的话可能听者会觉得这么多东西都放到cache里，内存够用么
 
 db: source of truth
+-----------------------
+●Used push model to fanout news feeds.
+●Used Redis to cache all tweets and feeds.
+denormalization: 冗余存储
+●Used denormalization to store the number of comments & likes in order to minimize db queries.
+●Used Redis as Message Queue Broker to deliver asynchronized tasks like email delivery and feeds fanout.
+
+
+1. user -- give me news feed --> web server
+2. web server -- get followings --> friendship database
+              <- get followings --
+
+3. web server -- get tweets from followings --> tweet table
+              <- get tweets from followings --
+4. web server -- merge and return --> user
+
+怎么判断哪个过程是瓶颈? 把用的sql写出来
+3的sql: select * from tweets where user in (1, 2, 3...) order by timestamp desc limit 20;
+所以是速度最慢的
+
+
+push 模式:
+用户发tweet, 丢给mq, mq get_follower, 然后把信息id丢到 news feed table里面去
 
 =================
 Autocomplete
@@ -487,7 +510,6 @@ Lua脚本是类似Redis事务,有一定的原子性,不会被其他命令插队,
 ------------------------
 如果消息队列出现部分投递失败怎么办?
 Redis中的库存量,可以比实际的库存量多一点,比如1.5倍或者2倍。
-Redis在抢购的时候只有扣减
 
 创建订单的时候还会对库存进行锁定判断, 就不会导致超卖
 ------------------------
@@ -543,7 +565,7 @@ redis扣减库存完毕后, 是否后面请求可以直接拒绝了
     2)打开页面获取距离活动开始的时间差, 然后前端页面开始倒计时
     3)前端轮询(poll)服务器的时间(校准时钟), 并获取距离活动开始的时间差(时间以服务区为准)
 
-轮训时间会提前一点, 不是完全准确的时间
+轮询时间会提前一点, 不是完全准确的时间
 
 ------------------------
 秒杀服务器挂掉,怎么办?
@@ -596,8 +618,18 @@ id    commodity_id  seat stock    lock
 2       189         1B      1       1
 
 
+----------------------------
+Redis在抢购的时候只有扣减, 如果下单失败, 会把扣减的增加回来吗?
+1. 一两分钟就抢完了
+2. 实际库存会比正常的多一点
+----------------------------
+如果限购买n次的话, 就把购买次数也记录下来 set改用map
+----------------------------
+下单后, 锁定库存, 但是不减去库存, 等待一个支付的时间, 用其他的结构存储锁定的库存
+----------------------------
 
-
+todo:
+redis 哨兵机制, 集群机制
 
 ============
 OOD
