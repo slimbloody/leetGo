@@ -20,14 +20,178 @@ if (grid[i]Cj] == 1) {
 3. 全局变量
 
 面试clone-graph(克隆图)
+把步骤拆开, 看函数就知道做了什么事情
+
+将整个算法分解为三个步骤:
+1.找到所有点
+2.复制所有点
+3.复制所有边
+
+bug率大大降低
+
+
+你认为的Code Quality:代码要加注释
+使用含义清晰的变量名命名+简单易读的处理逻辑 -> 用注释去解释让人看不懂的代码
+
+
+你认为的Code Quality:代码越短越好
+通过适当的子函数化的代码包装，多加空行 -> 虽然代码更长了，但是能够让你的代码: 易读，易维护，不易错
+
+你以为只需要细心就可以不出BUG:
+但是通过子函数化、避免全局变量等手段可以让你出BUG的概率大大降低
+
+
+Coding(Algorithm) Interview的评价体系主要有如下一些方面
+1. Logicality
+2. Code Quality
+3. Communication
+把面试官当作Co-worker而不是考官
+让面试官愿意和你一起工作
+
+
+Logicality逻辑思维能力
+1. 是否能很快的想到一个Work Solution
+2. 是否能够在面试官点出问题后优化白己的Solution
+
+Code Quality代码质量
+1. 代码到底写完没有
+2. 代码风格好不好
+  可读性
+  变量名、函数名命名
+  空格与空行的正确使用
+3. 异常检测
+4. Bug Free
+
+
+
+做一个题之前, 先沟通清楚, 得到面试官肯定, 再开始写代码, 写完以后再解释
+  不要闷头写
+  也不要一边写一边解释太多(容易写不完)
+可以要提示，经过提示做出来的题，也是可以拿到Hire的
+  但是先自己努力想-下，别太容易放弃，容易让人觉得不会主动思考问题
+别和面试官吵架
+  面试官带着答案来面试你的
+  不同意见在大部分情况下，都是你自己想错了
+会就会，不会就不会，不要遮遮掩掩，坦诚很重要
+  容易让人觉得和你沟通"不顺畅"
+  做过的题就说做过，不要故意说没做过
+  因为他既然已经怀疑你做过了，即使你说没有，他也无法打消这个顾虑，还不如让他换题
+
+
+如何评估算法能力? LintCode CAT来帮你!
+https://www.lintcode.com/cat/
+
+如何评估Bug Free的能力?每道题的平均提交次数
+https://www.lintcode.com/problem/
+
+
+面试算法VS算法:
+如果你还在看算法导论?赶紧扔掉
+我宁可你看的是 <<Cracking The Coding Interview>>
+
+也请不要去看普林斯顿的算法公开课
+-很多内容面试依然不考，或考得很少
+
+为什么?
+-面试算法!=算法
+
+
+
+1.最短路算法 DijkstraI Floyd / SPFA
+2.Morris算法 O(1)额外空间前序遍历
+3.Manacher算法 求最长回文子串
+4.KMP算法 strstr/indexOf
+5.网络流算法 Network Flow
+6.希尔排序 Shell Sort
+7.线段树 Segment Tree
+8.平衡排序二叉树 如Red-black Tree
+9.跳跃表 Skip List
+KD树 KD-Tree
+B树/B+树 B-Tree/ B+ Tree
+
+贪心法 Greedy
+最小生成树算法 Minimum Spanning Tree
+分治法 Divide & Conquer
+字典树 Trie
+并查集 Union Find
+堆 Heap
+
+动态规划 Dynamic Programming
+
+拓扑排序算法 Topological Sorting
+二分法 Binary Search
+哈希表 Hash Table
+二叉查找树 Binary Search Tree
+
+慢慢的:
+dfs考察比重变大了
+
+
+九章算法班(人门)
+九章算法强化班(部分)
+动态规划专题班(全部)
+高频冲刺班
+
+
+google: 考察的范围很广. 特别喜欢DP和红黑树Red-black Tree, 线段树Segment Tree
+
+
+系统设计:
+Web知识
+缓存Memcached / Redis
+关系型数据库MySQL / PostgreSQL
+非关系型数据库Cassandra
+分布式数据库系统Big Table
+分布式计算系统Map Reduce
+分布式文件系统GFS
+爬虫Crawler /倒排索引Inverted Index/Ads Ranking
+API设计/Restful
+消息队列Message Queue
+推拉模式Push & Pull
+Web Socket
+LBS
 
 
 
 
+什么岗位考O0D?
+互联网公司一般考System Design多，软件公司一般考OOD
+互联网公司= Facebook / Google / Amazon之流
+软件公司= Microsoft / Apple 1 Oracle之流
+应届生New Grad通常会考OOD多于System Design
+OOD:
+电梯问题
+停车场问题
 
 
 
 
+Behavior Question考什么?
+BQ面试是现在各大公司技术岗位几乎必须面的一轮面试
+通常是其他非技术岗位的人面试你.
+比如HR, Product/Project Manager, Designer
+
+你为什么来我们公司? .
+错误:因为三番天气好，因为离家近，因为活少钱多
+一般:因为认可公司的文化，喜欢公司的使命，这里有很多优秀的员工
+优秀:我在Facebook.上认识了我的初恋女友，我被Facebook连接世界的使命深深的感触到了，我也发现了很多FB的BUG，我想来改掉
+
+为什么离开现在的公司?
+错误:因为老板是傻逼，因为同事傻逼
+一般:因为没有成长空间了，要寻求更好的发展
+优秀:我非常喜欢上一家公司，之前的老板也非常希望我能够留下来，这是一个很难的决定，我希望寻求改变，之前的公司我已经基本熟悉各类业务，能够带团队了，现在希望能够加入到贵司获得更大的成长，因为贵司的上升空间更大，能够提供一个更大的平台让我实现我的价值
+
+如何去平衡帮助新人和完成自己的工作?
+错误:优先完成自己的工作的同时，利用空余时间去帮助新人
+一般:我很乐于去帮助新人，我会根据事情的优先级去安排和平衡
+优秀:帮助新人也是我的工作之一，如果影响到了我自己的工作，我就自己加班完成
+
+你还有什么想问我的?
+错误:工作压力大吗?加班吗?年假几天?有401k吗(五险一金) ?
+一般:你们公司的技术栈是啥?我加入的团队多少人?
+优秀:我如何能够参与到更重要的项目中去?我提前可以为这份工作做哪些准备?
 
 
-
+merge k array:
+1. heap, priority queue
+2. 两两归并
