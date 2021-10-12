@@ -5,8 +5,8 @@ type MyStack struct {
 
 
 /** Initialize your data structure here. */
-func Constructor() MyStack {
-}
+//func Constructor() MyStack {
+//}
 
 
 /** Push element x onto stack. */
@@ -26,4 +26,7 @@ func (this *MyStack) Top() int {
 
 /** Returns whether the stack is empty. */
 func (this *MyStack) Empty() bool {
+}
+
+func main() {
 }

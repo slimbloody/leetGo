@@ -4,8 +4,8 @@ type LRUCache struct {
 }
 
 
-func Constructor(capacity int) LRUCache {
-}
+//func Constructor(capacity int) LRUCache {
+//}
 
 
 func (this *LRUCache) Get(key int) int {
