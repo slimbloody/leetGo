@@ -1,0 +1,150 @@
+A distributed system, also known as distributed computing, is a system with multiple components located on different machines that communicate and coordinate actions in order to appear __as a single coherent system__ to the end-user.
+
+用一堆 computing unit 服务一个API
+
+复杂点(很多failure case 要考虑):
+Have to deal with a lot more failure cases
+
+advantage: high performance improved
+disadvantage:
+A distributed system is one in which the failure of a computer you didn't even know existed can render your own computer unusable.
+
+
+
+# 考察内容|Non-Signals
+NOT about solving the actual problem
+NOT about faking your seniority
+NOT about spilling out buzzwords
+
+
+
+考察内容| Signals
+ability to step back and ask pertinent clarifying questions to flush out what are the features we are designing.
+
+三思后行
+basic understanding of core distributed system concepts such as
+掌握核心concepts:
+  1. load balancing
+  2. sharding
+  3. async processing
+
+demonstrate abilities to __think through tradeoffs__ of different system design
+choices.
+权衡利弊(tradeoffs): 核心: 利用不同的特性做不同的事
+eg:sql VS nosql db
+    1. CAP
+    2. availability VS consistency
+    3. transaction vs scalability
+
+-----------------
+核心 Your daily work:
+1. Take ownership of the systems you build
+2. Be curious about the systems that you use
+3. write blog posts about the systems you build
+
+
+
+看了各大公司的system model, 想想:
+1.What is the system
+  1) functional requirements
+  2) non-functional requirements
+2. How large is the system
+  1) what is the traffic pattern?
+  1M
+  one user 3sends
+  2) peak traffic?
+  3) number of users?
+
+3. How to build the simplest version
+draw out the graph and design data model for DBs
+
+
+design venmo(社交支付):
+1.What is the system
+  1) functional requirements
+    user A able to send user B money
+    user B able to reject/accept
+    show balance
+    bonus feature: request 找谁要钱
+  2) non-functional requirements(Service Level Agreement )
+    transaction:
+    send money不成功, balance一定不能被扣减的, 要能够rollback
+    consistency -> availability: 手机和电脑登陆的balance都一样, 这就相当于consistency高于availability
+
+2. How large is the system
+  1) what is the traffic pattern?
+    1. 1Million users
+    2. one user 3sends
+  2) peak traffic?
+  3) number of users?
+
+3. How to build the simplest version
+draw out the graph and design data model for DBs
+
+有这个好奇心, 把日常看到的系统都break down, 能力慢慢就强起来了
+apply mental model frequently
+日常的system design相当于都做过了
+
+
+1. Grokking the system design interview
+题很好 ,solution不行, 看 Mah A 的 system design, 不要全信, 要自己思考一下
+2. youtube system design
+3. 九章 system design
+4. facebook engineer
+5. airbnb engineer
+
+一般涉及钱的业务, 都是consistence大于availability
+
+书:
+how to build distribute system
+
+
+
+面试技巧|Dos
+1. 面试官也是人be confident & humurous
+2. break down the problem to small features
+把自己会设计的feature放前面
+3. 让面试官guide你，take his/her hints, 看他到底想考察什么
+4. dive into systems that you know a lot about
+也要带领面试官, 展示自己最强的一面
+eg: 分析了flink和spark的区别, 适时展现自己
+
+
+1. narrow down functional/non-functional requirements
+(5min): flush out feature-list
+2. traffic estimation
+(5min) 手算一下
+3. draw flow chart (rest)
+  write/read split eg:提升read performance: pre-calculate
+  from user to backend: 从前往后
+
+
+POC(Proof of concept)是对某些想法的一个较短而不完整的实现
+
+
+
+mock interview:
+tiny url
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
