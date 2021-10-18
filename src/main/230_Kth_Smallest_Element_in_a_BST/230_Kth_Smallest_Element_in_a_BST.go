@@ -17,11 +17,15 @@ func kthSmallest(root *TreeNode, k int) int {
 
 func (p P230)sol1(root *TreeNode, k int) int {
     count := k
-    inorder(root, count)
+    inorder(root, &count)
 }
 
-func inorder(root *TreeNode, count int) int {
+func inorder(root *TreeNode, count *int) int {
 	inorder(root.Left, count)
+	*count = (*count) - 1
+	if *count == 0 {
+		return root.Val
+	}
 
     inorder(root.Right, count)
 }
