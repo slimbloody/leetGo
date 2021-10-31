@@ -1,0 +1,28 @@
+买家和卖家同时操作订单
+1. 比如滴滴打车, 用户和司机同时操作订单
+
+
+一般有三种解决方案
+1. 数据库锁
+shared lock:
+  select ... Lock in share mode
+exclusive lock:
+  select ... for update
+  同时容易造成死锁, 所以数据操作一定要按照顺序来
+
+
+optimistic lock: version control
+1. select id, data, version from table
+where id = $ID
+2. business code
+3.
+update table
+set data = $data
+where id=$id and version=$ver
+4. if {update} failed, go to step 1 else done!
+悲观锁的dsl就入侵系统了, 不大好
+
+8:25
+https://www.youtube.com/watch?v=vFW1U1vimVs&ab_channel=HaoChen
+2. sharding application
+3. centralized distributed lock manager
