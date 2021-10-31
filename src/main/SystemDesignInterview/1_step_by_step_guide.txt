@@ -1,0 +1,14 @@
+deal with ambiguity
+
+
+
+stream processing: kafka spark
+batch processing: hadoop mapreduce
+cloud native stream processing: kinesis(amazon)
+
+
+1. requirements clarification
+1) user: 用户是谁, 需求是什么
+2) scale(read/write)
+3) performance
+4) cost(budget constraints)

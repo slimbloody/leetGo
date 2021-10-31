@@ -1,0 +1,32 @@
+1. 用过工具
+2. 了解优缺点
+
+
+
+系统设计题相对较多
+设计一个数据驱动的产品,比如电影推荐系统
+设计一个大流量系统，比如Twitter
+
+经验类的问题较多
+大数据技术，比如Spark, Kafka, Cassandra等
+云计算技术，比如AWS等
+
+为什么要用这些
+
+对于新生技术的掌握程度
+1. 流数据处理, 比如Heron/Storm/Samza/Flink
+
+
+刷题
+leetcode, lintcode, hackerRank
+分类刷, 不要按难度刷, 总结出有思路就行
+
+
+发一个小的project, 在xxx小时内做一个application
+如果做过了,对工具足够熟悉,就可以投senior的职位了
+
+1. 做个小的项目,部署到云上
+2. 技术能力强, 就contribute to community, 基本上简历秒过
+
+1. 打理linkedin拓展人脉
+2. 线下meetup

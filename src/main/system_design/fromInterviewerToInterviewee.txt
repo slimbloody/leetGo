@@ -1,0 +1,25 @@
+1. 设计uber,有geoSystem,要知道geoHash
+2. 关键: tradeoff
+
+
+1. 需要具备哪些知识&素质?
+1. api design
+API Design, Database, Cache, File System, Distributed System, Scalabilty...
+每一个技术类别对应工业界的著名产品(e.g., DynamoDb for Database, S3 for File System)
+
+2. 常见面试题类别
+Newsfeed
+Chat app
+Website
+GeoSystem
+Design Database/File System...
+
+
+===============
+步骤
+===============
+1. narrow down functional/non-functional requirements
+2. traffic estimation
+3. draw flow chart (rest)
+  1. write/read split
+  2. from user to backend

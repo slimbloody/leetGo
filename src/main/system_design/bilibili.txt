@@ -1,0 +1,27 @@
+Step 1: Clarify the requirements(core: narrow down requirements)
+    1. 服务需求
+        functional requirement
+        1. upload(主要)
+        2. view(主要)
+        3. share
+        4. like/dislike
+        5. comment
+        6. search
+        7. recommend
+        non-functional requirement
+        1. Consistency
+        1) Every read receives the most recent write or an error
+o Tradeoff with Availability: Eventual consistency Availability
+        2) Every request receives a (non-error) response, without the guarantee that it contains the most recent write
+        2. Scalable
+        1. Performance: low Latency
+Partition tolerance (Fault Tolerance)
+P
+The system continues to operate despite an arbitrary number of messages being
+dropped (or delayed) by the network between nodes
+    2. 流量大小, traffic/user size
+Step 2: Capacity Estimation
+Step 3: System APIs
+Step 4: High-level System Design
+Step 5: Data Storage
+Step 6: Scalability
