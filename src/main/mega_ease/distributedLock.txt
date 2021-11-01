@@ -25,4 +25,46 @@ where id=$id and version=$ver
 8:25
 https://www.youtube.com/watch?v=vFW1U1vimVs&ab_channel=HaoChen
 2. sharding application
+
+数据索引交给indices服务器管理,
+由Operation Gateway传递请求给indices
+indices把数据分片, Operation Gateway会把同一个数据的请求丢到同一个数据服务器上
+
+advantage:
+1. 比较方便锁
+disadvantage:
+1. Load is not balanced
+但是可能有hotspot
+2. Multiple Entities Transaction
+Transfer money from account A to account B
+如果数据变更涉及到多个节点, 比较难处理, 可以临时把数据挪到一个节点上
+3. Node Failed
+Data Replication cause
+more consistent issues
+R(ead) + W(rite) > N(个节点)
+NRW: 写的过半, 是强一致性算法, CP系统; 写少于一半, 读就会出现冲突, 要自己做merge, 即AP系统
+5个节点, 写2个节点, 读4个节点, 一定能读出最新的版本
+5个节点, 写3个节点, 读3个节点, 一定能读出最新的版本
+5个节点, 写5个节点, 读1个节点, 一定能读出最新的版本
+
+如果一个节点有问题了, 数据复制问题很大
+4. 如果加节点的话需要做一致性哈希
+
+Uber Ringpop:
+https://eng.uber.com/ringpop-open-source-nodeis-library/
+通过gossip的方式做索引同步
+
 3. centralized distributed lock manager
+租约: 如果拿到了锁一直不释放
+远程服务必须要有lock detection
+1. 长时间没unlock, 会自己
+2. 心跳, 心跳掉了即
+
+1) Provides a lock-leasing protocol
+2) Transaction Service is stateless
+3) Lock Manager must be designed for HA
+  1. No single point failure
+  2. The lock state can be persistent.
+4) Dead Lock Detection
+  1. Lock expired
+  2. Keepalive heart beats
