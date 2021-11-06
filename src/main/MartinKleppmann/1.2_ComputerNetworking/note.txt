@@ -1,0 +1,21 @@
+any computing device that is involved in the system we call a node
+
+We use a simple abstraction of communication:
+one node can send a message to another node
+
+
+Latency and bandwidth
+Latency: time until message arrives
+depending on how congested the network is
+In the same building/ datacenter: ~ 1 ms
+One continent to another: ~ 100 ms
+
+Bandwidth: data volume per unit time
+3G cellular data: ~ 1 Mbit/s
+Home broadband: ~ 10 Mbit/s
+
+
+wireshark:
+capture individual web packet
+
+networks have this maximum size of packet

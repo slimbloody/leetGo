@@ -1,0 +1,82 @@
+different ways of sharing data between these concurrent entities
+
+a system in which the failure of a computer you didn't even know existed can render your own computer unusable
+Leslie Lamport
+
+multiple computers communicating via a network. . .
+trying to achieve some task together
+Consists of "nodes" (computer, phone, car, robot, ... )
+
+
+van Steen & Tanenbaum.
+Distributed Systems"
+(any ed), free ebook available
+
+theory detail:
+Cachin, Guerraoui & Rodrigues.
+Introduction to Reliable and Secure Distributed Programming" (2nd ed), Springer 2011
+
+towards database system:
+Kleppmann.
+Designing Data-Intensive Applications",
+O'Reilly 2017
+
+Bacon & Harris.
+Operating Systems: Concurrent and Distributed
+Software Design", Addison-Wesley 2003
+
+
+Relationships with other courses:
+Concurrent Systems - Part IB
+(every distributed system is also concurrent )
+Operating Systems - Part IA
+(inter-process communication, scheduling)
+Databases - Part IA
+( many modern databases are distributed )
+Computer Networking - Part IB Lent term
+( distributed systems involve network communication )
+Further Java - Part lB Michaelmas
+(distributed programming practical exercises)
+Security - Part IB Easter term
+(network protocols with encryption & authentication)
+Cloud Computing - Part II
+(distributed systems for processing large amounts of data )
+
+
+
+---------
+Why make a system distributed?
+---------
+1. It's inherently distributed
+eg: sending a message from your mobile phone to your friend's phone
+
+2. For better reliability
+eg: even if one node fails, the system as a whole keeps functioning
+if one failed, others can take over the work from the failed computer.
+this allows the system as a whole to continue functioning, even though one of the computers involved in it has actually gone down
+
+3. For better performance:
+eg: get data from a nearby node rather than one halfway round the world
+to make system faster by putting data closer to where people are
+avoid communication delay
+
+4. To solve bigger problems:
+e.g. huge amounts of data, can't fit on one machine
+
+------------------------
+The trouble with distributed systems:
+1. Communication may fail (and we might not even know it has failed).
+even if communication is interrupted from time to time, the system as a whole still functions in some correct way where of course we can define what we mean with correct, but we want it continue functioning
+
+2. Processes may crash (and we might not know ).
+eg:
+if you have a system consisting of multiple computers and you if you reboot one of them, you probably want the remaining computers to carry on the task of serving user requests
+what we want here is that one of the processes cur is temporarily out of action and we want the system as a whole to still continue nevertheless;
+out of action, the system as a whole to still continue nevertheless
+
+3. All of this may happen nondeterministically.
+
+
+Fault tolerance: we want the system as a whole to continue working, even when some parts are faulty.
+This is hard.
+

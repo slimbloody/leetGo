@@ -1,0 +1,69 @@
+
+fulfilOrder
+
+Result result = paymentService.processPayment(
+    card,
+    3.99,
+    Currency.GBP
+);
+
+when you call this process payment function, the implementation of that function is not within your program, the implementation is somewhere on another node at the other end of an internet connection, and what is actually happening here is what looks like a function called a method call is actually underneath being translated into some kind of network communication, this is called a remote procedure call
+
+in java, it called remote method invocation, it's the same idea;
+
+the rpc framework provides what is called a stub,
+so the stub function it has the same type signature, and it looks the same as the function on the remote node that you want to call this process payment function.
+what we make is this stub function that doesn't actually process the payment but what it does is sending a message to the service which then does process the payment
+
+so the online shop calls into this stub function here
+and the rpc client needs to take the arguments that were passed to that function, and translate them into a message that can be sent over the network.
+and this translation process from arguments in your programming language to message over the network is called marshalling(or encoding)
+it takes the function arguments and encodes it in some way that can be sent over the network
+
+the recipient side(or the rpc server) is going to receive this message, it's going to translate it back into a function call on the server side.
+so here now this is where actual implementation of payment function lives;
+so here on th rpc server side, now this function is going to get called, and it's going to do whatever is necessary in order to make this payment happen and that will probably involve talking to the card network and the bank and updating some databases and doing a whole bunch of extra stuff
+and eventually this function will return, and hopefully it will tell us whether the card payment was successful or not
+
+so the return value of this function again needs to be marshalled we do exactly the same in reverse
+so the rpc server marshals the return value of the function, sends it back as message
+
+the rpc client unmarshalls it and turn it back into the data types of programming language that you're using and then eventually the function returns
+
+what we've done now is to kind of pretend that what we're doing is calling a function locally, but actually what's happening underneath is this communication via messages to another service.
+
+
+Ideally, RPC makes a call to a remote function look the same as a local function call.
+
+this principle called:
+"Location transparency":
+system hides where a resource is located.
+
+In practice:
+1. what if the service crashes during the 1. function call?
+2. what if a message is lost?
+3. what if a message is delayed?
+4. if something goes wrong, is it safe to retry?
+
+networking hiccup
+it might have partially processed our request
+I guess we can use transactions here.
+
+
+
+RPC in enterprise systems:
+Service-oriented architecture(SOA) / "microservices":
+splitting a large software application into multiple services (on multiple nodes) that communicate via RPC.
+
+
+because of the sheer complexity, sometimes also because the large amounts of data that these things have to process, they are distributed systems, so you have multiple nodes running on multiple computers which are all providing part of infrastructure of this large organization, it might be a bank or a retailer.
+
+
+
+Different services implemented in different languages:
+1. interoperability: datatype conversions
+2. Interface Definition Language (IDL): language-independent API specification
+
+
+
+
