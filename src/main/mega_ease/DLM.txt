@@ -1,0 +1,12 @@
+OpenSSI is an open-source single-system image clustering system. It allows a collection of computers to be treated as one large system, allowing applications running on any one machine access to the resources of all the machines in the cluster
+
+Etcd
+
+distributed lock manager:
+The DLM uses a generalized concept of a resource, which is some entity to which shared access must be controlled. This can relate to a file, a record, an area of shared memory, or anything else that the application designer chooses. A hierarchy of resources may be defined, so that a number of levels of locking can be implemented. For instance, a hypothetical database might define a resource hierarchy as follows:
+1. Database
+2. Table
+3. Record
+4. Field
+
+A process can then acquire locks on the database as a whole, and then on particular parts of the database. A lock must be obtained on a parent resource before a subordinate resource can be locked.

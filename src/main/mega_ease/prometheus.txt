@@ -1,0 +1,544 @@
+==============
+prometheus
+==============
+todo: 理解 series churn, 为什么block merge 解决了series churn的问题
+
+1. Understanding Time Series
+1) Data scheme:
+identifier -> (t0, v0), (t1, v1)...
+2) Prometheus Data Model(简单的数据结构扩展性高)
+<Metric Name>{<label name>=<label value>,...}
+{__name__="request_total", path="/status", method="GET", instance="10.0.0.1:80"} @1434317560938 94355
+|---- metric name -------- | -----------------------labels-------------------- | -timestamp  -| sample value|
+|----------------------------- Key-Series ----------------------------------------------------|--- value ---|
+
+x axis: time
+y axis: series
+y轴有多少行就有多少个文件, 设计出来是做并行写的
+可以做并行写
+也可以并行批量查询, 做交集或者合并
+
+2. What's the Fundamental Problem
+1) storage problem
+1. IDE(Integrated Drive Electronics) Hard Disk Drives (HDD)
+spinning physically
+2. SSD(Solid State Drive): isn’t a disk at all, its just a load of electronics in a box the same shape and size so that we can easily fit them into existing computers and laptops)
+write amplification
+
+查询一般都是一个时间范围加一组series, 容易形成一组矩形,
+写的时候也可能随机写, 随机读写在IDE上非常慢, 磁盘要转动
+
+ssd 写放大
+只加一个字节需要完整写4kb
+删除只能256kb删, 少于256的话会再写入
+todo: wiki ssd
+ssd靠算法存活: 少写
+
+如果几百万个series:
+ide: 硬盘会非常慢
+ssd: 寿命大大降低
+
+希望批量写, 顺序读
+
+2) Ideal Write:
+1. sequential writes
+2. batched writes
+
+3) Ideal Read:
+1. Same Time Series should be sequentially
+
+3. Prometheus Solution (v1.x) v2
+1) 一个文件一个time series
+2) 有1kb chunks放在内存里
+
+
+Dark Sides(缺陷):
+1. Chunk are hold in memory, it could be lost if application or node crashed.
+2. With several million files, inodes would be run out
+
+request total有100个api
+每个api有4个方法(put/get/post/del)
+每个方法有5个实例
+100 * 4 * 5
+inode很快就耗尽了
+
+3. With several thousands of chunks need be persisted, could cause disk I/0 so busy.
+
+4. Keep so many files open for I/0，which cause very high latency.
+
+5. Old data need be cleaned, it could cause the SSD's write amplification
+
+6. Very big CPU/MEMORY/DISK resource consumption
+-------------------
+churn
+英 [tʃɜːn]  美 [tʃɜːrn]
+vi. 搅拌；搅动
+vt. 搅拌；搅动
+n. 搅乳器
+
+-----------------------------------------------------------------
+
+k8s里面一个服务rolling update或者scaling到别的节点上, 导致series断掉了
+这个时候ip地址从A变成B了, 这个时候前面的A地址还会不会来数据呢?
+可能中间停了一段时间,后面再来, 也有可能不来了
+prometheus不知道怎么判断, 不知道是否需要hold在内存里
+导致复杂度被放大
+
+Series Churn
+Definition
+1. Some time series become INACTIVE
+2. Some time series become ACTIVE
+
+Reasons
+1. Rolling up a number of microservice
+2. Kubernetes scaling the services
+
+
+
+-----------------------------------------------------------------
+
+https://github.com/prometheus/prometheus/blob/main/tsdb/docs/format/README.md
+4. New Design of Prometheus (v2.x) v3
+
+./data
+|-- 01BKGV7JBM69T2G1BGBGM6KB12
+|   |---chunks
+|   |   |-- 000001
+|   |   |-- 000002
+|   |   |-- 000003
+|   |----index
+|   |----meta.json
+|
+|---chunks_head
+|   |-- 000001
+|
+|---wal
+    |-- 000001
+    |-- checkpoint.0000002
+        |--- 0000000
+        |--- 0000001
+
+index
+meta. json
+
+1) Storage Layout
+1. 01XXXXXXX- is a data block
+    ULID - like UUID but lexicographically sortable and encoding the creation time
+    uuid和md5都没法排序
+2. chunk directory
+    1. contains the raw chucks of data points for various series (likes "V2")
+    2. No long a single file per series
+3. index 一index of data(block的索引文件)
+    1. Lots of black magic find the data by labels.
+4. meta.json - Readable meta data
+    1. the state of our storage and the data it contains
+5. tombstone
+    1. Deleted data will be recorded into this file, instead removing from chunk file
+6. wal - Write-Ahead Log
+    1. The WAL segments would be truncated to "checkpoint.x" directory
+7. chunks_head - in memory data(部分数据放在内存里)
+
+Notes
+1. The data will be persisted into disk every 2 hours
+   一般每两个小时存一堆block
+   block里面又一堆chunk, 解决了写放大的问题
+
+2. WAL is used for data recovery.
+3. 2 Hours block could make the range data query efficiently
+
+时序数据库的数据是只读的, 只可以删不可以改
+
+--------------------------------------
+Blocks - Little Database
+1. Partition the data into non-overlapping blocks
+    1. Each block acts as a fully independent database
+    2. Containing all time series data for its time window
+    3. it has its own index and set of chunk files.
+2. Every block of data is immutable
+3. The current block can be append the data
+4. Alt new data is write to an in-memory database
+5. To prevent data loss, a temporary WAL is also written.
+
+
+prometheus数据分布很像一个树形
+root指向多个block
+block指向多个chunk
+chunk在树型里面从左到右按时序存储, 最右边的是chunk_head
+chunk_head放在memory里面,属于当前时间点,所有的数据都写到这边,写满了就persist到内存里面去
+block多了以后也会merge
+以后查询是去多个block里面查, 查出来以后merge返回结果
+
+
+--------------------------------------
+New Design's Benefits
+●Good for querying a time range
+we can easily ignore all data blocks outside of this range.
+It trially addresses the problem of series churn by reducing the set of inspected data to begin with
+Good for disk writes
+When completing ablock, we can persist the data from our in-memory database by sequentially writing just
+a handful of larger files.
+●Keep the good property of V2 that recent chunks
+which are queried most, are always hot in memory.
+●Flexible for chunk size
+:●We can pick any size that makes the most sense for the individual data points and chosen compression
+format.
+●Deleting old data becomes extremely cheap and instantaneous.
+We merely have to delete a single directory. Remember, in the old storage we had to analyze and re-write
+up to hundreds of millions of files, which could take hours to converge.
+
+--------------------------------------
+
+chunk-head:
+
+1. Chunk will be cut
+    1. fills till 120 samples
+      一般每个sample30秒, 满了两个小时或者sample写满了就把chunk cut出来, 因为是in-memory数据库, 所以要把操作放在wal文件里
+       数据特别多了, 内存hold不住, 就做mmap, 不怎么消耗内存
+       chunk多了就cut成block
+       如果持久化到了硬盘上, 就把wal删掉了
+    2. 2 hour (by default)
+Since Prometheus v2.19
+    1. not all chunks are stored in memory
+    2. When the chunk is cut, it will be flushed to disk and to mmap
+
+User Space      |       Kernel Space            |  Device
+
+            read/write              (operating system)
+user process----|--> file system --> page cache | --> disk
+
+                        mmap
+user process----|------------------> page cache | --> disk
+
+                        direct I/O
+user process----------------------------------------> disk
+
+
+memory 硬盘上的文件映射到操作系统内核来, 不占用户空间内存, 直接操作内核空间内存
+会把物理地址映射成虚拟地址, 映射到用户process, 可以多个process共享, 是unix
+节省很多内存, 不用关心哪些东西要被淘汰, 哪些东西要换进来, 全部交给操作系统管理
+java里面还会省掉gc, 但是要配内核的参数
+
+
+---------------------------------
+
+wal
+https://martinfowler.com/articles/patterns-of-distributed-systems/wal.html
+主要是为了acid里面的d
+先写日志再写内存, 写具体的操作, 不是写状态
+1. widely used in relational databases to provide durability (D from ACID)
+2. Persisting every state change as a command to the append only log.
+
+
+1. Store each state changes as command
+2. A single log is appended sequentially
+3. Each log entry is given a unique identifier
+    1. Roll the logs as "Segmented Log":WAL太多了, 所以必须要滚动, 变成小的日志
+    2. Clean the log with Low-Water Mark: 定期刷盘后清理
+        1. Snapshot based (Zookeeper & ETCD): 搞一个snapshot, 基于snapshot再去执行后面的序列
+        2. Time based (Kafka): 超过一定时间我就扔掉
+    3. Support Singular Update Queue
+        1. A work queue
+        2. A single thread
+        写日志可能是多个程序并发的, 会有问题, 做update前后顺序有关系, 所以最好就用单线程配合queue
+
+
+---------------------------------
+
+checkpoint:
+
+data
+|---wal
+    |--- 0000000
+    |--- 0000000
+    |--- 0000001
+    |--- 0000002
+    |--- 0000003
+    |--- 0000004
+    |--- 0000005
+
+------------
+data
+|---wal
+    |-- checkpoint.0000003
+    |    |-- 000001
+    |    |-- 000001
+    |
+    |--- 0000004
+    |--- 0000005
+
+------------
+
+Series: key
+Samples: value
+
+1. WAL Records : includes the Series and their corresponding Samples.
+1) The Series record is written only once when we see it for the first time
+   key是一定会写的, 但是不知道写到哪个chunk里面
+2) The Samples record is written for all write requests that contain a sample.
+    sample是一直在写的
+
+2. WAL Truncation - Checkpoints
+1) Drops all the series records for series which are no longer in the Head.
+2) Drops all the samples which are before time T.
+3) Drops all the tombstone records for time ranges before T.
+4) Retain back remaining series, samples and tombstone records in the same way as you find it in the WAL (in the same order as they appear in the WAL).
+
+(go through)for循环所有的chunk, 看里面所有的record,
+做各种drop
+drop完以后剩下的东西再写入xxx
+000000~000003四个文件drop之后再重写成checkpoint.000003 文件夹下的 000000~000001
+
+
+3. WAL Replay
+1) Replaying the "checkpoint.X"
+2) Replaying the WAL X+1, X+2... X+N
+replay的时候就先从checkpoint.000003开始, 然后replay 000004 000005
+
+4. WAL Compression
+1) The WAL records are not heavily compressed by Snappy
+2) Snappy is developed by Google based on LZ77
+    1. It aims for very [[high speeds and reasonable compression]]. Not maximum compression or compatibility.
+    2. It is widely used for many database - Cassandra, Couchbase, Hadoop, LevelDB, MongoDB, InfluxDB....
+    snappy
+    不考虑兼容性
+    合理的压缩比前找最快的速度
+    在古老的机器上可以做到压缩 250MB/s, 解压 500MB/s
+
+-----------------------------------------------------------------
+
+Block Compaction
+Problem
+1. When querying multiple blocks, we have to merge their results into an overall result.
+2. If we need a week-long query, it has to merge 80+ partial blocks.
+
+一个block相当于一个数据库, block多了merge起来, 就不需要读这么多数据库了
+可能会有写放大, 因为要删除一些小的东西, 但是性能上还好, 不会经常做
+
+-----------------------------------------------------------------
+Retention(数据保留)
+
+Block 1 can be deleted safely, block 2 has to keep until it fully behind the boundary.
+如果retention的时间线走到2这个block的中间, 就不会删除block, 直到retention的时间线完全超过block2才会删掉
+
+Block Compaction impacts
+    1. Block compaction could make the block too large to delete.
+    2. We need to limit the block size.
+
+上面merge block, 越长越难删掉
+所以block配置一般用:
+
+Maximum block size = 10% * retention window.
+
+-----------------------------------------------------------------
+
+优化之前可能我要操作很多文件, 优化之后的话我只需要操作block里面的数据了, 在这个block里面找矩形,
+retention我也是删矩形的一部分
+
+-----------------------------------------------------------------
+
+今天听了一下陈老师讲prometheus, 对里面
+
+New Design's Benefits
+
+1. Good for querying a time range
+    1) we can easily ignore all data blocks outside of this range.
+    2) It trivially addresses the problem of series churn by reducing the set of inspected data to begin with
+    1. block在某个时间范围查询, 效率比较高
+    // todo:
+    2. 解决了series文件xxx是不是active的问题, 时间过去了文件就关闭了, 不用考虑是不是还有信息会写进来
+2. Good for disk writes
+    1) When completing a block, we can persist the data from our in-memory database by sequentally writing just a handful of larger files.
+    block hold在内存里面, 可以一把写入硬盘, 顺序写
+3. Keep the good property of V2 that recent chunks
+    1) which are queried most, are always hot in memory.
+4. Flexible for chunk size
+    1) We can pick any size that makes the most sense for the individual data points and chosen compression format.
+5. Deleting old data becomes extremely cheap and instantaneous.
+    1) We merely have to delete a single directory. Remember, in the old storage we had to analyze and re-write up to hundreds of millions of files, which could take hours to converge.
+-----------------------------------------------------------------
+
+Index
+1. Using inverted index for label index
+2. Allocate an unique ID for every series
+  1) Look up the series by this ID, the time complexity is 0(1)
+  2) This ID is forward index.
+3. Construct the labels' index
+  1) If series ID = {2,5, 10, 29} contains app="nginx"
+  2) Then, the { 2, 5, 10 ,29} list is the inverted index for label "nginx"
+4. In Short
+  1) Number of labels is significantly less then the number of series.
+  2) Walking through all of the labels is not problem.
+
+-----------------------------------------------------------------
+
+prometheus 为了解决倒排索引计算的问题:
+所以让series Id为ULID, 可排序
+
+倒排索引算交集一个长m, 一个长n:
+1. 如果要节省空间, 不用额外空间的话
+拿着m里面的元素去go through n, 复杂度即为O(mn)
+
+2. 优化
+复杂度为O(m + n)
+while (idx1 < len1 && idx2 < len2) {
+    if (a[idx1] > b[idx2]) {
+        idx2++
+    } else if (a[idx1] < b[idx2]) {
+        idx1++
+    } else {
+        c = append(c, a[idx1])
+        idx1++
+        idx2++
+    }
+}
+
+感觉还可以优化, 先用二分法在头尾找出两个区间之间重叠的区间, 再继续走这个算法
+
+1. Series ID must be easy to sort, use MD5 or UUID is not a good idea ;
+( V2 use the hash ID)
+2. Delete the data could cause the index rebuild.
+
+
+-----------------------------------------------------------------
+
+benchmark:
+用了mmap, heap memory降了3到4倍
+cpu 下降了3~10times: 不再从几百万个文件里面找了, 从block里面找
+disk i/o: saving 97%~99%
+query p99 latency: 1.5用了更多的series所以查询更慢
+
+-----------------------------------------------------------------
+
+Gorilla Requirements:
+1. 2 billion(20亿) unique time series identified by a string key.
+2. 700 million(7亿) data points (time stamp and value) added per minute.
+3. Store data for 26 hours.85% Queries for latest 26 hours data
+4. More than 40,000 queries per second at peak.
+5. Reads succeed in under one millisecond(1ms).
+6. Support time series with 15 second granularity (4 points per minute per time series).
+7. Two in-memory, not co-located replicas (for disaster recovery capacity).
+8. Always serve reads even when a single server crashes.
+Ability to quickly scan over all in memory data.
+9. Support at least 2x growth per year.
+
+为了要性能,容忍丢数据
+没有label
+但是压缩的技术特别好
+
+Key Technology
+1. Simple Data Model - (string key, int64 timestamp(这个非常耗内存, 所以需要高压缩比数据), double value)
+2. In memory - low latency
+3. High Data Compression Raito - Save 90% space
+4. Cache first then Disk - accept the data lost(允许数据丢失)
+5. Stateless - Easy to scale
+6. Hash(key) -> Shard -> node(但是要重算一致性hash)
+
+
+论文里讲的更多的是压缩算法
+delta encoding: 只记录有改变的东西
+
+仅适用于变化量不大的数据
+
+example:
+HTTP RFC 3229"Delta encoding in HTTP": 只传增量的东西
+rsync - Delta file copying
+Online backup
+Version Control: 只保留diff
+
+facebook: delta of delta
+Compress Timestamp
+D=(Tn - Tn-1) - (Tn-1 - Tn-2)
+D=O, then store a single '0' bit
+D=[-63, 64], 10' : value (7 bits)
+D=[-255, 256], 110' : value (9 bits)
+D=[-2047, 2048], '1110' : value (12 bits)
+Otherwise store 1111': D (32 bits)
+
+todo: 如果是这样, 解压是不是也要从header开始解压, 一个个往下算
+
+Compress Values (Double float)
+X=Vi ^ V(i-1)
+    1. x=0, then store a single '0' bit
+    2. X!=0
+
+整形我只想存其中的一些bit, 相减没啥意思
+double减完还是double64位, 所以没用, 0.1我也要64bit
+对两个int或者double的数字进行异或
+
+
+首先计算XOR中Leading Zeros与Trailing Zeros的个数.
+前面的0和后面的0第一个bit值存为'1', 第二个bit值为
+
+
+--------------------------------------
+12      == 0x40280000000000
+24      == 0x40380000000000
+12 ^ 24 == 0x00100000000000
+--------------------------------------
+
+'11': 1 : 1 :'1'
+  2 + 5 + 6 + 1
+
+高位在后, 有11个leading zeros
+第二位如果是0: 则证明我前面的那个压缩的码的前11位也是0, 这个例子不是, 所以是1
+
+1.
+如果Leading Zeros与Trailing Zeros与前一个XOR值相同, 则第2个bit值存为'O',
+而后, 紧跟着去掉Leading Zeros与Trailing Zeros以后的有效XOR值部分
+2.
+如果Leading Zeros与Trailing Zeros与前一个XOR值不同,则第2个bit值存为'1',
+而后,紧跟着5个bits用来描述Leading Zeros的个数,再用6个bits来描述有效XOR值的长度,
+最后再存储有效XOR值部分(这种情形下，至少产生了13个bits的冗余信息)
+
+本质上做了两个double的diff, 平均每个样本16bit, 随着样本越来越多, 如果超过2h后差不多变成1.37byte
+
+----------------------------------------------------------------
+
+
+-----------------------------------------------------------------
+- Data Compression Algorithm
+
+-----------------------------------------------------------------
+
+ts.db
+
+open ts db
+
+数据压缩论文
+
+mmap 不消耗内存了
+memoryMap 不用gc, 但是要陪内核参数
+
+snappy 压缩 基于lz77, 不为了压缩率, 合理的压缩比的前提下找最快的速度
+压缩250M/s
+解压500M/s
+
+-----------------------------------------------------------------
+
+末尾有各种ref
+知道整体设计思路
+1. Writing a Time Series Database from Scratch by Fabian Reinartz
+https://fabxc.org/tsdb/
+
+in-memory db:
+2. Gorilla: A Fast, Scalable, In-Memory Time Series Database
+http://www.vldb.org/pvldb/vol8/p1816-teller.pdf
+
+data-schema和tsdb一样
+3. TSDB format
+htps://github.com/prometheus junkyard/tsdb/blob/master/doc/format/README.md
+
+4. PromCon 2017: Storing 16 Bytes at Scale - Fabian Reinartz
+    video: https://www.youtube.com/watch?v=b pEevMAC3I
+    slides: https://promcon.io/2017-munich/slides/storing- 16-bytes-at-scale.pdf
+
+5. Ganesh Vernekar Blog - Prometheus TSDB
+(Part 1): The Head Block htst//i/e/hverear.om/blo/rometheurseer tsdb the head block
+(Part 2): WAL and Checkpoint hts/:/ganeshvermekar com/blog/orometheus tsdb wal-and-checkpoint
+(Part 3): Memory Mapping of Head Chunks from Disk httsa/e/hve/rearen com/blo/roethu tsdb. minghead-chunks from-disk
+(Part 4): Persistent Block and its Index htst/:/a/hv/rekar.com/log/prometheus-tsdb-persistent-block and-its-index
+(Part 5): Queries hts://aneshvernekar .com/blog/prometheus tsdb queries
+
+压缩算法
+6. Time-series compression algorithms, explained
+htts://lo/.timescale.com/blog/time-series-compression-algorithms-explained/
