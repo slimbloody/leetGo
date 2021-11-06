@@ -1,0 +1,43 @@
+=====================================
+1. Availability
+=====================================
+Online shop wants to sell stuff 24/7!
+Service unavailability = downtime = losing money
+Availability = uptime = fraction of time that a service is
+functioning correctly
+
+两个九"Two nines" = 99% up = down 3.7 days/year
+三个九"Three nines" = 99.9% up = down 8.8 hours/year
+四个九"Four nines" = 99.99% up = down 53 minutes/ year
+五个九"Five nines" = 99.999% up = down 5.3 minutes/year
+
+terms that you get in the context of availability:
+Service-Level Objective (SLO):
+e.g. 99.9% of requests in a day get a response in 200 ms
+the goal that you are setting yourself in terms of the availability of a service, so this might specify the percentage of requests that need to get a correct response, where the maximum time that it's allowed to take for that response, say 200 milliseconds or whatever, and period time over which you're going to measure it, so you're going to take that 99.9% over the course of all of the requests made in one day for example.
+
+Service-Level Agreement (SLA):
+contract specifying some SLO, penalties for violation
+sla is basically a contract between a service and its customers specifying what the expected service level is
+
+=====================================
+2. Achieving high availability: fault tolerance
+=====================================
+Failure: system as a whole isn't working
+
+Fault: some part of the system isn't working
+1. Node fault: crash
+(crash-stop/crash-recovery)
+deviating from algorithm (Byzantine)
+2. Network fault: dropping or significantly delaying messages
+
+Fault tolerance:
+system as a whole continues working, despite faults
+(some maximum number of faults assumed) eg: the system as a whole will continue working if fewer than half of our nodes have crashed for example
+
+Single point of failure (SPOF):
+node/ network link who
+ose fault leads to failure
+
+
+

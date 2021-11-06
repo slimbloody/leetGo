@@ -1,0 +1,10 @@
+the two generals problem
+two general attack the city at the same time
+
+two general can only communicate via messengers
+
+from general 1's point of view, this is indistinguishable from
+
+No common knowledge: the only way of knowing something is to communicate it
+三次握手,四次挥手解决不了?
+

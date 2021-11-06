@@ -59,10 +59,22 @@ splitting a large software application into multiple services (on multiple nodes
 because of the sheer complexity, sometimes also because the large amounts of data that these things have to process, they are distributed systems, so you have multiple nodes running on multiple computers which are all providing part of infrastructure of this large organization, it might be a bank or a retailer.
 
 
-
-Different services implemented in different languages:
+different services implemented in different languages:
 1. interoperability: datatype conversions
-2. Interface Definition Language (IDL): language-independent API specification
+interoperability between these systems written in different programming languages
+
+2. interface definition language (IDL): language-independent api specification
+datatype conversions is often implemented using something called(IDL)
+language for specifying the type signature or function calls in a way that is not specific to any programming language
+IDL generate code for rpc client and rpc server
+
+
+
+
+
+
+
+
 
 
 

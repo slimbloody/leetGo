@@ -1,0 +1,46 @@
+1. we assume the messengers are reliable
+2. some of the general are not loyal, being malicious
+
+for points of view of general3, it's impossible to tell the difference between these two scenarios
+
+
+Byzantine General Problem:
+1. Up to f generals might behave maliciously
+2. Honest generals don't know who the malicious ones are
+3. The malicious generals may collude
+4. Nevertheless, honest generals must agree on plan
+
+honest generals don't know who the malicious generals are, but we going to assume some maximum number of generals being malicious
+f generals out of n generals in total
+
+honest generals don't know who the malicious generals are,
+but malicious generals may know who the other militias generals are, so they might actually work together in some coordinate fashion to try to deceive and trick the honest generals.
+
+and nevertheless our requirement is that the honest generals agree on a plan
+so we can't get malicious generals to agree on any part of the plan, because we assuming that they might misbehave in arbitrary ways
+
+
+============
+todo: 证明这个数值
+Theorem: need 3f + 1 generals in total to tolerate f malicious generals (i.e. < -1/3 be malicious)
+Cryptography (digital signatures) helps - but problem remains hard
+============
+a digital signature which is a form of message in which it can be proved that a certain party sent a certain message
+in this case, it allows general 2 to prove what a command general 1 sent to general 2, and prove that to general 3 in a way that general 3 would be convinced that general 2 really is honest
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

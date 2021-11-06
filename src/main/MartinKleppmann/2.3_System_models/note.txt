@@ -1,0 +1,56 @@
+We have seen two thought experiments:
+1. Two generals problem: a model of networks
+2. Byzantine generals problem: a model of node behaviour
+
+In real systems, both nodes and networks may be faulty!
+
+-----------
+
+Capture assumptions in a system model consisting of:
+1. Network behaviour (e.g. message loss)
+network are unreliable
+
+2. Node behaviour (e.g. crashes)
+3. Timing behaviour (e.g. latency)
+Choice of models for each of these parts
+
+
+======================
+Network behaviour:
+======================
+Assume bidirectional point-to-point communication between two nodes(one sender and one recipient), with one of:
+
+1. Reliable (perfect) links:
+A message is received if and only if it is sent. Messages may be reordered.
+
+2. Fair-loss links:
+Messages may be lost, duplicated, or reordered. If you keep retrying, a message eventually gets through.
+
+it has a non-zero probability of being delivered.
+if you keep repeating the sending of that message then we're going to assume that eventually it will get through. we're not going to make any assumptions about how long that might take
+
+3. Arbitrary links (active adversary):
+A malicious adversary may interfere with messages
+(eavesdrop, modify, drop, spoof, replay)
+
+if you're connecting to a coffee shop wi-fi, the owner of that wi-fi could be interfering with your network packets in arbitrary ways, and that means thery might not just be looking at your network communication like eavasdropping on it, but they might actually modify the packets, they might record the packets and then replay them at some later point of time, they might pretend to be some website and spoof it, and of course they might drop messages as well.
+An arbitrary link is allowed to do any of these things, it's a resonable model of how the internet works today
+
+Network partition: some links dropping/delaying all messages for extended period of time
+
+convert of links:
+Arbitrary links -(TLS)-> fair-loss link - retry + deduplicate(重试,去重) -> reliable link
+TLS:transport layer security;https
+
+the only thing we cannot do is if the active adversary just decides to block all communication ever in that case nothing is going to get through, and you can't turn that into a fair loss link because we can't make any guarantee that eventually a message will get through if keep retrying
+
+
+======================
+node behavior
+======================
+Each node executes a specified algorithm, assuming one of the following:
+
+Crash-stop (fail-stop):
+A node is faulty if it crashes (at any moment).
+After crashing, it stops executing forever.
+
