@@ -1,0 +1,15 @@
+time, clocks, and ordering of events
+
+Distributed systems often need to measure time, e.g.: .
+    Schedulers, timeouts, failure detectors, retry timers
+    Performance measurements, statistics, profiling
+    Log files & databases: record when an event occurred
+    Data with time-limited validity (e.g. cache entries )
+
+dig www.cst.com.ac.uk
+
+
+
+
+
+

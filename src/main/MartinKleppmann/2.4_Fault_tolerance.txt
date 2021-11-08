@@ -42,7 +42,8 @@ if one node crashes, system as a whole becomes unavailable
 =============
 Failure detectors
 =============
-Failure detector:
+Failure detector: get a response or not within a certain period time
+
 algorithm that detects whether another node is faulty
 
 Perfect failure detector:
