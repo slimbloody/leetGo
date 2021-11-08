@@ -1,0 +1,92 @@
+=====================================
+1. Availability
+=====================================
+Online shop wants to sell stuff 24/7!
+Service unavailability = downtime = losing money
+Availability = uptime = fraction of time that a service is
+functioning correctly
+
+两个九"Two nines" = 99% up = down 3.7 days/year
+三个九"Three nines" = 99.9% up = down 8.8 hours/year
+四个九"Four nines" = 99.99% up = down 53 minutes/ year
+五个九"Five nines" = 99.999% up = down 5.3 minutes/year
+
+terms that you get in the context of availability:
+Service-Level Objective (SLO):
+e.g. 99.9% of requests in a day get a response in 200 ms
+the goal that you are setting yourself in terms of the availability of a service, so this might specify the percentage of requests that need to get a correct response, where the maximum time that it's allowed to take for that response, say 200 milliseconds or whatever, and period time over which you're going to measure it, so you're going to take that 99.9% over the course of all of the requests made in one day for example.
+
+Service-Level Agreement (SLA):
+contract specifying some SLO, penalties for violation
+sla is basically a contract between a service and its customers specifying what the expected service level is
+
+=====================================
+2. Achieving high availability: fault tolerance
+=====================================
+Failure: system as a whole isn't working
+
+Fault: some part of the system isn't working
+1. Node fault: crash
+(crash-stop/crash-recovery)
+deviating from algorithm (Byzantine)
+2. Network fault: dropping or significantly delaying messages
+
+Fault tolerance:
+system as a whole continues working, despite faults
+(some maximum number of faults assumed) eg: the system as a whole will continue working if fewer than half of our nodes have crashed for example
+
+Single point of failure (SPOF):
+node/ network link whose fault leads to failure
+if one node crashes, system as a whole becomes unavailable
+
+=============
+Failure detectors
+=============
+Failure detector:
+algorithm that detects whether another node is faulty
+
+Perfect failure detector:
+labels a node as faulty if and only if it has crashed
+that is some mechanism that is always accurate at telling us whether another node is faulty or not
+
+Typical implementation for crash-stop/crash-recovery:
+send message, await response, label node as crashed if no reply within some timeout
+
+Problem:
+cannot tell the difference between crashed node, temporarily
+unresponsive node, lost message, and delayed message
+
+
+if we assume a partially synchronous or even an asynchronous system, then a timeout doesn't necessarily tell us that the node has crashed because then timeout could also happen,
+because we sent a message
+1. and the message was lost in the network,
+2. or the response was lost in the network
+3. or the message was delayed in the network and it actually still arrive it just hasn't arrived yet
+4. or the response was delayed in the network
+5. or maybe the node is actually alive but it's just experiencing a long garbage collection pause and so it will respond to your message in one minute's time once it's finished it's garbage collection
+6. or of course the node might have crashed
+and it's impossible to the difference between any of these, so it's impossible for sender of these check messages to tell whether the absence of a response is due to a network problem or due to some kind of random delay or due to problems because the node is actually crashed
+
+we could build a perfect detector if we have a synchronous system model, and if we're going to assume only crash stop failures and certainly not going to assume any byzantine behavior in the system.
+but as soon as you go to a partially synchronous model then timeouts are no longer an exact ways of detecting failures
+
+so the best we can do in a partially synchronous system is what is called an eventually perfect failure detector
+the failure detector might be wrong from time to time so the failure detector might detect a timeout even though the other node hasn't crashed yet just because a message happened to be delayed a bit, so it means a timeout does not accurately indicate that a crash has happened, also a failure detector is not immediate, so if a crash has happened it might actually take a while until we detect that crash, the detections of the crash is not instantaneous, so we might be wrong we might have both false positives and false negatives for a while, but eventually the failure labels a node as crashed if and only if it really has crashed, so that means that any temporarily suspecting another node of being failed will stop, and we'll go back to thinking that a node is correct, provided that node really is still correct, and also if a node has failed then eventually we will detect it as failed, so this is the best we can do in terms of failure detection
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
