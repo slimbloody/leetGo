@@ -16,7 +16,7 @@ Choice of models for each of these parts
 
 
 ======================
-Network behaviour:
+Network behaviour/models for network
 ======================
 Assume bidirectional point-to-point communication between two nodes(one sender and one recipient), with one of:
 
@@ -46,11 +46,73 @@ the only thing we cannot do is if the active adversary just decides to block all
 
 
 ======================
-node behavior
+node behavior/models for nodes
 ======================
 Each node executes a specified algorithm, assuming one of the following:
 
-Crash-stop (fail-stop):
+1. Crash-stop (fail-stop):
 A node is faulty if it crashes (at any moment).
 After crashing, it stops executing forever.
+
+2. Crash-recovery (fail-recovery):
+A node may crash at any moment, losing its in-memory state. It may resume executing sometime later.
+
+any in-memory state that it had is not written to disk or to other some non-volatile storage will be lost
+data that is stored in stable storage is able to survive the crash and will still be there after the node recovers
+
+
+3. Byzantine (fail-arbitrary):
+A node is faulty if it deviates from the algorithm.
+Faulty nodes may do anything, including crashing or malicious behaviour.
+
+in the byzantine generals problem, what it means for a node to be byzantine faulty is it deviates from the algorithm. so we specify an algorithm that all of the nodes are supposed to follow, but a byzantine faulty node may not follow the algorithm, it might pretend to follow the algorithm, it might do stuff to try and make it look honest even though it's actually behaving in some malicious way.
+so we're not going to constrain the behavior of byzantine faulty node in any way. we're just going to assume that it can do anything that it wants, including malicious behavior.
+
+A node that is not faulty is called "correct"
+we can always categorize a node as either faulty or correct
+
+one node does not necessarily know whether another node is correct or faulty and we will come to the problem of fault detection in a little while
+
+======================
+System model: synchrony (timing) assumptions/models for timing
+======================
+Assume one of the following for network and nodes:
+
+1. Synchronous:
+1) Message latency no greater than a known upper bound.
+2) Nodes execute algorithm at a known speed.
+
+2. Partically synchronous:
+The system is asynchronous for some finite (but unknown) periods of time, synchronous otherwise.
+
+3. Asynchronous: (no timing assumption at all)
+Messages can be delayed arbitrarily.
+Nodes can pause execution arbitrarily.
+No timing guarantees at all.
+
+Note: other parts of computer science use the terms "synchronous" and "asynchronous" differently
+
+we are not making any guarantees about how long it's going to take for messages to arrive, we assume no upper bound on message latency
+moreover, we're not going to make any assumptions about how fast nodes are going to execute the algorithm. so we're going to assume that a node might pause its execution at any moment, and just like stop executing its steps for a while and then later resume executing again, and of course this can happen because a thread can be suspended as you know, so a thread can just pause execution for a while and then resume executing sometime later.
+so we have here the synchronous model as one extreme like we're making very strong assumptions about the network latency and the node processing speed, adn the asynchronous model where we're making no assumption at all.
+so the partially synchronous model is a kind of a compromise between those two where we're saying that actually the asynchronous model is great if we can work in the asynchronous model, but there are certain problems that simply cannot be solved in the asynchronous model. so in some case we do have to make timing assumptions, but at the some time, it's unsafe to assume that those timing assumptions are always true, because if you write an algorithm in the synchronous model, and the system is ever asynchronous, if the system ever take longer than you upper bound to deliver message for example, then your algorithm might fail catastrophically, so the algorithms are very very sensitive to your timing assumption here, and in most cases it is very dangerous to assume a asynchronous model, because real networks do in fact behave in partially synchronous ways, so partially synchronous model is really our compromise where we're saying most of the time the system is well behaved and kind of synchronous, and occasionally it just goes weird, and occasionally messages take a really long time to arrive and occasionally nodes are really slow to execute, and then at some point they'll return back into a synchronous state, but we don't know whether they're asynchronous or synchronous right now.
+
+=============
+Violations of synchrony in practice
+=============
+Networks usually have quite predictable latency, which can occasionally increase:
+1. Message loss requiring retry
+(upgrading a fair loss link to a reliable link, the cost of that upgrade in reliability was that potentially we have to wait for a very long time if there's a network partition, so in this case we can't assume any upper bound really on message latency because it might be up to the length that it takes for our network partition to be healed)
+2. Congestion/contention causing queueing
+3. Network/ route reconfiguration
+
+
+
+
+
+
+
+
+
+
 
