@@ -115,17 +115,15 @@ Nodes usually execute code at a predictable speed, with occasional pauses:
 Real-time operating systems (RTOS) provide scheduling guarantees. but most distributed systems do not use RTOS
 
 nodes execution might be interrupted for a little while,
-you can have a context switch, you can have a thread that temporarily gets suspended while other processes run and these might take a while before the operating system scheduler come back and start running your thread again, especially if there's some kind of problem going on like priority inversion() in the system, it could be a process is actually paused,
+you can have a context switch, you can have a thread that temporarily gets suspended while other processes run, and these might take a while before the operating system scheduler come back and start running your thread again, especially if there's some kind of problem going on like priority inversion() in the system, it could be a process is actually paused for significant amount of time before it gets to run again. as you know from multi-threading, a process or a thread can get paused that absolutely any moment, there's any point int the code, it could decide to pause and so even at the most inconvenient place possible in an algorithm you might have a thread pause or context switch.
+
+another real problem that happens in practiced is garbage collection. and there are lots of other things in the operating system that cause variable delays such as page faults and so on especially if memory is tight, so it is possible to get around these things so real-time operating system will provide scheduling guarantees they might guarantee that your code always runs at least once every 10 milliseconds.
+but most distributed systems are not built on real-time operating systems, they're built on general purpose operating systems which make no guarantees about how processes are going to get scheduled, and even if you are using a real-time operating system it's very hard work to actually ensure that those timing guarantees always hold. so for most practical distributed systems, we cannot assume any upper bound on how long it might take for both a message to be delivered, or a process to execute one step, because these delays can occur unpredictably and non-deterministically at any point.
+
 
 priority inversion:
 实时操作系统的一个基本要求就是基于优先级的抢占系统。保证优先级高的线程在“第一时间”抢到执行权，是实时系统的第一黄金准则
 https://zhuanlan.zhihu.com/p/146132061
-
-
-
-
-
-
 
 
 
@@ -138,4 +136,18 @@ thrashing:
 扩展资料
 如果分配给进程的存储块数量小于进程所需要的最小值，进程的运行将很频繁地产生缺页中断，这种频率非常高的页面置换现象称为抖动。解决方案优化置换算法。
 Belady奇异现象，是指采用页面置换FIFO算法时，如果对一个进程未分配它所要求的全部页面，有时就会出现分配的页面数增多，但缺页率反而提高的异常现象，这是一个违反直觉的现象。
+
+
+
+System models summary
+1. Network:
+reliable, fair-loss, or arbitrary
+2. Nodes:
+crash-stop, crash-recovery, or Byzantine
+3. Timing:
+synchronous, partially synchronous, or asynchronous
+
+如果系统里面有其中的一个model存在, 哪怕10秒, distributed algorithms中就要考虑这种model, 否则算法就是错的
+
+
 
