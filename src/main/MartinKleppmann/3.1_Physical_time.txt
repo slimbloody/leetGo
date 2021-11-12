@@ -5,11 +5,45 @@ Distributed systems often need to measure time, e.g.: .
     Performance measurements, statistics, profiling
     Log files & databases: record when an event occurred
     Data with time-limited validity (e.g. cache entries )
-
+    Determining order of events across several nodes
 dig www.cst.com.ac.uk
 
+We distinguish two types of clock:
+    physical clocks: count number of seconds elapsed
+    logical clocks: count events, e.g. messages sent
+
+in distributed systems, a clock is sth that you can ask for a timestamp, so it tells you what the current time is and the current time is represented as a timestamp which might be the current date and time.
+
+NB. Clock in digital electronics (oscillator)
+!= clock in distributed systems source of timestamps)
 
 
+Physical clocks include analogue/mechanical clocks based on pendulums or similar mechanisms
+and digital clocks based e.g. on a vibrating quartz crystal
+
+the most computers implement clocks nowadays is using quartz crystals.
+silicon dioxide
+
+it resonates at a certain frequency, the frequency at which it resonates can be tuned by cutting bits of the crystal using lasers
+
+Piezoelectric effect:
+mechanical force <==> electric field
+if you apply an electric field to it, it induces a mechanical strain in the material, and also the other way if you apply a force to it then it creates an electric field
+you can use this interplay between the mechanical motion and the electric field in order to create a fairly accurate oscillator that resonates at a fairly accurate frequency,
+but essentially it produces a signal with a certain fixed frequency
+
+because there are always going tobe certain manufacturing difference between one crystal and another they won't oscillate at precisely the same frequency, there will be a little of an error.
+moreover, the resonant frequency of a quartz crystal actually depends on the temperature. The crystals that used for quartz oscillators are tuned, and they're selected and created in such a way that their frequency is quite stable around room temperature, around 20 to 25 degrees c, but as you devaite from this temperature significantly, there's actually a quadratic decrease in the clock speed, so if you're in a very hot server room for example, where you might reach significantly higher temperatures than your typical room temperature, then this actually can have a significant impact on the frequency at which the clock is running. so the clock speed is measured in parts per million usually, this just like percent but rather than dividing by 100 we devide by million
+
+==============
+Quartz clock
+==============
+error: drift
+> One clock runs slightly fast, another slightly slow
+» Drift measured in parts per million ( ppm)
+1 ppm = 1 microsecond/second = 86 ms/day = 32 s/year
+Most computer clocks correct within ~ 50 ppm
+The rate by which a clock runs fast or slow is called drift.
 
 
-
+When greater accuracy is required, atomic clocks are used. These clocks are based on quantum mechanical properties of certain atoms, such as caesium or rubidium
