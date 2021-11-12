@@ -23,3 +23,83 @@ deviate
 英 [ˈdiːvieɪt]  美 [ˈdiːvieɪt]
 v. 偏离，违背；使偏离，使背离
 adj. 反常的，变态的
+
+supplant
+英 [səˈplɑːnt]  美 [səˈplænt]
+vt. 代替；排挤掉
+
+serialise
+['siəriəlaiz]
+v. 连载，连播；（使）连续（同 serialize）
+
+coherency
+英 [kəʊˈhɪərənsi]
+n. 附着；凝聚；联接；相参性
+
+缓存一致性（Cache Coherency）
+
+collude
+英 [kəˈluːd]  美 [kəˈluːd]
+vi. 勾结；串通；共谋
+
+devious
+英 [ˈdiːviəs]  美 [ˈdiːviəs]
+adj. 偏僻的；弯曲的；不光明正大的
+
+kink
+英 [kɪŋk]  美 [kɪŋk]
+n. 扭结；奇想；蜷缩
+vi. 扭结
+vt. 使扭结
+n. （Kink）人名；（瑞典）欣克
+
+adversary
+英 [ˈædvəsəri]  美 [ˈædvərseri]
+n. 敌手，对手
+
+spoof
+英 [spuːf]  美 [spuːf]
+v. 滑稽地模仿；哄骗；戏弄；讽刺
+
+tamper
+英 [ˈtæmpə(r)]  美 [ˈtæmpər]
+v. 做手脚，破坏
+n. 夯工，拍压的人；打夯机
+
+outage
+英 [ˈaʊtɪdʒ]  美 [ˈaʊtɪdʒ]
+n. （电力等）停止供应期，断供期；设备停开期
+故障 中断 停电
+
+contractual
+英 [kənˈtræktʃuəl]  美 [kənˈtræktʃuəl]
+adj. 契约的，合同的
+
+conservative
+英 [kənˈsɜːvətɪv]  美 [kənˈsɜːrvətɪv]
+adj. 保守的；保守派的，保守主义的（认为政府应该实行政治保守主义）；（衣着）守旧的，传统的；低估的；保守党的；不愿冒险的，谨慎的
+n. 保守者，因循守旧者；保守党党员，保守党支持者
+
+ponder
+英 [ˈpɒndə(r)]  美 [ˈpɑːndər]
+v. 仔细考虑，琢磨，沉思
+【名】 （Ponder）（英）庞德（人名）
+n. （Ponder）人名；（英）庞德
+
+canonical
+英 [kəˈnɒnɪkl]  美 [kəˈnɑːnɪkl]
+adj. 按照宗法教规的；真经的；经典的；（数学表达式）最简洁的；准确的；权威的；公认的；与公理有关的；与教会有关的，与教士有关的
+n. 教士的法衣（常复数）
+
+vanilla
+英 [vəˈnɪlə]  美 [vəˈnɪlə]
+n. 香子兰，香草
+adj. 香草味的
+
+superficially
+英 [ˌsuːpəˈfɪʃəli; ˌsjuːpəˈfɪʃəli]  美 [ˌsuːpərˈfɪʃəli]
+adv. 表面地；浅薄地
+
+get around
+英  美 [ɡet əˈraʊnd]
+到处走走；逃避；说服；传开来（等于get round）；有办法应付；有办法应付局面
