@@ -6,6 +6,14 @@ Leslie Lamport
 multiple computers communicating via a network. . .
 trying to achieve some task together
 Consists of "nodes" (computer, phone, car, robot, ... )
+==============================
+Concurrency on a single computer is also known as shared-memory concurrency, since multiple threads running in the same process have access to the same address space. Thus, data can easily be passed from one thread to another: a variable or pointer that is valid for one thread is also valid for another.
+
+This situation changes when we move to distributed systems. We still have concurrency in a distributed system, since different computers can execute programs in parallel. However, we don’t typically have shared memory, since each computer in a distributed system runs its own operating system with its own address space, using the memory built into that computer. Different computers can only communicate by sending each other messages over a network.
+
+
+(Limited forms of distributed shared memory exist in some supercomputers and research systems, and there are technologies like remote direct memory access (RDMA) that allow computers to access each other's memory over a network. Also, databases can in some sense be regarded as shared memory, but with a different data model compared to byte-addressable memory. However, broadly speaking, most practical distributed systems are based on message-passing.)
+=========================
 
 
 van Steen & Tanenbaum.
@@ -71,11 +79,16 @@ even if communication is interrupted from time to time, the system as a whole st
 2. Processes may crash (and we might not know ).
 eg:
 if you have a system consisting of multiple computers and you if you reboot one of them, you probably want the remaining computers to carry on the task of serving user requests
-what we want here is that one of the processes cur is temporarily out of action and we want the system as a whole to still continue nevertheless;
+what we want here is that one of the processes cur is temporarily out of action, and we want the system as a whole to still continue nevertheless;
 out of action, the system as a whole to still continue nevertheless
 
-3. All of this may happen nondeterministically.
+3. All of this may happen non-deterministically.
 
+
+=============
+Fault tolerance
+=============
+If one component of a system stops working, we call that a fault, and many distributed systems strive to provide fault tolerance: that is, the system as a whole continues functioning despite the fault.
 
 Fault tolerance: we want the system as a whole to continue working, even when some parts are faulty.
 This is hard.

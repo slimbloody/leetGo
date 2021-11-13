@@ -28,13 +28,17 @@ it resonates at a certain frequency, the frequency at which it resonates can be 
 
 Piezoelectric effect:
 mechanical force <==> electric field
-if you apply an electric field to it, it induces a mechanical strain in the material, and also the other way if you apply a force to it then it creates an electric field
-you can use this interplay between the mechanical motion and the electric field in order to create a fairly accurate oscillator that resonates at a fairly accurate frequency,
-but essentially it produces a signal with a certain fixed frequency
+if you apply an electric field to it, it induces a mechanical strain in the material, and also the other way if you apply a force to it then it creates an electric field.
+you can use this interplay between the mechanical motion and the electric field in order to create a fairly accurate oscillator that resonates at a fairly accurate frequency, so there's a little of electronics around the quartz crystal.
+but essentially it produces a signal with a certain fixed frequency, this frequency is quite predictable and this makes quartz clocks quite accurate but are certainly not perfect,
+because there are always going to be certain manufacturing difference between one crystal and another, they won't oscillate at precisely the same frequency, there will be a little of an error.
+moreover, the resonant frequency of a quartz crystal actually depends on the temperature. The crystals that used for quartz oscillators are tuned, and they're selected and created in such a way that their frequency is quite stable around room temperature, around 20 to 25 degrees c, but as you deviate from this temperature significantly, there's actually a quadratic decrease(呈倒二次函数形状, ax^2 + bx + c = y, a < 0的图像) in the clock speed, so if you're in a very hot server room for example, where you might reach significantly higher temperatures than your typical room temperature, then this actually can have a significant impact on the frequency at which the clock is running. so the clock speed is measured in parts per million usually, this just like percent but rather than dividing by 100 we divide by million, and so you can work out like if you have one ppm error that would mean that the clocks goes wrong by about 32 seconds per year, now most quartz clocks will be like 20 ppm or something like that order of magnitude of course depending on the temperature, as a rule of thumb probably most clock errors will be below 50 ppm
 
-because there are always going tobe certain manufacturing difference between one crystal and another they won't oscillate at precisely the same frequency, there will be a little of an error.
-moreover, the resonant frequency of a quartz crystal actually depends on the temperature. The crystals that used for quartz oscillators are tuned, and they're selected and created in such a way that their frequency is quite stable around room temperature, around 20 to 25 degrees c, but as you devaite from this temperature significantly, there's actually a quadratic decrease in the clock speed, so if you're in a very hot server room for example, where you might reach significantly higher temperatures than your typical room temperature, then this actually can have a significant impact on the frequency at which the clock is running. so the clock speed is measured in parts per million usually, this just like percent but rather than dividing by 100 we devide by million
 
+atomic clocks are based on quantum mechanical effect, so they actually use cesium atoms of a certain isotope, any quantum mechanics atom have discrete energy levels, the difference between those energy levels corresponds to certain resonant frequencies of atom and there's one particular energy transition which is at a fairly friendly to measure nine gigahertz, so you get about nine oscillations of this per second, and this is actually how the second is now defined.
+
+SI unit: International System of Units
+The SI base units are the standard units of measurement defined by the International System of Units (SI)
 ==============
 Quartz clock
 ==============
@@ -47,3 +51,30 @@ The rate by which a clock runs fast or slow is called drift.
 
 
 When greater accuracy is required, atomic clocks are used. These clocks are based on quantum mechanical properties of certain atoms, such as caesium or rubidium
+
+=========================
+GPS as time source
+=========================
+if you want a very precise clock signal, one way of getting that clock is actually to use gps, so the same system that you use smartphone to tell you where you are right now at map, it works by having a bunch of satellites that orbit the earth, and each satellite carries an atomic clock, broadcasts its current clock and its current location periodically, and so the gps receiver it receives the signals from several of these satellites, it calculates the time difference between when the signal was sent by the satellite and when the signal was received by your phone, and from the time distance and the speed of light it can work out the actual distance in space between you and the satellite, and from that it can work out where you are.
+now there's a lot of details that go into making this accurate, but for our purposes well you know all we're actually interested in right now is time not location, and you can use gps satellites as a very accurate way of getting time and clocks. now this does rely on being able to actually pick up teh signal from the satellite so if you're in the data center there's probably so much shielding and electromagnetic interference that you can't actually pick up the signal, so you have to put an antenna on the roof of the data center, but this is something that people actually do as a way of getting accurate clocks
+
+===============================
+coordinated universal time(UTC)
+===============================
+how is time defined?
+you might have come across the term UTC the coordinated universal time(UTC) which is the reference time that is used for all of our time zones we use nowadays.
+
+
+you've probably come across the term gmt greenwich meantime, which unfortunately the meaning of that has changed over time, its original meaning was time based on astronomical observations. so it was literally when does the sun in the south, if you are looking at the sun from greenwich observatory, so you can literally go to greenwich in southeast london and visit the observatory there, and see meridian at which it was defined that when the sun is in the south as seen from this particular place.
+then it is noon, now it varied a little over the course of the year so that way we actually average this over the course of the year, but the idea is still, this is time based on astronomical observations.
+
+
+
+
+
+
+
+
+
+
+
