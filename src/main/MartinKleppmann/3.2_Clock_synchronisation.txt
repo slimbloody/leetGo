@@ -78,9 +78,7 @@ slightly speed it up or slow it down by up to 500 ppm
 (brings clocks in sync within≈5 minutes)
 
 
-
-
-
+7:48
 
 
 

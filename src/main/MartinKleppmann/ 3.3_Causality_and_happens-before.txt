@@ -1,0 +1,13 @@
+
+=====================
+Ordering of messages
+=====================
+let's say reliable network links the messages might be delayed or might be reordered as usual.
+
+
+attach timestamp to each message by using local clock generating timestamp
+
+we're going to assume that these are of course physical time of day clocks, we're going to assume that the clocks are synchronized using something like ntp
+but it could still happened even if clocks are synchronized, it can happen that the timestamp t2 is actually less than the timestamp t1. this could happen because the clock skew between two nodes in a system might be greater than the one-way network delay between those two nodes, and even with ntp synchronization we cannot rule out the possibility that the clock skew is greater than the one-way network delay/latency
+
+3:55
