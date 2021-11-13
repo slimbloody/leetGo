@@ -1,0 +1,104 @@
+===============
+Clock synchronisation
+===============
+
+Computers track physical time/UTC with a quartz clock
+(with battery, continues running when power is off)
+
+Due to clock drift, clock error gradually increases
+
+Clock skew: difference between two clocks at a point in time
+
+every computer pretty much contains a quartz clock,
+
+what we need to do is make do with these less accurate quartz clocks and we have to somehow try and make the clocks reasonably accurate nevertheless.these quartz clocks may drift a little bit, we end up with clock skew
+
+Clock synchronisation: is to minimize the skew as much as possible
+
+it is not possible to reduce the to clock skew to zero, the best we can do is to reduce it as much as we can, but there's always going to be a bit of an error tolerance remaining,
+
+
+
+Solution: Periodically get the current time from a server that has a more accurate time source (atomic clock or GPS receiver)
+Protocols: Network Time Protocol (NTP), Precision Time Protocol (PTP)
+
+
+=================
+Network Time Protocol (NTP)
+=================
+Many operating system vendors run NTP servers, configure OS to use them by default
+
+Hierarchy of clock servers arranged into strata:
+    Stratum 0: atomic clock or GPS receiver
+    Stratum 1: synced directly with stratum 0 device
+    Stratum 2: servers that sync with stratum 1
+    etc...
+
+
+May contact multiple servers, discard outliers, average rest
+because it could be that one of those servers is mis-configured or it's got a fault or something, and so it's reporting a wildly inaccurate time, ntp can exclude the outlier and just keep the data points from the severs that seem to be reliable
+
+Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency
+another techniques that is used to query a server not just once but multiple times over the course of several minutes and so that will then ensure that at least any random variations in network delay can hopefully get filtered out, now if there's systematic variations in network delay having multiple samples won't help you, but at least multiple sample will reduce the random error.
+
+Reduces clock skew to a few milliseconds in good network conditions, but can be much worse!
+and with ntp, if you have a good quality network connection, it is possible to get your clock synchronized to the server within a couple of milliseconds skew, if you are on a poor quality network connection over some kind of busy-wifi, over heavily loaded internet connection, then the accuracy could be much much wore than that, so you always have to be careful when assuming synchronized clocks.
+
+
+
+=================
+Estimating time over a network
+=================
+t1: ntp-client 发送request的时间
+t2: ntp-server 收到request的时间
+t3: ntp-server 发送response的时间
+t4: ntp-client 收到response的时间
+
+Round-trip network delay: δ=(t4-t1)-(t3-t2)
+
+we don't have a way of measuring that one-way network latency, we can only measure the sum of two network latencies put together, but what we can do is just make an assumption that the network latency is symmetric in both directions, so we're going to assume that the request latency is the same as the response latency, and if this is true then the response latency will be delta over 2
+
+Estimated server time when client receives response: t3+δ/2
+
+estimated clock skew: θ = t3 + δ/2 - t4 = (t2 - t1 + t3 - t4) / 2
+
+
+
+=================
+Correcting clock skew
+=================
+Once the client has estimated the clock skew θ, it needs to apply that correction to its clock.
+
+
+
+
+
+If θ < 125 ms, slew the clock:
+slightly speed it up or slow it down by up to 500 ppm
+(brings clocks in sync within≈5 minutes)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
