@@ -65,8 +65,34 @@ how is time defined?
 you might have come across the term UTC the coordinated universal time(UTC) which is the reference time that is used for all of our time zones we use nowadays.
 
 
-you've probably come across the term gmt greenwich meantime, which unfortunately the meaning of that has changed over time, its original meaning was time based on astronomical observations. so it was literally when does the sun in the south, if you are looking at the sun from greenwich observatory, so you can literally go to greenwich in southeast london and visit the observatory there, and see meridian at which it was defined that when the sun is in the south as seen from this particular place.
-then it is noon, now it varied a little over the course of the year so that way we actually average this over the course of the year, but the idea is still, this is time based on astronomical observations.
+you've probably come across the term GMT greenwich meantime, which unfortunately the meaning of that has changed over time, its original meaning was time based on astronomical observations. so it was literally when is the sun in the south, if you are looking at the sun from greenwich observatory. so you can literally go to greenwich in southeast london and visit the observatory there, and see meridian at which it was defined that when the sun is in the south as seen from this particular place, then it is noon. now it varied a little over the course of the year so that way we actually average this over the course of the year, but the idea is still, this is time based on astronomical observations.
+
+
+International Atomic Time(TAI): using quantum mechanics
+
+Problem: speed of Earth's rotation is not constant
+Compromise: UTC is TAI with corrections to account for Earth rotation
+
+
+and so the result is that we want to use atomic time because it's much more precise then this wobbly earth time, but at the same we want our time to be consistent with how the earth rotates around its axis.
+the compromise is utc, we take international atomic time and we apply some corrections to it based on astronomy and that will give us a time that is founded on quantum mechanics but still consistent with astronomical observations.
+
+summertime, wintertime, all of these are defined as offsets to utc. so if you're on the east coast US, for example, you'll be in like utc plus five.
+
+Time zones and daylight savings time are offsets to UTC
+
+how does this correction from atomic time to utc look like, the answer is the correction takes the form of leap seconds. (just like leap year concept)
+
+a leap second is an extra second that can be either inserted or removed on a certain date. so every year there are typically two dates on which a leap second may or may not happen, that is the 30th of june and the 31th of december in principle.
+
+so if there's a second subtracted, and then there is no 23:59:59 second, the clock goes 48, and then immediately jumps to zero after one second, so 59 second simply skipped. or we can have a regular second. or we can have an additional second in which the clock goes from 59:59 to 60 then to zero after two seconds.
+
+How computers represent timestamps
+T wo most common representations:
+1. Unix time: number of seconds since 1 January 1970 00:00:00 UTC (it is called the unix "epoch"), not counting leap seconds
+2. ISO 8601: year, month, day, hour, minute, second, and timezone offset relative to UTC
+example: 2020-11-09T09 : 50: 17+00:00
+==================
 
 
 
@@ -76,5 +102,30 @@ then it is noon, now it varied a little over the course of the year so that way 
 
 
 
+
+==================
+live lock
+CPU一直占用但是程序没有make progress.
+
+考虑一个场景：
+进程P1占有A请求B，进程P1占有B请求A。如果是等待式的请求，两者都会陷入无尽的等待中。这是死锁。
+如果请求不是等待式的，而是一旦发现资源被占有就失败，整个请求取消（回滚）并重新开始。此时P1放弃占有A重新开始，P2放弃占有B重新开始。则P1、P2可能会出现重复不断的开始-回滚循环。这种情况我们称之为活锁。
+相比死锁，活锁更难检测，也更浪费资源（重复不断的开始-回滚循环）。
+
+死锁如果是两个不动的齿轮，活锁大概就是你低头走在路上，正好快要碰上一个美女，你马上往左边垮了一步，但美女也正好往右边跨了一步，不断循环，最后谁都过不去。
+
+oracle java tutorial 里面有个类比：
+This is comparable to two people attempting to pass each other in a corridor: Alphonse moves to
+his left to let Gaston pass, while Gaston moves to his right to let Alphonse pass. Seeing that they are still blocking each other, Alphone moves to his right, while Gaston moves to his left. They're still blocking each other, so...
+https://link.zhihu.com/?target=https%3A//docs.oracle.com/javase/tutorial/essential/concurrency/starvelive.html
+==================
+
+
+Pragmatic solution: 'smear'(spread out)
+the leap second over the course of a day
+
+the solution is called smearing, leap second smearing which is rather than if we're going to insert a leap second rather than inserting it at one particular moment, how about we just spread that leap second out over the course of a whole day.
+so let's say for example 12 hours before and 12 hours after the leap second is supposed to be introduced, we just slow down the clocks ever so slightly, enough so that then in total, one additional second has elapsed over the course of this period, but without this discontinuity of time where we've added that extra second which confuses all of the software.
+it's a kind of hack, it's not a elegant solution, but it might be pragmatically the best that we can come up with
 
 
