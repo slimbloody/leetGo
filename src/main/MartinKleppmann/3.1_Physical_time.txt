@@ -43,8 +43,12 @@ The SI base units are the standard units of measurement defined by the Internati
 Quartz clock
 ==============
 error: drift
-> One clock runs slightly fast, another slightly slow
-» Drift measured in parts per million ( ppm)
+One clock runs slightly fast, another slightly slow
+
+clock drift: phenomenon where a clock gains or loses time compared to another clock
+一个时钟与另一个时钟相比，时间增加或减少的现象
+
+Drift measured in parts per million (ppm)
 1 ppm = 1 microsecond/second = 86 ms/day = 32 s/year
 Most computer clocks correct within ~ 50 ppm
 The rate by which a clock runs fast or slow is called drift.
@@ -92,19 +96,21 @@ T wo most common representations:
 1. Unix time: number of seconds since 1 January 1970 00:00:00 UTC (it is called the unix "epoch"), not counting leap seconds
 2. ISO 8601: year, month, day, hour, minute, second, and timezone offset relative to UTC
 example: 2020-11-09T09 : 50: 17+00:00
+
 ==================
+How most software deals with leap seconds
+==================
+by ignoring them
 
-
-
-
-
-
-
-
-
+However, OS and DistSys often need timings with sub-second accuracy.
+one second can be rather significant and that means we do actually have to care about these leap seconds which brings us to the solution of the little puzzle, that i presented at the beginning of this lecture which is what is on earth happened on the 30th of june 2012, for all of these systems to go down at the same time, the answer was a leap second happened, and there hadn't been a leap second for a couple of years before that, so during those years of course, the linux kernel and all other software were updated and the bug was introduced, and as a result there was actually a live lock condition sort of when the leap second happened the system went into live lock and so it was just spinning 100 CPU and not getting any useful work done, and even rebooting the computers didn't actually help, the administrator figured out when was that you actually had to reset the system clock, and that somehow cleared out the bad state in the linux kernel, and allowed us to fix those computers again. you can imagine that was a really bad day for administrators of these systems who rebooted the systems and they still didn't work,
 
 ==================
 live lock
+线程1可以使用资源，但它很礼貌，让其他线程先使用资源，
+线程2也可以使用资源，但它很绅士，也让其他线程先使用资源。
+这样你让我，我让你，最后两个线程都无法使用资源。
+
 CPU一直占用但是程序没有make progress.
 
 考虑一个场景：
@@ -119,12 +125,10 @@ This is comparable to two people attempting to pass each other in a corridor: Al
 his left to let Gaston pass, while Gaston moves to his right to let Alphonse pass. Seeing that they are still blocking each other, Alphone moves to his right, while Gaston moves to his left. They're still blocking each other, so...
 https://link.zhihu.com/?target=https%3A//docs.oracle.com/javase/tutorial/essential/concurrency/starvelive.html
 ==================
-
-
 Pragmatic solution: 'smear'(spread out)
 the leap second over the course of a day
 
-the solution is called smearing, leap second smearing which is rather than if we're going to insert a leap second rather than inserting it at one particular moment, how about we just spread that leap second out over the course of a whole day.
+the solution is now more widely which tries to get around this problem that most software does not know how to deal with leap seconds correctly, and solution is called smearing, leap second smearing which is rather than if we're going to insert a leap second rather than inserting it at one particular moment, how about we just spread that leap second out over the course of a whole day.
 so let's say for example 12 hours before and 12 hours after the leap second is supposed to be introduced, we just slow down the clocks ever so slightly, enough so that then in total, one additional second has elapsed over the course of this period, but without this discontinuity of time where we've added that extra second which confuses all of the software.
 it's a kind of hack, it's not a elegant solution, but it might be pragmatically the best that we can come up with
 
