@@ -213,9 +213,31 @@ adj. 不切实际的；自炫博学的；知识分子的
 n. 卖弄知识的人；知识分子
 a highbrow discussion: 高水平的讨论
 
+converge
+英 [kənˈvɜːdʒ]  美 [kənˈvɜːrdʒ]
+v. （使）汇聚，集中；（观点、目标）趋同；（数）收敛
+vi. 聚集；靠拢；收敛
 
+monotonic
+英 [ˌmɒnəˈtɒnɪk]  美 [,mɑnə'tɑnɪk]
+adj. 单调的；无变化的；产生单音调的
 
+in line
+英 [ˈɪn laɪn]  美 [ˈɪn laɪn]
+adv. 协调；成一直线；有秩序
+adj. 联机的
 
+inline
+英 [ˈɪnlaɪn]  美 [ˈɪnlaɪn]
+adj. 内联的；直排轮滑的；正文中的，行内的；排成一条线的
+
+causality
+英 [kɔːˈzæləti]  美 [kɔːˈzæləti]
+n. 因果关系
+
+casualty
+英 [ˈkæʒuəlti]  美 [ˈkæʒuəlti]
+n. 伤亡人员；受害者，毁坏物；急诊室，急救室；事故，灾难（主要用于保险中）
 
 
 
