@@ -34,10 +34,10 @@ both of these satisfy the need to capture causality, but they have different pro
 
 
 ======================
-Lamport clocks algorithm
+Lamport clocks algorithm: these are named after lamport who published this algorithm in about 1978
 ======================
 on initialisation do
-    t := 0        each node has its own local variable t
+    t := 0        (each node has its own local variable t)
 end on
 on any event occurring at the local node do
     t := t+1
@@ -58,7 +58,8 @@ and every time when some events occurs at a node, we just increment t, so an eve
 
 everytime we want to send over the network, we increment t as usual as for any local event, and also we take the value of t after incrementing it, and we attach that to the message, so the message we send is actually this pair of a timestamp and the actual message, and that is what gets centered with the network
 
-now when one of these pairs is received, at the other end of the node that is receiving the message takes the timestamp out of message, t prime is the timestamp in the message, and it looks at its own local variable and it updates t to be the maximum of either its own local existing timestamp or the timestamp of the message plus one, incrementing it again like for every local event,
+now when one of these pairs is received, at the other end of the node that is receiving the message takes the timestamp out of message, t prime(t') is the timestamp in the message, and it looks at its own local variable and it updates t to be the maximum of either its own local existing timestamp or the timestamp of the message plus one, incrementing it again like for every local event
+
 so after this has been done we've got updated value t and we deliver the message to the application
 
 
