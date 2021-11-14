@@ -72,9 +72,23 @@ Lamport clocks in words
 4. Recipient moves its clock forward to timestamp in the message (if greater than local counter), then increments
 
 
+so we have this counter t here on each node and we can associate a particular value of t with every event, so let's say some local event occurred and it called that event e,
+for every local event we increment the counter so after that increment we take the value of that counter, and associated that with that event e and call that l of e for lamport lock.
+as i said we attach those values over on the message that we send over the network as well
 
 
 
+Properties of this scheme:
+1. If a -> b, then L(a) < L(b)
+first of all, if event a happened before event b, then this scheme guarantees that the lamport timestamp of event a is less strictly less than lamport timestamp of event b
+todo: exercise in the lecture note that asks you to prove that this is indeed the case
+
+2. However, L(a) < L(b) does not imply a -> b
+however, the converse is not true. so if we have two lamport timestamp and we compare them and we find that l of a is less than l of b, that does not imply that a happened before b, it could also be the case that a and b were concurrent, so the lamport timestamp don't allow to tell whether a or b working current or if a happened before b, the only thing we can do is we can rule out that b happened before a, because if b happened before a then the timestamp would have to be the other way around.
+
+
+3. Possible that L(a)= L(b) for a≠b
+that we have two different events with the same timestamp, there's nothing preventing this,
 
 
 

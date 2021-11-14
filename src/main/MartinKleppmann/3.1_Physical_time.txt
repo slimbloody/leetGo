@@ -107,6 +107,28 @@ one second can be rather significant and that means we do actually have to care 
 
 ==================
 live lock
+
+
+
+谢邀。 活锁、死锁本质上是一样的，原因是在获取临界区资源时，并发多个进程/线程声明资源占用(加锁)的顺序不一致，死锁是加不上就死等，活锁是加不上就放开已获得的资源重试，其实单机场景活锁不太常见。举个例子资源A和B，进程P1和P2，
+
+start：
+P1 lock A
+P2 lock B
+P1 lock B fail context switch
+P2 lock A fail context switch
+P1 release A
+P2 release B
+goto start
+
+单个core时如果调度的不好还是有可能出现的，多core情况下，冲突窗口很小，很难出现两个进程的节奏碰的这么巧。
+但是在分布式场景下，由于加锁失败，而要释放已获得的资源再重试，这个过程涉及网络通信，冲突窗口变大，使得活锁出现概率也变大。比如paxos的prepare和accept，两个并发提案P1和P2，P2用更大 proposal id的prepare形成多数派，将使得之前已经prepare成功的P1无法accept，P1只能用更更大的
+proposal id重试，而使得P2又无法accept，把prepare和accept看做两个资源A和B，每个提案都是按BAB的顺序获取资源（因为prepare阶段的应答蕴含了对accept增加了限制），过程中存在BA和AB两种资源获取顺序，是典型的活锁场景
+
+
+
+
+
 线程1可以使用资源，但它很礼貌，让其他线程先使用资源，
 线程2也可以使用资源，但它很绅士，也让其他线程先使用资源。
 这样你让我，我让你，最后两个线程都无法使用资源。
