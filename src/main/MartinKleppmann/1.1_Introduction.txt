@@ -1,3 +1,6 @@
+上交:
+https://ipads.se.sjtu.edu.cn/courses/cse/index.shtml
+==================
 different ways of sharing data between these concurrent entities
 
 a system in which the failure of a computer you didn't even know existed can render your own computer unusable
@@ -51,6 +54,9 @@ Cloud Computing - Part II
 (distributed systems for processing large amounts of data )
 
 
+https://book.douban.com/subject/11921979/
+https://book.douban.com/subject/26979326/
+https://book.douban.com/subject/10315526/
 
 ---------
 Why make a system distributed?
