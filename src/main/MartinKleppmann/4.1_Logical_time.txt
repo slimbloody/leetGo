@@ -40,11 +40,11 @@ on initialisation do
     t := 0        (each node has its own local variable t)
 end on
 on any event occurring at the local node do
-    t := t+1
+    t := t + 1
 end on
 
 on request to send message m do
-    t :=t+ 1; send (t, m) via the underlying network link
+    t := t + 1; send (t, m) via the underlying network link
 end on
 
 on receiving (t', m) via the underlying network link do
@@ -58,10 +58,9 @@ and every time when some events occurs at a node, we just increment t, so an eve
 
 everytime we want to send over the network, we increment t as usual as for any local event, and also we take the value of t after incrementing it, and we attach that to the message, so the message we send is actually this pair of a timestamp and the actual message, and that is what gets centered with the network
 
-now when one of these pairs is received, at the other end of the node that is receiving the message takes the timestamp out of message, t prime(t') is the timestamp in the message, and it looks at its own local variable and it updates t to be the maximum of either its own local existing timestamp or the timestamp of the message plus one, incrementing it again like for every local event
-
+now when one of these pairs is received, at the other end of the node that is receiving the message takes the timestamp out of message, t prime(t') is the timestamp in the message, and it looks at its own local variable t, and it updates t to be the maximum of either its own local existing timestamp or the timestamp of the message plus one, incrementing it again like for every local event
 so after this has been done we've got updated value t and we deliver the message to the application
-
+本地时间是t, request里面拆出来的数据是t', 把两者中大的值设为t的值
 
 
 ==============================
@@ -81,7 +80,7 @@ as i said we attach those values over on the message that we send over the netwo
 
 Properties of this scheme:
 1. If a -> b, then L(a) < L(b)
-first of all, if event a happened before event b, then this scheme guarantees that the lamport timestamp of event a is less strictly less than lamport timestamp of event b
+first of all, if event a happened before event b, then this scheme guarantees that the lamport timestamp of event a is strictly less than lamport timestamp of event b
 todo: exercise in the lecture note that asks you to prove that this is indeed the case
 
 2. However, L(a) < L(b) does not imply a -> b
@@ -92,15 +91,35 @@ however, the converse is not true. so if we have two lamport timestamp and we co
 that we have two different events with the same timestamp, there's nothing preventing this,
 
 
+===============
+Lamport clocks example
+===============
+there are two different events with the same timestamp three, and also two different events with the timestamp one.
+and so one thing we might want to do is to have timestamps that uniquely identify events in the entire system and we can do this by combining the lamport timestamp with the name of node at which that particular event occurred
+
+Let N(e) be the node at which event e occurred.
+Then the pair (L(e), N(e)) uniquely identifies event e.
+
+within the scope of A, each of events has a unique timestamp, because we always increment, we never generate two events at the same node with the same timestamp, and so therefore within one particular node, each event timestamp is unique, if we assume each node has a unique name, we combine the lamport timestamp of an event with the name of the node at which that event occurred. those two taken together will uniquely identify a particular event that combination is a unique identifier
+
+
+so we could actually update this diagram here and instead of just having the timestamp at each we have the pair of the timestamp and the node, and now we can see here this event here has an identifier of three comma A(3, A), whereas this one here is three comma B (3, B). so they're no longer the same.
+
+and now there's one more thing that we can do with lamport timestamps and this is extremely useful. and that is we can define a total order using those
+
+
+(a<b) <=> (L(a)< L(b) V (L(a)= L(b) ^ N(a) < N(b))
+The order is casual: (a < b) <=> (a < b)
 
 
 
 
+==============
+Vector clocks
+==============
+limitation of Lamport clock:
+Given Lamport timestamps L(a) and L(b) with L(a) < L(b)
+we can't tell whether a -> b or a || b.
 
-
-
-
-
-
-
-
+If we want to detect which events are concurrent, we need
+vector clocks:
