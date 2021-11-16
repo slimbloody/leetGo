@@ -1,0 +1,21 @@
+https://asciiflow.com/#/
+
+https://www.okayhq.com/blog/status-quo-is-so-hard-to-change-in-engineering-teams
+
+
+漫谈数据库的现状和未来：DTCC见闻录:
+https://zhuanlan.zhihu.com/p/423299764
+
+
+netty: P6 15:27
+https://www.bilibili.com/video/BV1py4y1E7oA?p=6&spm_id_from=pageDriver
+
+沈询-高并发网站中的数据库设计
+https://www.youtube.com/results?search_query=%E6%B2%88%E8%AF%A2+%E9%AB%98%E5%B9%B6%E5%8F%91%E7%BD%91%E7%AB%99%E4%B8%AD%E7%9A%84%E6%95%B0%E6%8D%AE%E5%BA%93%E8%AE%BE%E8%AE%A1
+
+
+如何记住书:
+https://mp.weixin.qq.com/s?__biz=MzA4NDk5OTgzMg==&mid=2650591845&idx=1&sn=7510bf8bb6cf36d1f0de19151a3f3877&chksm=87d6d992b0a1508469ef4c884cb229c70f1d1cc8232b161960a3c13dadb8bdd0e13497de1aa8&token=2090030786&lang=zh_CN#rd
+
+
+组成原理：第二章 数据的表示和运算09 移位运算
