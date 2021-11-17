@@ -1,3 +1,7 @@
+≈	8776	2248	&asymp;	ALMOST EQUAL TO
+⊆	8838	2286	&sube;	SUBSET OF OR EQUAL TO
+⊇	8839	2287	&supe;	SUPERSET OF OR EQUAL TO
+
 Broadcast protocols and logical time
 
 ===========================
@@ -132,10 +136,105 @@ they(lamport timestamp) essentially give a way attaching timestamps to all of th
 Vector clocks
 ==============
 limitation of Lamport clock:
-1.
 Given Lamport timestamps L(a) and L(b) with L(a) < L(b)
 we can't tell whether a -> b or a || b(current).
 
 
-If we want to detect which events are concurrent where one happened before the other, we need vector clocks:
+If we want to detect which events are concurrent, we need vector clocks:
+we can tell that b did not happen before a because if that were the case the lamport timestamps would have to be the other way around. so we can tell something, but we can't actually tell the difference between two events that are concurrent and two events where one happened before the other. so it might also be useful to have a scheme of logical clocks in which it is possible to tell the difference between two events that concurrent and two events where one happened before the other, and this is where vector clocks come in.
+
+1. Assume n nodes in the system, N = (N1, N2,..,Nn)
+we're going to assume we know the names of all the nodes in the system, and we're going to put them in a vector, so this is an n-dimensional vector where each of the elements of the vector is one of the nodes in the system.
+
+2. Vector timestamp of event a is V(a) = <t1,t2,...,tn〉
+and we can define timestamps which are also vectors. in this case we have a timestamp here, consists of a sequence of integers, and we have one integer for every node in the system. now for every event rather than associating a single number with it we associate this vector of numbers with each event, and the meaning for these numbers is that for the i-th entry in this vector here ti that is the number of events that we have observed happening on node i. so we're counting events like we did in lamport timestamps, but now rather than mixing all of the nodes together into a single counter, we actually have a separate counter for every node, for the number of events that have occurred on that particular node.
+3. ti is number of events observed by node N;
+4. Each node has a current vector timestamp T
+5. On event at node Ni, increment vector element T[i]
+
+
+
+like lamport timestamp we can attach a vector timestamp on every event, and there are certain rules for updating these timestamps, so if we want to compute the timestamp for a particular event, the first thing we do is every time that an event occurs at a node ni, we increment the particular entry T[i], the particular element of that vector, corresponding to that particular node.
+
+6. Attach current vector timestamp to each message
+7. Recipient merges message vector into its local vector
+like with the lamport timestamps we're going to attach vector clocks to messages that get sent over the network, and there's an algorithm for merging those.(vector clocks algorithm)
+
+========================
+vector clocks algorithm
+========================
+1.
+on initialisation at node Ni do
+T := <0,0,..,0>     => local variable at node N;
+end on
+
+every node locally has a timestamp, in this case, timestamps is not just an integer but it's a vector of integers, which starts off as being all zeros so we have one entry in this vector for each node in the system
+
+2.
+on any event occurring at node Ni do
+    T[i] := T[i] + 1
+end on
+
+and every time a local event occurs somewhere in the system we're going to increment particular vector element corresponding to the node at which that event occurs, so Ni processes some event it increment its own entry in the vector.
+
+3.
+on request to send message m at node Ni do
+    T[i] := T[i]+ 1;    send (T, m) via network
+end on
+
+when we want to send a message over the network again, we increment our own entry like the vector like for every local event, and then we attach the vector T to the message to consent of the network
+
+
+4.
+on receiving (T',m) at node N; via the network do
+    T[j]:= max(T[j],T'[j]) for every j∈{1,...,n}
+    T[il := T[i] + 1; deliver m to the application
+end on
+
+when we receive one to these messages over the network, say T prime is the timestamp in the message.
+now we're going to merge the recipient nodes current local time T, with the timestamp in the message T prime, and the way we're going to merge those is we're going to go through the vectors element wise, and so we're going to take the first element of T and the first element of T prime, I'm going to take the maximum of those two and that becomes the first element of T. so element wise, we take the maximum and the result is this updated variable T here.
+then again we increment the local entry in T and we deliver m to the application.
+
+======================================
+vector clocks example
+======================================
+The vector timestamp of an event e represents a set of events,
+e and its causal dependencies: {e} ∪ {a | a -> e}
+e union all of the events that happened before e, and so visually we can think of this diagram by traveling backwards in time and finding all of the events that we can reach through travelling backwards either on each node's individual execution order, or by going backwards from the receipt to the sending of messages.
+
+
+one way of thinking about these vectors here is that a vector represents a set of events
+
+For example, <2, 2, 0> represents the first two events from A, the first two events from B, and no events from C
+
+there is a direct correspondence between vectors and the set of events in the system, the vector is essentially a way of summarizing a set of events that occurred in the system, simply by counting for each node from the start of that node's execution of how many events down do we go in that node's history
+
+==================================
+Vector clocks ordering
+==================================
+Define the following order on vector timestamps
+(in a system with n nodes):
+1. T = T'  iff  T[i]=T'[i]  for all i∈{,...,n}
+2. T ≤ T'  iff  T[i]≤T'[i]  for all i∈{.,...,n}
+3. T < T'  iff  T≤T'        and     T≠T'
+we can define strict inequalities, strictly less than simply as being t less than or equal to t prime and not being equal, which means that there must be at least one element in which they differ, but they might be the same in all of the other elements
+4. T || T'  iff  T !≤ T' and  T' !≤ T
+two vector timestamp, neither is t less than or equal to t prime, nor is t prime less than or equal to t
+in that case we say that t and t prime are incomparable
+
+V(a)≤V(b) iff ({a}∪{e|e→a}) ⊆ ({b}∪{e|e→b})
+
+vector clock of A here corresponds to the set of events of A plus all of the events that happened before a and the vector timestamp of B corresponds to the set of events b plus all of the events that happened before b, now this less than recall relationship on the vectors corresponds exactly to a subset relationship on those two sets of events, this gives you a nice way of reasoning about what these vectors actually mean, because since they are correspond to sets of event, there's a subset relationship between the two, and it might be the case that one is a subset of the other, or it might be the case that neither is a subset of the other because there are some elements that they don't have in common, and so now this order that we have defined on these vector timestamps is very useful because it corresponds exactly to the happens before relationship, so it gives us a partial order, and this partial order is consistence with causality
+
+Properties of this order:
+1. (V(a) <  V(b)) <=> (a -> b)
+first of all, we have the fact that given two events a and b, the vector timestamp of a is strictly less than the vector timestamp of b, according to this order above here, if and only if a happened before b.
+for lamport timestamp we only had a one-way implication, we had that if a happened before b, then the timestamp L(a) is less than L(b). but with vector clocks we have an if and only if relationship, it's a bidirectional implication
+2. (V(a) =  V(b)) <=> (a =  b)
+3. (V(a) || V(b)) <=> (a || b)
+
+
+
+
+so what we have here using vector clocks is a way of computing that happens before relationship, so far that happens before relation has been essentially this abstract definition, we can by looking at the diagram of the events on paper, we can work out what thing happened before which other thing, but that's not an algorithm for computing it, whereas here with vector clocks, we actually have an algorithm for computing exactly which event happened before which other event, and we have a way of telling whether two events are concurrent or not.
 

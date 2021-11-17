@@ -266,3 +266,10 @@ a little black blob: 小黑点
 plagiarism
 英 [ˈpleɪdʒərɪzəm]  美 [ˈpleɪdʒərɪzəm]
 n. 剽窃；剽窃物
+
+consent
+英 / kənˈsent / 美 / kənˈsent /
+n.
+许可，允许；同意，赞同；正式批准文件，批文
+v.
+赞同，准许，同意
