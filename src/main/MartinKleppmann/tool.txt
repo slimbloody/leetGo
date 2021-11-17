@@ -19,3 +19,10 @@ https://mp.weixin.qq.com/s?__biz=MzA4NDk5OTgzMg==&mid=2650591845&idx=1&sn=7510bf
 
 
 组成原理：第二章 数据的表示和运算09 移位运算
+
+UTF-8 数学运算符号列表
+https://www.twle.cn/l/yufei/charset/charset-basic-math.html
+≈	8776	2248	&asymp;	ALMOST EQUAL TO
+⊆	8838	2286	&sube;	SUBSET OF OR EQUAL TO
+⊇	8839	2287	&supe;	SUPERSET OF OR EQUAL TO
+

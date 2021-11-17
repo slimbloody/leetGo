@@ -1,7 +1,3 @@
-≈	8776	2248	&asymp;	ALMOST EQUAL TO
-⊆	8838	2286	&sube;	SUBSET OF OR EQUAL TO
-⊇	8839	2287	&supe;	SUPERSET OF OR EQUAL TO
-
 Broadcast protocols and logical time
 
 ===========================
