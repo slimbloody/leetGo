@@ -95,7 +95,7 @@ that we have two different events with the same timestamp, there's nothing preve
 Lamport clocks example
 ===============
 there are two different events with the same timestamp three, and also two different events with the timestamp one.
-and so one thing we might want to do is to have timestamps that uniquely identify events in the entire system and we can do this by combining the lamport timestamp with the name of node at which that particular event occurred
+and so one thing we might want to do is to have timestamps that uniquely identify events in the entire system and we can do this by combining the lamport timestamp with the name of node at which that particular event occurred.
 
 Let N(e) be the node at which event e occurred.
 Then the pair (L(e), N(e)) uniquely identifies event e.
@@ -111,6 +111,20 @@ and now there's one more thing that we can do with lamport timestamps and this i
 (a<b) <=> (L(a)< L(b) V (L(a)= L(b) ^ N(a) < N(b))
 The order is casual: (a < b) <=> (a < b)
 
+we can define that a is less than b according to this little curly less than symbol symbol,
+
+a is less than b
+if and only if
+the lamport timestamp of a is less than the timestamp of a lamport timestamp of b,
+or
+if a and b have the same timestamp, but the name of the event a is the less than the node name of event b
+
+so this assuming we have some way of comparing node names like a b and c, we could just have like a lexical graphic comparison of those, so that a comes before b and b comes before c for example, so this now means we can define an ordering on these events by first of all looking at their lamport timestamp, and if the timestamp are the same, we break the ties using the name of the nodes.
+
+this ordering here is a total order that means for any two events, if they're distinct events it is always the case that either a is less than b or b is less than a, so it's not a partial order that happens before relationship was partial order in which some events are incomparable if they are concurrent but here this is a total order which means any event that happened anywhere in the system we can always put them one after the other according to this order, and this order is consistent with causality which means that if event a happened before event b then it is always the case that a is less than b according to the total order and that follows directly from the fact that the lamport timestamps are consistent with causality.
+
+they(lamport timestamp) essentially give a way attaching timestamps to all of the events in a system in a way that captures that happens before relationships, so we can now define this total order using their timestamps, so we can use the timestamps as a way of detecting the order of the events that happened in the system.
+
 
 
 
@@ -118,8 +132,10 @@ The order is casual: (a < b) <=> (a < b)
 Vector clocks
 ==============
 limitation of Lamport clock:
+1.
 Given Lamport timestamps L(a) and L(b) with L(a) < L(b)
-we can't tell whether a -> b or a || b.
+we can't tell whether a -> b or a || b(current).
 
-If we want to detect which events are concurrent, we need
-vector clocks:
+
+If we want to detect which events are concurrent where one happened before the other, we need vector clocks:
+
