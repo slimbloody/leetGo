@@ -1,4 +1,3 @@
-
 =====================
 Ordering of messages
 =====================
@@ -7,7 +6,73 @@ let's say reliable network links the messages might be delayed or might be reord
 
 attach timestamp to each message by using local clock generating timestamp
 
-we're going to assume that these are of course physical time of day clocks, we're going to assume that the clocks are synchronized using something like ntp
-but it could still happened even if clocks are synchronized, it can happen that the timestamp t2 is actually less than the timestamp t1. this could happen because the clock skew between two nodes in a system might be greater than the one-way network delay between those two nodes, and even with ntp synchronization we cannot rule out the possibility that the clock skew is greater than the one-way network delay/latency
 
-3:55
+
+Problem: even with synced clocks, t2 < t1 is possible.
+Timestamp order is inconsistent with expected order!
+
+we're going to assume that these are of course physical time of day clocks, we're going to assume that the clocks are synchronized using something like ntp
+but it could still happened even if clocks are synchronized, it can happen that the timestamp t2 is actually less than the timestamp t1. this could happen because the clock skew between two nodes in a system might be greater than the one-way network delay between those two nodes, and even with ntp synchronization we cannot rule out the possibility that the clock skew is greater than the one-way network latency.
+
+
+so our whole aim of this exercise was to ensure that messages get put in the right order, according to time, but even using time here we have not actually been able to put the messages in the right order, because the timestamp order is inconsistent with our understanding of which message is a reply to which other message.
+
+
+===========================
+The happens-before relation
+===========================
+An event is something happening at one node (sending or receiving a message, or a local execution step).
+
+the things that happen are events, an event can be just one node in the system making a local execution step, one node doing something that can be an event,
+or an event could be a message that one node sends to another, so the sending of the message is one event, and then the receiving of the message is another event, if the message arrives, then receiving would be another event,
+
+We say event a happens before event b (written a -> b) iff:
+
+so now we can define a relation which is a set of pairs of events that describes how those events relate to each other, and this happens before relationship is written as a A arrow B, if a happened before b, we say that a happened before b, if at least three things are true:
+1. a and b occurred at the same node, and a occurred before b in that node's local execution order; or
+we assume that each node is a single threaded process that is just doing one thing after another, so there's no ambiguity about the order in which things happened on a single node, if there's a single thread, then things only happen one after another and we can define exactly which thing happened first and which happened second. so we're going to assume that for each node, there's a strict total order of all of the events that happened on that particular node, if we did wanted to support multi-thread processes, then we could have each thread being a separate node for the purposes of this model here. so we can just assume single threads for now. and so we're going to say that a happened before b is they happened on the same node, and they were executed, a was executed before b, that makes sense
+
+2. event a is the sending of some message m, and event b is the receipt of that same message m (assuming sent messages are unique); or
+otherwise you could have two different events for the sending of the sme message, which of course could happen in a real system, but it makes
+
+3.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
