@@ -35,6 +35,7 @@ we assume that each node is a single threaded process that is just doing one thi
 2. event a is the sending of some message m, and event b is the receipt of that same message m (assuming sent messages are unique); or
 otherwise you could have two different events for the sending of the sme message, which of course could happen in a real system, but it makes
 
+6:55
 3.
 
 
