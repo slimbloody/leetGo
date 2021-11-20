@@ -63,20 +63,32 @@ therefore, A is concurrent with E, b is concurrent with all a b c and d, they're
 
 
 
+that happens before relation is very closely connected to the concept of causality in distributed systems.
+in particular, if a happened before b, then it might be the case that a caused b or a influenced b in some way. so there's some information flow, that has happened from a to b, whereas if the events a and b are concurrent, we know that a cannot have caused b and b cannot have caused A. there's no causal relationship between the two, so this concept of causality is actually taken from physics where typically people reason about events that happen far apart in space. and the time that is takes the speed of light to travel between those things.
 
 
 
+=================
+Causality
+=================
+Taken from physics (relativity).
+    1. When a -> b, then a might have caused b.
+    2. When a || b, we know that a cannot have caused b.
+Happens-before relation encodes potential causality.
 
 
 
+≺	8826	227A	 	PRECEDES
+≻	8827	227B	 	SUCCEEDS
+Let ≺ be a strict total order on events.
+If(a→b) ==> (a < b) then ≺ is a causal order
+(or: ≺ is "" consistent with causality")
 
+NB注意，留心（拉丁语 nota bene，用于书面注意事项）
+NB. causal != casual
 
-
-
-
-
-
-
+causal order:
+it's a way of putting the events in the system into an order in such a way that they are consistent with causality, that if one thing happened before another thing, then they appeared in correct order, but if two things are concurrent then they could appear in either order. because one could have happened before the other there's no real way of saying which one happened first, so in that case, they could be ordered arbitrarily.
 
 
 

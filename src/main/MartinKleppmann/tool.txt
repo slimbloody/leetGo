@@ -26,3 +26,5 @@ https://www.twle.cn/l/yufei/charset/charset-basic-math.html
 ⊆	8838	2286	&sube;	SUBSET OF OR EQUAL TO
 ⊇	8839	2287	&supe;	SUPERSET OF OR EQUAL TO
 
+≺	8826	227A	 	PRECEDES
+≻	8827	227B	 	SUCCEEDS
