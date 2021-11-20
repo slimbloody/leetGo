@@ -73,9 +73,11 @@ Causality
 =================
 Taken from physics (relativity).
     1. When a -> b, then a might have caused b.
-    2. When a || b, we know that a cannot have caused b.
+    2. When a || b, we know that a cannot have caused b and b cannot caused a. there's no causal relationship between two.
 Happens-before relation encodes potential causality.
 
+
+light cone: 就是为了说明ab几近同时发生, 都需要传输时间才能告知对方, 并不能在发生的同时也能立即告诉对方,只有在下游的c事件,才能让对方
 
 
 ≺	8826	227A	 	PRECEDES
