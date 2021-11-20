@@ -33,17 +33,33 @@ so now we can define a relation which is a set of pairs of events that describes
 we assume that each node is a single threaded process that is just doing one thing after another, so there's no ambiguity about the order in which things happened on a single node, if there's a single thread, then things only happen one after another and we can define exactly which thing happened first and which happened second. so we're going to assume that for each node, there's a strict total order of all of the events that happened on that particular node, if we did wanted to support multi-thread processes, then we could have each thread being a separate node for the purposes of this model here. so we can just assume single threads for now. and so we're going to say that a happened before b is they happened on the same node, and they were executed, a was executed before b, that makes sense
 
 2. event a is the sending of some message m, and event b is the receipt of that same message m (assuming sent messages are unique); or
-otherwise you could have two different events for the sending of the sme message, which of course could happen in a real system, but it makes
+otherwise you could have two different events for the sending of the sme message, which of course could happen in a real system, but it makes the thing difficult to model mathematically, so for simplicity's sake here, we just assume that every message that is sent is unique, and if we wanted to actually make messages unique in practice, we could attach some kind of sequence number and the identifier of the node that sent the message for example we could attach that to every message, or we could pick a long random number for every message and that would be sufficient to make every message unique. and so this happens before relationship make sense because a message can only be received after it has been sent, and so it makes sense for the sending of that particular message to the happen-before receipt of that message.
 
-6:55
-3.
-
-
+3. there exists an event c such that a> c and c> b.
+if we can find some event c such that a happened before c, and c happened before b, then it must also be the case that a happened before b, so this is simply taking the transitive closure of the first two points and extending the whole thing into what is called a partial order, so a partial order is it behaves a bit like a less than relationship between two things. so it allows you to compare two things, and say which one happened first, but there might be something incomparable according to this order where we simply it is not the case that a happened before b or b happened before a, the two are simply unrelated, it is not the case that either one happened before the other, and in that case we say that a and b are concurrent, and we write it with this little double bar(the parallel sign) here.
 
 
+The happens-before relation is a partial order: it is possible
+that neither a -> b nor b -> a. In that case, a and b are concurrent (written a || b).
+
+todo: the exercise to prove these three possibilities.
+
+========================================
+Happens-before relation example
+========================================
+we're going to build up the happens before relationship from the individual clauses
+
+1. a -> b, c -> d, and e -> f, due to process order
+2. b -> c, d -> f, due to messages m1 and m2
+3. a -> c, a -> d, a -> f, b -> d, b -> f, c -> f, due to transitivity
 
 
+message m1/m2 traveling over the network.
+so now we've got all of these relationships between some of the events. now we extend this whole thing with the transitive closure. essentially what you can imagine here, is we can take a path through this graph, you can imagine any path that moves forward in time on a node, or that moves from the sending of a message to the receipt of the message. and then moves through other nodes, you can take any path through this graph as long as you're always moving forward in time, then you will get from any a that happened before any other event
 
+4. a || e, b || e,  c || e, adn d || e
+concurrent does not literally mean simultaneous, it doesn't mean happened literally at the same instant in time, it just means the two events did not know about each other when they occurred.
+therefore, A is concurrent with E, b is concurrent with all a b c and d, they're all concurrent to e, but e and f are not concurrent of course, because of the order on USER C
 
 
 
