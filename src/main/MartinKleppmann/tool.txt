@@ -28,3 +28,14 @@ https://www.twle.cn/l/yufei/charset/charset-basic-math.html
 
 ≺	8826	227A	 	PRECEDES
 ≻	8827	227B	 	SUCCEEDS
+
+∀	8704	2200	&forall;	FOR ALL
+∁	8705	2201	 	COMPLEMENT
+∂	8706	2202	&part;	PARTIAL DIFFERENTIAL
+∃	8707	2203	&exist;	THERE EXISTS
+
+∩	8745	2229	&cap;	INTERSECTION
+∪	8746	222A	&cup;	UNION
+
+
+

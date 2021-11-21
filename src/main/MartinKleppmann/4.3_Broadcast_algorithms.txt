@@ -1,0 +1,106 @@
+==================================
+Broadcast algorithms
+===================================
+
+Break down into two layers:
+1. Make best-effort broadcast reliable by retransmitting dropped messages
+2. Enforce delivery order on top of reliable broadcast
+
+
+algorithms for actually implementing these different models of broadcast, so we're going to that in two separate stages.
+first of all, we'll show how to take best effort broadcast and make it reliable, and then once we've got reliable broadcast, we can layer on top of that modules for delivery order which allows us to do either FIFO or causal or total order broadcast.
+
+so let's start with the reliability layer here.
+
+First attempt: broadcasting node sends message directly to every other node
+1. use reliable links (retry + deduplicate)
+2. Problem: node may crash before all messages delivered
+
+
+================================
+Eager reliable broadcast
+================================
+Idea: the first time a node receives a particular message, it re-broadcasts to each other node (via reliable links).
+
+Reliable, but.. up to O(n^2) messages for n nodes!
+
+====================================
+Gossip protocols/epidemic protocols
+====================================
+Useful when broadcasting to a large number of nodes.
+Idea: when a node receives a message for the first time, forward it to 3 other nodes, chosen randomly.
+
+Eventually reaches all nodes (with high probability).
+there's lots of details that you can tune about gossip protocols about how exactly they decide when to send messages and when to stop sending messages and so on, but basic principle is this they are a way of achieving reliable broadcast, and they are quite robust so that even if some of the nodes crash or some of the messages get lost in the network, we still have very high probability that all of the messages get through to all of the nodes. and that gives us the reliability.
+
+
+===============================
+FIFO broadcast algorithm
+===============================
+next, let's look at the ordering. if we want to achieve FIFO broadcast for example, that means we have to ensure that all of the messages by the same sender are delivered in the right order. this is an algorithm of how we might achieve this.
+
+--------------------------------------------------------------------
+on initialisation do
+    sendSeq:= 0; delivered := <0, 0,...,0>; buffer:= {}
+end on
+--------------------------------------------------------------------
+each node here maintains three variables, a sender sequence number is just an integer that gets incremented for every node for every message broadcast by this particular node. delivered is a vector of integers indicating how many messages from each particular sender we have delivered, and buffer is a hold-back queue of messages, so that if a message is not yet ready to be delivered, we put it in the buffer and then pick it out of the buffer sometime later.
+
+
+
+--------------------------------------------------------------------
+on request to broadcast m at node N; do
+    send (i, sendSeq, m) via reliable broadcast
+    sendSeq := sendSeq + 1
+end on
+--------------------------------------------------------------------
+if we want to broadcast a message, we attach the node number of the sender i, and we attach the sequence number of the sender to the message, and this triple gets disseminated to all of the nodes via reliable broadcast and then we increment the sequence number for next time we want to broadcast.
+
+
+
+--------------------------------------------------------------------
+on receiving msg from reliable broadcast at node N; do
+    buffer := buffer ∪ {msg}
+    while 3sender, m.(sender, delivered[sender], m) ∈ buffer do
+        deliver m to the application
+        delivered[sender] := delivered[sender] + 1
+    end while
+end on
+--------------------------------------------------------------------
+also when we receive a message via reliable broadcast at node. we first of all add the message to the buffer. and then we look at the buffer trying to find any messages that are ready to be delivered.
+and here ready to be delivered means that for any given sender, we have a message in the buffer where the sequence number is the next integer that we are expecting in the sequence number from the particular sender.
+and so if we have a message matching that then we take that message delivered to the application and we increment local vector of number of messages we have delivered from a particular sender.
+
+===============================
+Causal broadcast algorithm
+===============================
+
+-----------------------------------------------------------------------
+on initialisation do
+    sendSeq:= 0; delivered := <0, 0,...,0>; buffer:= {}
+end on
+-----------------------------------------------------------------------
+
+-----------------------------------------------------------------------
+on request to broadcast m at node N; do
+    deps := delivered; deps[i] := sendSeq
+    send (i, deps, m) via reliable broadcast
+    sendSeq := sendSeq + 1
+end on
+-----------------------------------------------------------------------
+when we want to broadcast messages at ni, first of all we create this new variable dependencies, so that captures the causal dependencies of this messages. so it's a way of determining which message happened before this particular message, and those will have to be then all of the messages that have to be delivered before this message being broadcast
+
+-----------------------------------------------------------------------
+on receiving msg from reliable broadcast at node N; do
+    buffer := buffer∪{msg}
+    while 3(sender, deps, m)∈buffer. deps≤delivered do
+        deliver m to the application
+        buffer := buffer \ {(sender, deps, m)}
+        delivered[sender] := delivered[sender] + 1
+    end while
+end on
+-----------------------------------------------------------------------
+
+
+
+
