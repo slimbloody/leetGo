@@ -88,8 +88,12 @@ on request to broadcast m at node N; do
     sendSeq := sendSeq + 1
 end on
 -----------------------------------------------------------------------
-when we want to broadcast messages at ni, first of all we create this new variable dependencies, so that captures the causal dependencies of this messages. so it's a way of determining which message happened before this particular message, and those will have to be then all of the messages that have to be delivered before this message being broadcast
+when we want to broadcast messages at Ni,
+1. first of all we create this new variable dependencies(deps), so that captures the causal dependencies of this messages. so it's a way of determining which message happened before this particular message, and those will have to be then all of the messages that have to be delivered before this message being broadcast, wo we take dependencies to be a copy of your delivered vector, and we update the sending broadcasting node's own entry to be equal to the sequence number.
+2. then we send the message via reliable broadcast again. this time we don't attach the sequence number, but we attach this dependencies vector, in addition to i which is the index of the node
+3. and then we increment the sender sequence number as before.
 
+so this time we've got messages that have a vector attached to them rather than a single integer.
 -----------------------------------------------------------------------
 on receiving msg from reliable broadcast at node N; do
     buffer := buffer∪{msg}
@@ -100,6 +104,49 @@ on receiving msg from reliable broadcast at node N; do
     end while
 end on
 -----------------------------------------------------------------------
+when one of these messages gets delivered at a node,
+we first of all put the messages in the buffer as usual, and now we search for any messages that are ready to be delivered, and these are any messages whose causal dependencies have been satisfied. so any messages that were broadcast before current message, they have already been delivered by the local node. if those have been delivered, then this message is ready to be delivered, because its causal dependencies have already been delivered.
+
+so here we search for any sender dependencies and message in the buffer, such that the dependencies vector is less than or equal to the delivered vector and this less than or equal operator is exactly the less than or equal operator that we defined on vector clocks a little while back. so even this algorithm is not exactly the same as the vector clock algorithm. it's similar in the way that it does use these vectors of numbers and it uses this less than equal comparison as a part of its algorithm for causal broadcast. if we have a message that satisfies dependencies.
+
+we deliver it,
+we remove the message from the buffer,
+and we increment the number of messages we have delivered from the particular sender
+
+
+
+=================================================
+total order broadcast algorithms
+=================================================
+we have to somehow agree on what this total order is of messages in which order the messages are going to get delivered.
+
+------------------------
+Single leader approach:
+1. One node is designated as leader (sequencer)
+2. To broadcast message, send it to the leader; leader broadcasts it via FIFO broadcast.
+
+Problem: leader crashes => no more messages delivered
+Changing the leader safely is difficult
+
+let's say one simple way of doing this, we're going to pick one of the nodes as the leader, and this leader is going to be in charge of determining the order in which the messages get delivered. so that's why it's also sometimes known as a sequencer because it sequences the messages, and if one node wants to broadcast message, it doesn't directly broadcast it to the other nodes, instead, the node sends it to the leader via a FIFO link probably, and leader then broadcast by a FIFO broadcast to the entire group. and so because all of the messages are going through the leader, simply the order in which the leader broadcasts the messages, then is the order in which all of the other nodes will delivered then messages since we're talking about FIFO broadcast.
+this works quite nicely, it just has the problem that if our leader crashes, then no more messages can get delivered, because we're requiring all of our messages to go through the leader.
+so really we would need some kind of way of changing the leader from one node to another in case that leader crashes, but this is quite difficult to do safely because you know what if you end up with two different leaders then your guarantee of total order is gone.
+
+
+
+------------------------
+Lamport clocks approach:
+1. Attach Lamport timestamp to every message
+2. Deliver messages in total order of timestamps
+
+so remember lamport timestamps have an associated.
+
+
+
+
+
+
+
 
 
 
