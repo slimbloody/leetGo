@@ -1,0 +1,49 @@
+============================
+Replication
+============================
+Keeping a copy of the same data on multiple nodes (Databases, filesystems, caches, ...)
+A node that has a copy of the data is called a replica
+
+reason:
+If some replicas are faulty, others are still accessible
+Spread load across many replicas
+
+1. software crash or hardware stop working, network partition
+2. deliberately make nodes inaccessible from time to time, eg: reboot the system
+3. let you handle more request
+
+
+
+Easy if the data doesn't change: just copy it
+We will focus on data changes
+
+
+
+Compare to RAID (Redundant Array of Independent Disks):
+replication within a single computer
+RAID has single controller; in distributed system, each node acts independently
+Replicas can be distributed around the world, near users
+
+raid is designed for a single computer, there's a single controller that manage all of the data.
+in distributed system, we've got each node in acting independently, we've got the unreliable network in between the two nodes, the nodes might be distributed around the world so they might be not located in the same location but they might be on different continents communicating over the internet, and so we have to deal with all of challenges that this sort of distributed setup brings.
+
+==============================
+Retrying state updates
+==============================
+prevent:
+1. De-duplicating requests requires that the database tracks which requests it has already seen (in stable storage)
+with the database, generally, we want to support a crash recovery type system model, that means if a node crashes, it doesn't stay offline forever, it will come back, which means that any data that needs to be not lost in the process of that restart needs to be stored on disk in stable storage in some durable form, and if you want to deduplicate requests to a database, in a way that will work even across crashes and restarts, that means that all of the requests actually need to be stored in the database as well, that can end up being quite a lot of data.
+
+==============================
+Idempotence
+==============================
+Idempotence comes from math which means that if you apply a function once to some argument, it's has the same effect as applying
+A function f is idempotent: f(x)= f(f(x)).
+    Not idempotent: f(likeCount) = likeCount + 1
+    Idempotent: f(likeSet) = likeSet ∪ {userID}
+Idempotent requests can be retried without deduplication.
+
+
+
+
+==============================
