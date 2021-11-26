@@ -25,7 +25,7 @@ RAID has single controller; in distributed system, each node acts independently
 Replicas can be distributed around the world, near users
 
 raid is designed for a single computer, there's a single controller that manage all of the data.
-in distributed system, we've got each node in acting independently, we've got the unreliable network in between the two nodes, the nodes might be distributed around the world so they might be not located in the same location but they might be on different continents communicating over the internet, and so we have to deal with all of challenges that this sort of distributed setup brings.
+in distributed system, we've got each node in acting independently, we've got the unreliable network in between the two nodes, the nodes might be distributed around the world, so they might be not located in the same location, but they might be on different continents communicating over the internet, and so we have to deal with all of challenges that this sort of distributed setup brings.
 
 ==============================
 Retrying state updates
@@ -37,13 +37,111 @@ with the database, generally, we want to support a crash recovery type system mo
 ==============================
 Idempotence
 ==============================
-Idempotence comes from math which means that if you apply a function once to some argument, it's has the same effect as applying
+Idempotence is a concept from math which means that if you apply a function once to some argument, it has the same effect as applying it any number of times.
+
 A function f is idempotent: f(x)= f(f(x)).
     Not idempotent: f(likeCount) = likeCount + 1
+    increment a counter
     Idempotent: f(likeSet) = likeSet ∪ {userID}
+    adding an element to set
 Idempotent requests can be retried without deduplication.
 
+
+Choice of retry semantics:
+1. At-most-once semantics:
+send request, don't retry, update may not happen
+you send request of network once, it may or may not get there, but you're not going to retry, so it might arrive or might not arrive, but you're not going to try and make this reliable in any way.
+2. At-least-once semantics:
+retry request until acknowledged, may repeat update
+you're going to retry until you get an acknowledgement which means the request may arrive multiple times
+3. Exactly-once semantics:
+retry + idempotence or deduplication
+operation takes effect exactly once. even if the operation is applied multiple times, the effect is as if it had been applied exactly once, or of course, we can achieve exactly once through deduplication as well, as long as we're willing to store the requests, that have already happened in some from.
+
+==============================
+Adding and then removing again
+==============================
+
+f: like     g: unlike
+f(likes) = likes ∪ {userID}
+g(likes) = likes \ {userID}
+
+Idempotent?
+f(f(x)) = f(x) but f(g(f(x)) != g(f(x)))
 
 
 
 ==============================
+Another Adding and then removing again
+==============================
+client -> A: add x, remove x
+client -> B: add x, remove x(request lost)
+final state: (x ∉ A, x ∈ B) is the same as in this case.
+
+client -> A: add x, remove x(request lost)
+client -> B: add x, remove x
+final state: (x ∈ A, x ∉ B) is the same as in this case.
+
+==============================
+Timestamps and tombstones
+==============================
+we have to distinguish these two outcomes, and the way we can do that is by adding timestamp to things.
+we're just going to have the client generate a logical timestamp when it makes the request to the two replicas
+
+and I'm also going to associate here x with a value true, and true here just means that x is present in the set.
+
+"remove x" doesn't actually remove x: it labels x with false to indicate it is invisible (a tombstone)
+
+this construction where we don't actually delete something but just mark something as deleted it's called a tombstone, and this appears in various different distributed algorithms, when we have to deal with deletion.
+tombstone just means something was supposed to be deleted but for internal reasons we ahd to actually keep it. maybe tombstone can get garbage collected at some later point int time, that's separate question. but for now we just need to keep remembering this item even though it has been deleted.
+
+Every record has logical timestamp of last write.
+
+==================
+Reconciling replicas
+==================
+Replicas periodically communicate among themselves to check for any inconsistencies.
+
+we attached this logical timestamp, so every time some object in the database is written, we attach the timestamp of the last operation that wrote it, and this allows us to tell which value are newer and which are older.
+
+so this means now that after this has happened, a and b are no longer in the same state, because a received the request to delete x with timestamp t2, whereas b did not receive that request because it got lost in the network. and according to b, x is still present in the set, and it has a last modification timestamp of t1.
+and now the two replicas can run a protocol in which they compare what they have, they compare their data and this protocol is called an anti-entropy protocol because it's supposed to clear the entropy and the confusion and the uncertainty in the system, and bring all of the replicas back into the same state.
+and so as a and b reconcile their state and perform this anti-entropy protocol, they will compare their timestamps, and since we have these logical timestamps attached to every data item. they realize that O(t1) is less then O(t2). therefore, this value that b has must be older, the value that a has must be newer, and therefore, the record on b is going to get replaced with the one from a. so the one from a is the more recent one so that gets propagated to b. and so here, the timestamps have helped us because they tell us about the recency and the relative ordering of these updates, so timestamps have been very useful, and so typically we will probably have one timestamp for every given key or every object in database, because that's the granularity at which we're going to do that reconciliation
+
+
+Propagate the record with the latest timestamp,
+discard the records with earlier timestamps(for a given key).
+
+
+what kind of logical timestamps do we use here?
+========================================
+Concurrent writes by different clients
+========================================
+timestamps provide a relative ordering of these two operations
+
+Two common approaches:
+Last writer wins (LWW):
+    Use timestamps with total order (e.g. Lamport clock)
+    Keep v2 and discard v1 if t2 > t1. Note: data loss!
+
+what we have with lamport clock is they give use a total ordering, total ordering means that for any two timestamps, that exist in the system we can always compare them, and it will always be the case that one is less than the other.(eg: t1 < t2)
+
+but it might just as well be the other way around, because in this case the two operations are concurrent, and the ordering that the lamport timestamps provide us is arbitrary essentially.
+and what we can do here for example is that we compare t1 and t2. and we just keep the value with the higher timestamp. and this will work because then as the value gets overwritten we know that the overwritten happens after a previous operation, and therefore it will always have a greater timestamp. therefore, overwriting a smaller timestamp with a greater timestamp is a fine thing you can do that.
+and this behavior called last writer wins, because we assume that the last one last writer is the one with the highest timestamp, and so the highest timestamp wins if there are several concurrent updates with different timestamps.
+note however, that this means that if say t2 is greater than t1, this means that if say t2 is greater than t1, this means we keep v2 which was written by client2, and we simply discard v1, value v1 is simply gone. so we're not even store that value anywhere, it simply gets overwritten and forgotten.
+and this might be okay depending on the application, there might be applications in which actually if they're too concurrent writes, it's fine to just keep one and throw away the others. if there are five concurrent writes, we're going to keep one and throw away four of them.
+
+
+
+but there might also be a scenarios in which actually if there are several concurrent rights we want to keep all of them, and we want to explicitly resolve this situation. and we want to explicitly resolve this situation, if we want that, we use a vector clock instead of lamport clock.
+-------------------------------------------
+Multi-value register:
+Use timestamps with partial order (e.g. vector clock)
+v2 replaces v1 if t2 > t1; preserve both {v1, v2} if t1 || t2.
+
+
+if we use a vector clock, then if we generate two different timestamps t1 and t2, and these two operations are concurrent, then the vector will also be incomparable we will end up with t1 and t2 being incomparable, and this allows us to detect the fact that these two operations are concurrent. and so in this case now, we will only overwrite on value with another value if there are later ones strictly greater than the earlier one under the strictly greater than relation that we've defined previously. but if we have two concurrent updates, then we will keep both of them. and so in this case, now there's not a single value attached to the key x, but there could be multiple values in this case v1 and v2, and so in this case we can give those two values back to the application, and the application can then resolve this. so this is called a conflict, and the application can have explicit logic for conflict resolution. so that if these two updates happen concurrently, and we have two different values written by different clients, then we can avoid throwing away data, swe can combine the information from these two values that were written concurrently into a single value write it back to the database again, and that ensures then everyone is happy and no data was lost.
+
+
+

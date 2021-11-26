@@ -308,9 +308,18 @@ genuine
 adj. 真正的，非伪造的；真诚的，真心的
 
 
+entropy
+noun [U]
+UK  /ˈen.trə.pi/ US  /ˈen.trə.pi/
+SOCIAL SCIENCE
+the amount of order or lack of order in a system
+混乱，无序
 
-
-
+reconcile
+verb [ T ]
+UK  /ˈrek.ən.saɪl/ US  /ˈrek.ən.saɪl/
+to find a way in which two situations or beliefs that are opposed to each other can agree and exist together
+调和；调解；使一致
 
 
 
