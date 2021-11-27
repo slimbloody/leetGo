@@ -145,3 +145,6 @@ if we use a vector clock, then if we generate two different timestamps t1 and t2
 
 
 
+
+https://www.youtube.com/watch?v=mBUCF1WGI_I&list=PLeKd45zvjcDFUEv_ohr_HdUFe97RItdiB&index=16&ab_channel=MartinKleppmann
+19:25
