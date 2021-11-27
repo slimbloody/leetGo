@@ -280,8 +280,7 @@ n. 圆锥体，圆锥形；[植]球果
 vt. 使成锥形
 
 
-NB注意，留心（拉丁语 nota bene，用于书面注意事项）
-
+N.B. 注意，留心（拉丁语 nota bene，用于书面注意事项）
 
 reason about
 v. 推出
@@ -307,7 +306,6 @@ genuine
 英 [ˈdʒenjuɪn]  美 [ˈdʒenjuɪn]
 adj. 真正的，非伪造的；真诚的，真心的
 
-
 entropy
 noun [U]
 UK  /ˈen.trə.pi/ US  /ˈen.trə.pi/
@@ -320,6 +318,37 @@ verb [ T ]
 UK  /ˈrek.ən.saɪl/ US  /ˈrek.ən.saɪl/
 to find a way in which two situations or beliefs that are opposed to each other can agree and exist together
 调和；调解；使一致
+
+syrup
+英 [ˈsɪrəp]  美 [ˈsɪrəp]
+n. 糖浆，果汁；含药糖浆
+[ 复数 syrups ]
+
+quorum
+英 [ˈkwɔːrəm]  美 [ˈkwɔːrəm]
+n. 法定人数
+计算机科学技术
+仲裁集
+
+
+ledger
+英 [ˈledʒə(r)]  美 [ˈledʒər]
+n. 总账，分户总账；[会计] 分类账；账簿；底账；（手脚架上的）横木
+n. (Ledger)人名；(英)莱杰
+分布式账本（Distributed ledger）是一种在网络成员之间共享、复制和同步的数据库。分布式账本记录网络参与者之间的交易，比如资产或数据的交换。这种共享账本消除了调解不同账本的时间和开支
+分布式分类帐(也称为共享分类帐,或称为分布式分类技术)是一个复制的共识,共享和同步数字数据在地理上分布在多个网站,国家,或机构。没有中心管理员或集中数据存储.
+和区块链差不多的玩意
+
+commutativity
+英 [kəˌmjuːtəˈtɪvɪti]  美 [kəmjuːtəˈtɪvɪti]
+n. [数] 交换性
+
+deterministic
+英 [dɪˌtɜːmɪˈnɪstɪk]  美 [dɪˌtɜːrmɪˈnɪstɪk]
+adj. 确定性的；命运注定论的
+
+
+
 
 
 

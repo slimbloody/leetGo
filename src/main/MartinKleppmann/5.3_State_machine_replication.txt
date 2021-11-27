@@ -1,0 +1,98 @@
+=====================================
+State machine replication
+=====================================
+So far we have used best-effort broadcast for replication.
+What about stronger broadcast models?
+
+Total order broadcast: every node delivers the same messages in the same order
+
+
+State machine replication (SMR):
+    FIFO-total order broadcast every update to all replicas
+    Replica delivers update message: apply it to own state
+    Applying an update is deterministic
+    Replica is a state machine: starts in fixed initial state, goes through same sequence of state transitions in the same order ==>  all replicas end up in the same state
+------------------------------
+the whole point of a broadcast protocol is for all of the nodes to receive some set of messages in some order, and the point of replication is for all of the replicas to process some updates, so you might wondering shouldn't we be able to use a broadcast protocol to do replication? and you would be right, indeed, we can use broadcast protocols and we're going to look at that now.
+
+so first of all, let's start with FIFO total order broadcast, the strongest of the broadcast protocols which we considered, and if remember the point of total order broadcast is that all of the nodes will deliver the same set of messages in the same order, which is exactly what we want for replication, and this approach is called state machine replication.
+so the algorithm is simple, whenever a replica wants to make some update to its state it use FIFO total broadcast to broadcast that update to all of the replicas, and whenever a replica delivers one of these updates, it processes that update applies it to its own state, so it updates its own state as a function of this update that it received over the broadcast.
+the key thing that makes this work is that the logic for applying an update is deterministic, and so you can think of each replica as a state machine, the state of the replica is all of the data that it has stored, and every replica starts off in a fixed starting state which is usually an empty database containing no data, and then deterministic state update means that whenever two replicas are in the same state, and we give them the same input, then they will transition to the same next state, and because FIFO total order broadcast ensures that each of the replicas delivers the same updates in the same order, if we take these delivered updates to be the input to the state machine, then on each replica the state machine is going to go through the same sequence of state transitions after they've processed the same sequence of messages.
+
+
+
+
+
+
+so this is exactly what we want of state machine replication, and it's very good way of performing. replication. just because if we have this total order broadcast, then the algorithm itself is really simple, it's just whenever we have an update, we broadcast it via total order broadcast, and when ever we deliver an update, we update the state accordingly.
+and this idea is actually very widely used in a whole range of different replicated systems. so there're some distributed systems for example which use this approach for replicating transactions, so this logic here of the updating the state, as long as it's deterministic, it can be any arbitrarily complex logic. so you can package a whole transaction including arbitrary business logic into this, and make sure that the inputs to the transactions get delivered to all of the replicas through total order broadcast, and you can independently execute this transaction on each of the replicas, and they will end up in the same state
+
+so there's a consensus mechanism around performing implementing this total order broadcast, but once you've got it, it's just a sequence of transactions or updates or jobs that need to be performed in a certain order, and each replica will process those deterministic transactions in the same order, and therefore they will end up in the same state, and in this case, the state constitutes a ledger who owns which coins for example.
+============================================================
+State machine replication
+============================================================
+
+----------------------------------------------------
+on request to perform update u do
+    send u via FIFO-total order broadcast
+end on
+
+on delivering u through FIFO-total order broadcast do
+    update state using arbitrary deterministic logic!
+end on
+----------------------------------------------------
+
+Closely related ideas:
+    Serializable transactions (execute in delivery order)
+    Blockchains, distributed ledgers, smart contracts
+Limitations:
+    Cannot update state immediately, have to wait for delivery through broadcast
+
+-----------------------------------------------------------
+the down side of state machine replication are the downsides of total order broadcast, so if you remember when we were looking at total order broadcast, we said that when a node wants to broadcast a message, it cannot deliver that message to itself, it has to coordinate with the other nodes in order to decide the order in which the replicas are going to deliver the messages, and same applies here with state machine replication, so that means the replica cannot immediately update its own state, it has to go through the total order broadcast process in order to know the order in which the states in which these updates are going to get applied. and it does mean that we need a total order broadcast protocol, we'll study that in next lecture.
+
+
+
+
+another example of how this principle of total order broadcast is used for replication is in what is called passive replication for database
+==================================
+Database leader replica
+==================================
+Leader database replica L ensures total order broadcast
+
+
+
+so what happens here is that you have got a leader database and one or more follower databases, if you remember what we said about total order broadcast, one way you can implement total order broadcast is by designating one node as leader, and that leader is going to decide on an order of the messages, and then all of the other nodes are going to deliver the messages in the order they were broadcast by the leader, and this is exactly what happens in database replication, so in database replication, you got one client which requests the leader to execute some transaction, and maybe another client can currently requests the leader to also execute some transaction and those transactions might execute concurrently on the leader, we do have usually the requirement that only the leader can execute transactions if those transactions are going to modify the database state. so any read-only transactions could execute on the followers, but any read-write transactions have to execute on the leader.
+now transactions may execute concurrently, but they will commit in some total order, and this commit order is the crucial thing here, because when a transaction commits, then a record appended to the commit log saying what were the changes that were data changes that were made by this transaction, and this commit record is sent to all of the followers via total order broadcast. so then all of the followers will apply the transaction commits, and the data changes from each transaction int the commit order, and so again, we've got the same principle all of the leader and all of the followers are applying the commits in the same order, and so they go through the same sequence of state transactions, again, using the same principle as a state machine replication.
+
+
+
+so that is  using total order broadcast, it's clearly a good way of implementing application. we also discussed weaker forms of broadcast. so we discussed causal broadcast and FIFO broadcast, reliable broadcast and best effort broadcast. so can we use those as well implementing replication. and the answer is yes we can, it just requires a little bit more care.
+==========================================================
+Replication using causal (and weaker) broadcast
+==========================================================
+State machine replication uses (FIFO-)total order broadcast.
+Can we use weaker forms of broadcast too?
+
+
+If replica state updates are commutative, replicas can process updates in different orders and still end up in the same state.
+Updates f and g are commutative if f(g(x)) = g(f(x))
+
+
+one concept we need for this is commutativity, and so we're going to say that two updates are commutative if you can apply them in either order, so either you apply first f then g, or you apply first g then f, and the end result is the same no matter in which order you apply these two updates. now clearly, not all updates are commutative, only we have to specifically design the algorithm for updates to be commutative if we want to be commutative, but it is possible to design updates in such a way that they are commutative.
+
+and if we do that, then for example, we can use causal broadcast.
+so with causal broadcast, we also require that processing update is deterministic that is still a requirement of any of these broadcast based replication models. but then remember that the order guaranteed provided by causal broadcast is if one message happened before another, then those messages get delivered in their happens before order, but two concurrent messages might be delivered in either other, and so if we want to ensure that all of th replicas end up in the same state, then we must ensure that for any two updates that are concurrent, their state update functions must commute, and so if we have that, then that means that any non-commutative state updates will be provided in the same in the right order by causal broadcast, and any updates that might be reordered by causal broadcast are commutative, and so therefore we can apply them in either order and will end up in the same state.
+and we can generalize this further, and with reliable broadcast we have no ordering guarantees at all, we just have the guarantee that every message is delivered exactly once, and so in this case, we have to have all of the updates they must commute, because broadcast protocol provides no ordering guarantees.
+and we could go even weaker, so we could even go to best effort broadcast in which case we're not even guaranteed any particular number of deliveries for a certain message. so a message might be lost or it might be delivered multiple times. so in this case the state update function will have to tolerate message loss, and it will have to tolerate messages being delivered multiple times through idempotence.
+
+but you can see, that actually all these different models of broadcast we can use in order to build replication systems.
+
+in next lecture, we're going to drill into some more detail on how actually we implement this total order broadcast in a way that is reliable.
+
+--------------------------------------------------------------------
+broadcast   |   assumptions about state update function
+--------------------------------------------------------------------
+total order |   deterministic (SMR)
+causal      |   deterministic, concurrent updates commute
+best-effort |   deterministic, commutative, idempotent, tolerates message loss --------------------------------------------------------------------
