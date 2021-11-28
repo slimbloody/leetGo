@@ -395,8 +395,12 @@ adv. 反之亦然
 
 
 
-
-
+formulate
+verb (used with object)
+1. to express in precise form; state definitely or systematically:
+eg: He finds it extremely difficult to formulate his new theory.
+2. to devise or develop, as a method, system, etc.
+3. to reduce to or express in a formula.
 
 
 
