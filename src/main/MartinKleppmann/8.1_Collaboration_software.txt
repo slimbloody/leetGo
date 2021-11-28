@@ -1,0 +1,64 @@
+========================================
+Lecture 8: Concurrency control in applications
+==========================
+Collaboration and conflict resolution
+==========================
+Nowadays we use a lot of collaboration software:
+    Examples: calendar sync (last lecture), Google Docs, ...
+((collaboration software) it's just so useful to be able to work on something with your colleagues without having to email files back and forth.)
+    Several users/ devices working on a shared file/document
+    Each user device has local replica of the data
+    Update local replica anytime (even while offline), sync with others when network available
+(the user can update this data anytime whenever they like even if they're disconnected from internet ideally, and then sometime later when they have an internet connection again, then they will sync back with the server and with any other clients, that have a copy of document)
+
+    Challenge: how to reconcile concurrent updates?
+
+Families of algorithms:
+    1. Conflict-free Replicated Data Types (CRDTs)
+        Operation-based
+        State-based
+    2. Operational Transformation (OT)
+((CRDTs) they come in two flavors further operation based. on state base)
+
+
+
+
+===========================================
+Operation-based map CRDT
+===========================================
+on initialisation do
+    values := {} .
+end on
+-------------------------------------------------
+on request to read value for key k do
+    if ∃t,v. (t,k,v) ∈ values then return U else return null
+end on
+
+-------------------------------------------------
+on request to set key k to value U do
+    t := newTimestamp()      => globally unique, e.g. Lamport timestamp
+    broadcast (set, t, k, v) by reliable broadcast (including to self)
+end on
+
+-------------------------------------------------
+
+on delivering (set, t, k, v) by reliable broadcast do
+    previous := {(t',k',o') ∈ values | k' = k}
+    if previous= {} V ∀(t',k',v') ∈ previous. t' < t then
+        values := (values \ previous) U {(t,k,v)}
+    end if
+end on
+
+
+
+
+
+
+
+
+
+
+
+
+
+
