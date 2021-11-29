@@ -45,7 +45,51 @@ and the way this is done is through approach called multi-version concurrency co
 now MVCC is actually a very common technique it's used in lots of databases.
 the way it works is it attaches a timestamp to every transaction, and let's say that a read/write transaction has a timestamp tw and that timestamp is assigned at the time when that transaction commits. and then that any data that is written by this transaction tw is that any data is associated. it's a tagged with the transaction timestamp with the commit timestamp of the transaction that wrote it.
 and now if we have an object that is being updated by a transaction, we won't simply overwrite that transaction in place, but we will make a new copy of that object, and that new version of the object will be tagged with timestamps tw of the transaction that wrote that version, but we will keep the old version of the object in place, in case there's a read-only transaction that actually needs to read the old version. and now, we associate each read-only transaction, also with a timestamp and that timestamp identifies the snapshot which is the point in time at which that snapshot is observing the database.
-and now, if the read-only transaction wants to read a particular object, it looks at the different versions of that object, each version tagged with a timestamp, it ignores any versions that have a timestamp greater than the snapshot timestamp
+and now, if the read-only transaction wants to read a particular object, it looks at the different versions of that object, each version tagged with a timestamp, it ignores any versions that have a timestamp greater than the snapshot timestamp, then those versions that have a timestamp less than or equal to the snapshot timestamp, it picks the highest, that is the version of the object that transaction is going to see. and so this now allows the read-only transaction to simply ignore any writes made concurrently. so the read-only transaction is going to see the entire database as of this particular time tr regardless whatever writes happen otherwise and without taking any locks.
+
+
+what is interesting about the way spanner implements this is the way these timestamps are generated.
+===================================================
+Obtaining commit timestamps
+===================================================
+Must ensure that wheneverT1 -> T2 we have t1 < t2.
+    Physical clocks may be ###inconsistent with causality###
+    Can we use Lamport clocks instead?
+    Problem: linearizability depends on ###real-time order###, and logical clocks may not reflect this!
+
+in order to ensure that our snapshot is causally consistent, what we require is that if transaction t1 happened before t2, then the timestamp of t1 has to be less then the timestamp of t2. but physical clocks do not guarantee this, so with physical clocks you could end up in a situation where transaction t1 happened before transaction t2, but t2 had a lower timestamp than t1, and we don't want this.
+so we have to take some other measure to ensure that our timestamps are consistent with causality, the obvious answer is why don't we use logical clocks. because that's exactly what logical clocks were designed to do. unfortunately, logical clocks like lamport clock are not sufficient in this case either, and the reason for this is by this particular example.
+let's say we have two replicas a and b, and the user executes some transaction t1 on replica a and then views the results of transaction, so the user has the results on the screen, then the user choose to perform some action, and that action results in some transaction t2 being executed on replica b.
+so here very clearly it's the case that t1 happened before t2, because there's this user communication in the way the communication ensures that the action depends on the results from t1. so definitely, in this case, we want t1 to have a lower timestamp than t2. but if we're using lamport clocks, remember the way lamport clock work is they work by attaching a timestamp to every message that is sent over the network. and then when you receive one of those messages, you bump up your own local clock to the maximum of the local timestamp and the one you received, but in this case here, there might not be any communication between replicas a and b, so replica a may never send any message to replica b while this is happening because communication is going by a user. and so there's nothing that can propagate our timestamps from a to b. because there's no message that can propagate the timestamps, and we can't rely on the user like type in timestamps or something like that here
+so replica b may not actually realize that it needs to have a timestamp for t2 that is higher than the timestamp of t1, because there's nothing passing along these timestamps that we would need for lamport clocks.
+
+
+
+so lamport clock don't work either, so what can we do in this case.
+well, we can go back to physical clocks, but we have to adjust the physical clocks and do some extra message in order to make sure that this causal ordering property here is satisfied.
+the way spanner does this is using a system called TrueTime.
+===============================================================
+TrueTime: explicit physical clock uncertainty
+===============================================================
+Spanner's TrueTime clock returns [t(earliest)，t(latest)]
+True physical timestamp must lie within that range.
+
+TrueTime is a system of physical clocks, that explicitly captures uncertainty in the timestamps
+and the way this works is sya replica a wants to commit transaction t1, at the time when it wants to commit that transaction. the replica requests a time from true time, and true time does not reply with simply a single timestamp but it returns a range, it return two timestamp, the earliest possible and the latest possible. and so because of the uncertainties, there's no perfect synchronization of clocks in the systems that we have, we can never be totally certain about what the current real physical timestamp is, but we can track all of the errors in the system and all of the uncertainty in the system, and if we correctly account for the uncertainty, then we can be sure that the real physical timestamp will be somewhere between this earliest possible and latest possible with very high probability. so this means we have to track like the round trip time to the clock server, we need to write account for clock drift, we have to account for any sort of things that might cause error. add up all of those potential causes of error, and factor this all into a single uncertainty interval, so that we know that the real timestamp lies somewhere in between this early as possible and the latest possible.
+and now what spanner is going to do is it gets the pair of earliest and latest from TrueTime, and now it's going to wait, and the time it's going to wait is exactly the difference between the two timestamps, so this length of the uncertainty time interval called delta one, the transaction simply going to wait for that time, it's not going to do anything during that time. it's going to continue holding all of the locks. so the transaction is ready to commit, it just hasn't actually committed yet, and it's going to wait for this period delta 1, and once that time has elapsed, now it commits it release all of the locks and it moves on. so this extra weight is the key thing here.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
