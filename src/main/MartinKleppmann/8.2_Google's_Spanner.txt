@@ -18,4 +18,44 @@ Finally in order to achieve atomicity across multiple shards, we do the classic,
 
 
 The interesting bit: read-only transactions require no locks!
-two-phase locking means that if you want to read any data you first have to take a shared lock on that data under shared lock is going to prevent any other transactions from updating that data, but now in real systems, you often get very large read-only transactions, so for example taking a database backup is a very large read-only transaction, that needs to read essentially the entire database, that's what a backup i8s, it's a copy of the entire database. and so this backup may take a long time, and if you have to take a shared lock on the entire database for a long time while you're doing a database backup.
+two-phase locking means that if you want to read any data you first have to take a shared lock on that data under shared lock is going to prevent any other transactions from updating that data, but now in real systems, you often get very large read-only transactions, so for example taking a database backup is a very large read-only transaction, that needs to read essentially the entire database, that's what a backup i8s, it's a copy of the entire database. and so this backup may take a long time, and if you have to take a shared lock on the entire database for a long time while you're doing a database backup, then users are not going to like that very much because it means that no rights can be made to the database for the entire duration of this backup.
+so that would simply not fly in practice, we have to have some way of doing read-only transaction that does not require any locks, and the interesting of spanner is how it enables those kind of read-only transactions
+
+so the way it works is those kind of read-only transactions can read from what is called a consistent snapshot.
+=========================================
+Consistent snapshots
+=========================================
+A read-only transaction observes a consistent snapshot:
+If T1 -> T2 (e.g. T2 reads data written by T1)...
+    Snapshot reflecting writes by T2 also reflects writes by T1
+    Snapshot that does not reflect writes by T1 does not reflect writes by T2 either
+    In other words, snapshot is consistent with causality
+    Even if read-only transaction runs for a long time
+
+Approach: multi-version concurrency control (MVCC)
+    1. Each read-write transaction Tw has commit timestamp tw
+    2. Every value is tagged with timestamp tw of transaction that wrote it (not overwriting previous value)
+    3. Read-only transaction Tr has snapshot timestamp tr
+    4. Tr ignores values with tw > tr; observes most recent value with tw < tp
+
+consistent snapshot is a way of essentially looking at the entire database at one point in time, and the way it does this is using timestamp. now important thing for this consistent snapshot, the consistent aspect is that it means we're consistent with causality, and so what I mean with this is if we have two transactions t1 and t2, and if t1 happened before t2, then if we have a snapshot that contains the writes that were made by t2, then that snapshot must also reflect the writes by t1. that means that we don't end up with some of the causal dependencies missing from the snapshot. likewise, if transaction does not contain the writes by t1, then it will not contain the writes by t2 either. so this goes both ways.
+now this is what we mean with a snapshot being consistent with causality. it just means that we don't have bits of the database snapshot that don't make sense causally. so if the snapshot contains the effect then will also contain the cause of that effect. and so we want to ensure this consistent snapshot even if the read-only transaction runs for a long time, and without taking any locks.
+
+and the way this is done is through approach called multi-version concurrency control(MVCC)
+now MVCC is actually a very common technique it's used in lots of databases.
+the way it works is it attaches a timestamp to every transaction, and let's say that a read/write transaction has a timestamp tw and that timestamp is assigned at the time when that transaction commits. and then that any data that is written by this transaction tw is that any data is associated. it's a tagged with the transaction timestamp with the commit timestamp of the transaction that wrote it.
+and now if we have an object that is being updated by a transaction, we won't simply overwrite that transaction in place, but we will make a new copy of that object, and that new version of the object will be tagged with timestamps tw of the transaction that wrote that version, but we will keep the old version of the object in place, in case there's a read-only transaction that actually needs to read the old version. and now, we associate each read-only transaction, also with a timestamp and that timestamp identifies the snapshot which is the point in time at which that snapshot is observing the database.
+and now, if the read-only transaction wants to read a particular object, it looks at the different versions of that object, each version tagged with a timestamp, it ignores any versions that have a timestamp greater than the snapshot timestamp
+
+
+
+
+
+
+
+
+
+
+
+
+
