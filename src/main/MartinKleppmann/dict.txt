@@ -393,7 +393,10 @@ vice versa
 英 [ˌvaɪs ˈvɜːsə; ˌvaɪsi ˈvɜːsə]  美 [ˌvaɪs ˈvɜːrsə; ˌvaɪsi ˈvɜːrsə]
 adv. 反之亦然
 
-
+rack up
+英 [ræk ʌp]  美 [ræk ʌp]
+击倒，获胜
+累计
 
 formulate
 verb (used with object)
@@ -403,7 +406,10 @@ eg: He finds it extremely difficult to formulate his new theory.
 3. to reduce to or express in a formula.
 
 
-
+insight
+noun [ C or U ]
+UK  /ˈɪn.saɪt/ US  /ˈɪn.saɪt/
+(the ability to have) a clear, deep, and sometimes sudden understanding of a complicated problem or situation
 
 
 
