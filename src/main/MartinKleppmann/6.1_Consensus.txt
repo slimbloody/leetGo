@@ -70,12 +70,56 @@ it is also possible to weaken the assumption about the crash recovery system mod
 however, these byzantine fault tolerant algorithms are rather more complex than the crash recovery algorithms, and they are also a lot less efficient, an so for the purpose of this course, we're just going to concentrate on raft which is a non-byzantine algorithm so it just assumes a crash recovery model, and we will leave the byzantine algorithms out of scope for now
 
 
-the key thing that we need of consensus is to elect a leader and then once we've got a leader, that leader can decide on the order in which the messages should be delivered. and all of the consensus algorithms i just mentioned do actually use a leader in order to sequence the messages. the details of how exactly they use the leader and how they elect a leader, they vary from algorithms to algorithms.
+the key thing that we need of consensus is to elect a leader and then once we've got a leader, that leader can decide on the order in which the messages should be delivered. and all of the consensus algorithms i just mentioned do actually use a leader in order to sequence the messages. the details of how exactly they use the leader and how they elect a leader, they differ from algorithms to algorithms.
 ===============================
 Leader election
 ===============================
 Multi-Paxos, Raft, etc. use a leader to sequence messages.
-    Use a failure detector (timeout) to determine suspected crash or unavailability of leader.
+    we use a failure detector (timeout) to determine suspected crash or unavailability of leader.
     On suspected leader crash, elect a new one.
+
+Ensure < =1 leader per term:
+    Term is incremented every time a leader election is started
+    A node can only vote once per term
+    Require a quorum of nodes to elect a leader in a term
+
+so what we have is we use a timeout, we use local clocks in order to suspect whether a leader has failed or not, so if you remember the failure detectors that we can have in a partially synchronous system are not always accurate, so it could be that a leader has crashed when in fact leader is working just fine but there's just a network problem, which is stopping us from communicating with the leader, so that's why i say we can only have a suspected leader crash, we can never be actually certain if the timeout happened that it was in fact a leader failure
+and what we want is that the consensus algorithm should prevent having two leaders at the same time, because if we have two leaders they might make contradictory decisions, and then all of our algorithms guarantees are off, and this situation where you have two different leaders they both believe that they're the leader this is called split brain. and if this happens in a distributed system it's usually really bad news, because it's probably going to mean that some data is going to get corrupted or you're going to lose some data. and so we want to  avoid split brain, and consensus algorithm has to be designed in a very careful way so that it doesn't suffer from split brain.
+and the way this work in raft is that we have a concept of a term, so a term is just an integer variable, and everytime that there's a leader election, that leader election takes place in a certain term, and everytime we start a new leader election, we just increment the term, and the guarantee that the leader election provides in raft is that there will be at most one leader elected in a given term, it could be that the leader fails, and that no leader is elected in a term, but there will never be a more than one leader in a given term. and the way this is ensured in raft is that we have a rule that in each term is a node is only allowed to vote once, so just like in a parliamentary election, you're only allowed to cast one vote very similar here, say we have a system of five nodes, three out of the five elect a new leader. abc have voted in favor of the new leader, later if cde try to elect a different leader in the same term, they will not be able to, because c knows that c has already voted once in this particular term, and therefore it won't vote for a different candidate in the same term.
+in a new term, new start, new leader election, so in that case, every node can vote again.
+and so what we typically require in a consensus algorithm is that everytime we want to elect a leader, we need a quorum of nodes to vote in favor of that leader in that particular term, and so in this case if we have five nodes for example, then we could have a majority quorum of three out of five, so any three out of five nodes are able to elect a new leader, which means that the system can tolerate two nodes being unavailable, and remaining three nodes out of five can still make progress, and still elect a new leader if necessary, so this is what gives us the fault tolerance
+
+======================
+Can we guarantee there is only one leader?
+=======================
+Can guarantee unique leader per term.
+
+Cannot prevent having multiple leaders from different terms.
+
+Example: node 1 is leader in term t, but due to a network
+partition it can no longer communicate with nodes 2 and 3:
+
+Nodes 2 and 3 may elect a new leader in term t + 1.
+Node 1 may not even know that a new leader has been elected!
+----------------------------------------------
+so this approach here of allowing a vote only once per term ensures that within a given term there is a unique leader, however this does not actually guarantee that we will not have multiple leaders, because what could happen is that there are different nodes that are leaders in different terms, and they just don't realize it, so image this scenario here, we've got three nodes one two and three, and say that node one was elected to be the leader in term t, but then a network problem happens and node one is no longer able to communicate with nodes two and three, node one is still alive, node one is still a leader, but now node 2 and 3 don't hear anything from their leader anymore, and so at some point node 2 and 3 are going to say probably our leader is dead, so we're going to elect a new leader in a new term, so call a term t plus one, node 2 and 3 are going to elect a new leader among themselves, may node 2 is going to be the new leader for example, and now the system has actually got two leaders, it's got node one which is the leader in term t, and node 2 which is the leader in term t plus 1, this looks like split brain doesn't it, so we've got two leaders, this is bad, we want to not be in the situation.
+but unfortunately because the network is interrupted, there is no way for node 1 to know, that it is no longer the leader that has been superseded, because the communication simply isn't getting through
+
+therefore, we need to actually deal with this possibility that there are different leaders existing in the system at the same time in different terms, and those leaders may for a little while make contradictory decisions, and we have to nevertheless ensure that we have total order broadcast that we don't violate our properties, even though we might have multiple leaders, and the way that consensus algorithms do this is if a leader wants to decide to deliver a certain message for example, the leader cannot actually make that decision by itself, but the leader has to again go and ask a quorum of nodes, if they are okay to deliver a certain message.
+
+
+=========================================
+Checking if a leader has been voted out
+=========================================
+For every decision (message to deliver), the leader must first get acknowledgements from a quorum.
+
+
+
+so what communication flow looks like is something like this now, say we have the leader on the left and two followers.
+and so first of all, the nodes on the left needs to be elected the leader, and so it's going to contact the other say, are you okay for me to be your new leader and then the others respond okay, now it's got a quorum of votes in favor of being leader, so now the note on left is the leader, after one round of election, now the leader wants to deliver a message, but as I said, the leader cannot just make that decision by itself to simply deliver a message, but instead the leader has to go to the followers again and say: "are you okay to deliver message m in term t as the next message", and only if a quorum of followers again respond here and say: "okay yes we're okay with this message in term t", and the follower will only respond positively if they haven't heard of any other leader in term t plus one, so now if the leader again gets this quorum of positive responses, now the leader can safely make the decision to deliver m, and it can tell the other nodes that "okay, m is now the next message to be delivered in our total order broadcast"
+so this is the principle that we have effectively two phases of voting, first of all, a node needs to get elected leader by a quorum of nodes, and then a second round happens in which the leader checks if it's okay to decide on a certain message next, and this is actually the underlying principle of all the consensus algorithms that we've seen, and in the next section, we will look in detail at how raft implements this particular system
+
+
+
 
 
