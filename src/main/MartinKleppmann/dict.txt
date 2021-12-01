@@ -419,3 +419,12 @@ supersede
 英 [ˌsuːpəˈsiːd]  美 [ˌsuːpərˈsiːd]
 vt. 取代，代替；紧接着……而到来
 vi. 推迟行动
+
+desiccant
+英 [ˈdesɪkənt]  美 [ˈdesɪkənt]
+adj. 去湿的，使干燥的
+n. [助剂] 干燥剂
+
+
+
+
