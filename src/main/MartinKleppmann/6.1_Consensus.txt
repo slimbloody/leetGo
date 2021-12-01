@@ -54,6 +54,10 @@ Paxos, Raft, etc. assume a partially synchronous, crash-recovery system model.
 Why not asynchronous?
     FLP result (Fischer, Lynch, Paterson):
         There is no deterministic consensus algorithm that is guaranteed to terminate in an asynchronous crash-stop system model.
+    Paxos, Raft, etc. use clocks only used for timeouts/failure detector to ensure progress. Safety (correctness) does not depend on timing.
+
+
+There are also consensus algorithms for a partially synchronous Byzantine system model (used in blockchains)
 
 ---------------------------------------------------------------------
 when we were talking about node behavior for example, we can choose between do we want crash stop or crash recovery or byzantine in which place nodes can behave arbitrarily maliciously. in terms of network do we want to assume fair loss for example. for synchrony timing, are we going to assume an asynchronous system or partially synchronous system or a synchronous system.
@@ -61,7 +65,17 @@ when we were talking about node behavior for example, we can choose between do w
 all the consensus algorithms do is they choose a partially synchronous crash recovery system model.
 you might wonder why particular these choices, so in particular the question of synchrony is an important one, because we've said that a fully synchronous model is unrealistic, because in real systems, you do get network delays and you get various delays that happen at various points, and we can't rely on any upper bound of message latency when sending over the network. so the best we can hope for really is partially synchronous, where most of the time the network is well behaved, but occasionally it has periods where messages are delayed for a long time, or nodes pause their execution for a long time.
 ideally we would want consensus to even work in an asynchronous system where we make no timing assumptions at all, but it turns out that this is actually impossible, so there is an impossibility proof which is called the FLP result, which proves that it is not possible to implement a consensus algorithm in an asynchronous system, in such a way that this algorithm will always terminate.
-so if you have an asynchronous system and even if you only allow crash stop failures, so even not any of the more complex failures then there will always be some executions of the consensus algorithm in which the algorithm doesn't terminate.
+so if you have an asynchronous system and even if you only allow crash stop failures, so even not any of the more complex failures then there will always be some executions of the consensus algorithm in which the algorithm doesn't terminate. and so if you want termination that is if you want the algorithm to make progress and eventually decide on something, or for total order broadcast to eventually deliver a message, then we have to make these timing assumptions, so we have to assume at least partial synchrony, which means in effect that we use clocks for timeouts, or in other word, we have a timeout based failure detector, which we use in order to figure out if the leader has failed or not, now importantly the correctness of algorithm doesn't really depend on the timing at all, so even if the timing in the system goes really bizarre, consensus algorithm will still guarantee that the same sequence of messages is delivered in the same order, the only thing that timing affects is when that delivery happens, and so if you have a system in which there aer lots of weird delays happening, then it could be the timing that the delivery of messages is delayed for some amount of time until the system sorts itself out, so the timing does affect the liveness of the system here, but not the safety.
+it is also possible to weaken the assumption about the crash recovery system model. and so it is actually possible to go all the way down to a byzantine system model where we assume that some of the nodes may behave maliciously and it is possible to do consensus in that kind of system, and these types of byzantine fault tolerant consensus algorithms are used in the context of some crypto-currency and blockchains and that sort of area.
+however, these byzantine fault tolerant algorithms are rather more complex than the crash recovery algorithms, and they are also a lot less efficient, an so for the purpose of this course, we're just going to concentrate on raft which is a non-byzantine algorithm so it just assumes a crash recovery model, and we will leave the byzantine algorithms out of scope for now
 
+
+the key thing that we need of consensus is to elect a leader and then once we've got a leader, that leader can decide on the order in which the messages should be delivered. and all of the consensus algorithms i just mentioned do actually use a leader in order to sequence the messages. the details of how exactly they use the leader and how they elect a leader, they vary from algorithms to algorithms.
+===============================
+Leader election
+===============================
+Multi-Paxos, Raft, etc. use a leader to sequence messages.
+    Use a failure detector (timeout) to determine suspected crash or unavailability of leader.
+    On suspected leader crash, elect a new one.
 
 
