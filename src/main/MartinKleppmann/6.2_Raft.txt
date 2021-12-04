@@ -51,16 +51,33 @@ so whenever that happens now so the node decides it's time to start an election,
 so the log you can see illustrated up here is an array, or a list, it's a sequence of log entries, each log entry consists of two parts, firstly a message, so this is the message that we want to deliver via total order broadcast, that's the whole thing that the purpose of the algorithm, and secondly a term number on every log entry, so this term number is the term number of the leader at the time when that leader added that particular entry to the log, it's in there in zero indexed array where log0 is the first log entry.
 and log.length is the number of log entries in the log, and if the log is non-empty here, if the log.length greater than zero, than we're going to say that the last term is the term field of the last log entry, so log.length minus one is the index of the last entry in the log,
 and so we take the term field of that last log entry, and set that to be the value of this variable.
+and we then construct a message that will be sent to all of the nodes, and so the candidate sends the same message to all of the nodes. it's a message tagged with the message type vote request, saying "please vote for me", and the message contains the several fields it contains the node id of the candidate, it contains the current term after that term number has been incremented, it contains the length of the log on candidate, and it contains this lastTerm variable which as I just said is the term field of the last log entry in the candidates log.
+it sends this same message to all of the nodes, and it starts the timer that might eventually timeout if it doesn't manage to do the election successfully
 
 
 
 
 
+so that's the candidate, let's see what happens on the other nodes that receive one of these wrote request messages, so now we're
+==============================
+Raft (2/9): voting on a new leader
+==============================
+on receiving (VoteRequest, cId, cTerm, cLogLength, cLog Term) at node nodeId do
+    if cTerm > current Term then
+        currentTerm := cTerm; currentRole := follower
+        votedFor := null
+    end if
+    lastTerm := 0
+    if log.length > 0then lastTerm := log log.length - 1].term; end if
+    logOk := (cLogTerm > lastTerm) V (cLogTerm = lastTerm A cLogLength 2 log.length)
 
-
-
-
-
+    іf сТеrm = сurrеntТеrm Л lоgОk Л vоtеdFоr Е [ сІd, null] thеn
+        votedFor := cId
+        send(VoteResponse, nodeId, currentTerm, true) to node cId
+    else
+        send(VoteResponse, nodeId, currentTerm, false) to node cId
+    end if
+end on
 
 
 
