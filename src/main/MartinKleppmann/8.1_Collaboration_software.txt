@@ -26,28 +26,33 @@ Families of algorithms:
 ===========================================
 Operation-based map CRDT
 ===========================================
+-------------------------------------------------
 on initialisation do
     values := {} .
 end on
 -------------------------------------------------
+
+-------------------------------------------------
 on request to read value for key k do
     if ∃t,v. (t,k,v) ∈ values then return U else return null
 end on
+-------------------------------------------------
 
 -------------------------------------------------
 on request to set key k to value U do
     t := newTimestamp()      => globally unique, e.g. Lamport timestamp
     broadcast (set, t, k, v) by reliable broadcast (including to self)
 end on
-
 -------------------------------------------------
 
+-------------------------------------------------
 on delivering (set, t, k, v) by reliable broadcast do
     previous := {(t',k',o') ∈ values | k' = k}
     if previous= {} V ∀(t',k',v') ∈ previous. t' < t then
         values := (values \ previous) U {(t,k,v)}
     end if
 end on
+-------------------------------------------------
 
 
 

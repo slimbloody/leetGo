@@ -58,26 +58,83 @@ it sends this same message to all of the nodes, and it starts the timer that mig
 
 
 
-so that's the candidate, let's see what happens on the other nodes that receive one of these wrote request messages, so now we're
+so that's the candidate, let's see what happens on the other nodes that receive one of these wrote request messages
 ==============================
 Raft (2/9): voting on a new leader
 ==============================
+c for candidate
+
 on receiving (VoteRequest, cId, cTerm, cLogLength, cLog Term) at node nodeId do
     if cTerm > current Term then
         currentTerm := cTerm; currentRole := follower
         votedFor := null
     end if
     lastTerm := 0
-    if log.length > 0then lastTerm := log log.length - 1].term; end if
-    logOk := (cLogTerm > lastTerm) V (cLogTerm = lastTerm A cLogLength 2 log.length)
+    if log.length > 0 then lastTerm := log log.[length - 1].term; end if
+    logOk := (cLogTerm > lastTerm) V
+             (cLogTerm = lastTerm ∧ cLogLength >= log.length)
 
-    іf сТеrm = сurrеntТеrm Л lоgОk Л vоtеdFоr Е [ сІd, null] thеn
+    іf сТеrm = сurrеntТеrm ∧ lоgОk ∧ vоtеdFоr ∈ [ сІd, null] thеn
         votedFor := cId
         send(VoteResponse, nodeId, currentTerm, true) to node cId
     else
         send(VoteResponse, nodeId, currentTerm, false) to node cId
     end if
 end on
+---------------------------------------------------------------------------------------
+so now we're one of the other nodes that has received a message from the candidate, and we have the id of the candidate(cId), we have the term number of the candidate(cTerm), the length of the candidate's log(cLogLength), and the term number in candidates last log entry(cLogTerm),
+and first thing we're going to do when receiving a vote request message is to compare the candidate term to the current term of the recipient of this message, and if the candidate's term is greater than the current term of the recipient,
+
+then we move forward and join then term of the candidate, so we do that by setting the recipient's current term to be the candidates term to transition into the follower state regardless of what the node's previous state was,
+and this voted for variable gets set to null which mean that we have not yet voted for any candidate in the current term because we just change the current term. however, we might vote for that candidate in a minute.
+
+ so next, we set up this variable lastTerm, very similar to the way we did on the candidate, and that is we look at the last log entry on the recipient of this vote request message, we get the term number in that last log entry, and we set that to be this lastTerm variable, now what we need to do is to check if the candidates log is up to date with our own log, the reason for that is that we don't want a candidate with an outdated log become the leader, and exactly what outdated means will become apparent later, but it's crucial that we want the candidates log to reflect all the updates that at least the quorum of the other nodes have seen, so you don't end up with a leader whose log is really outdated, because that might lead to the loss of some messages, we have this log ok variable here which will contain a boolean which tell us whether the current node thinks the candidate's log is okay to vote in favor of, and so there are two criteria here, first of all, if the logTerm of the candidate, so the term number that appears in the last log entry of the candidate if that term number is greater than the term number of the log entry on the recipient of this vote request message, then we consider the log to be okay. secondly anther way for the log to be okay is for the log terms in the last log entry to be the same, but for the candidates to have a log that is at least as long as the log of the recipient of this vote request message, so one of those things needs to be true either or, and if so then the log is okay, so we will now vote for this candidate if three criteria will hold firstly if the candidate's term equals the current term, that is it's not in some outdated term, we haven't seen any other node with a higher term number, secondly if the candidates' log is okay ,and thirdly if we have not yet voted for any other candidate in the current term , so this voted for variable would be null if we have not yet voted at all for any candidate in the current term, or it could be cid if we've already voted for the same candidate it's okay to vote several times for the same candidate in a single term, but we must not vote for two different candidates within the same term, so if all those three criteria are true, then we can vote in favor of this candidate, we weill do that by first setting our voted four variable to cid to remember the fact that we have voted for the candidate, and then we send a vote response message back to the candidate and this is going to contain node id of the node doing the vote. it's going to contain the current term number so we know which term this election is for and the value true to indicate that it's a vote approval in favor of this candidate,
+on the other hand if any of those things are not true, then we send a vote response with a false field back to the candidate, telling it that we are not voting in favor of this candidate.
+
+
+
+==========================================
+Raft (3/9): collecting votes
+==========================================
+on receiving (VoteResponse, voterId, term, granted) at nodeId do
+    if currentRole = candidate A term = current Term A granted then
+        votesReceived := votesReceived ∪{ voterId}
+        if votesReceived| ≥「(|nodes|+ 1)/2] then
+            currentRole := leader; currentLeader := nodeId
+            cancel election timer
+            for each follower∈nodes \ { nodeId} do
+                sentLength[follower] := log.length
+                ackedLength[follower] := 0
+                REPLICATELOG( nodeId, follower)
+            end for
+        end if
+    else if term > current Term then
+        currentTerm := term
+        currentRole := follower
+        votedFor := null
+        cancel election timer
+    end if
+end on
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
