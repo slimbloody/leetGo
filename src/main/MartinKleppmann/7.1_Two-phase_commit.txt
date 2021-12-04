@@ -6,12 +6,24 @@ Lecture 7 Replica consistency
 "Consistency"
 ======================================
 A word that means many different things in different contexts!
+1.
+    ACID(in the context of transactions): a transaction transforms the database from one consistent state to another
+    Here,“consistent” = satisfying application-specific invariants
+    e.g."every course with students enrolled must have at least one lecturer"
 
 
 
+    the meaning of consistency is a property of a database state, so we're saying that the database is in a consistent state, and if you apply a goods transaction to it then it moves the database from one consistent state into another, so here consistent really means that the state of the database satisfies certain invariants or certain constraints, that the application has set as one example if you have a university database you might have a consistency requirement that whenever a course has at least one student enrolled in it then it must also have a lecturer, so it must not be without lecturer, for example, you could have those kinds of consistency properties, but this acid consistency is not actually what we're usually talking about in distributed systems.
 
 
-
+2.
+Read-after-write consistency (lecture 5)
+3.
+Replication: replica should be“consistent" with other replicas
+    "consistent" = in the same state? (when exactly?)
+    "consistent" = read operations return same result?
+4.
+Consistency model: man to choose from
 
 
 

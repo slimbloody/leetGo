@@ -1,24 +1,30 @@
 上交:
 https://ipads.se.sjtu.edu.cn/courses/cse/index.shtml
-==================
-different ways of sharing data between these concurrent entities
 
-a system in which the failure of a computer you didn't even know existed can render your own computer unusable
-Leslie Lamport
-
-multiple computers communicating via a network. . .
-trying to achieve some task together
-Consists of "nodes" (computer, phone, car, robot, ... )
-==============================
 Concurrency on a single computer is also known as shared-memory concurrency, since multiple threads running in the same process have access to the same address space. Thus, data can easily be passed from one thread to another: a variable or pointer that is valid for one thread is also valid for another.
 
 This situation changes when we move to distributed systems. We still have concurrency in a distributed system, since different computers can execute programs in parallel. However, we don’t typically have shared memory, since each computer in a distributed system runs its own operating system with its own address space, using the memory built into that computer. Different computers can only communicate by sending each other messages over a network.
 
+now, we're talking about not just a single program running on a single computer, but multiple programs running on multiple computers where those computers are communicating via a network, and this aspect that we are now introducing this network is part of what makes a distributed system distributed, another aspect is also that we don't have a single shared address space anymore, so a pointer that makes sense in one process if you send it over the network to another process running on a different computer, that pointer will not necessarily make any sense to the recipient of that message, so we have to think about different ways of sharing data between these concurrent entities.
 
 (Limited forms of distributed shared memory exist in some supercomputers and research systems, and there are technologies like remote direct memory access (RDMA) that allow computers to access each other's memory over a network. Also, databases can in some sense be regarded as shared memory, but with a different data model compared to byte-addressable memory. However, broadly speaking, most practical distributed systems are based on message-passing.)
-=========================
+------------------------------------
+core:
+different ways of sharing data between these concurrent entities
+
+============================================
+A distributed system is
+============================================
+a system in which the failure of a computer you didn't even know existed can render your own computer unusable -- Leslie Lamport
+multiple computers communicating via a network. . .
+trying to achieve some task together
+Consists of "nodes" (computer, phone, car, robot, ... )
 
 
+the study of distributed systems is really the study of how do we coordinate the activities of these different devices in such a way that they achieve together the task that they are trying to achieve.
+
+
+=============================================
 van Steen & Tanenbaum.
 Distributed Systems"
 (any ed), free ebook available
@@ -58,9 +64,9 @@ https://book.douban.com/subject/11921979/
 https://book.douban.com/subject/26979326/
 https://book.douban.com/subject/10315526/
 
----------
-Why make a system distributed?
----------
+------------------------------------
+Why make a system distributed?(advantage)
+------------------------------------
 1. It's inherently distributed
 eg: sending a message from your mobile phone to your friend's phone
 
@@ -70,15 +76,26 @@ if one failed, others can take over the work from the failed computer.
 this allows the system as a whole to continue functioning, even though one of the computers involved in it has actually gone down
 
 3. For better performance:
-eg: get data from a nearby node rather than one halfway round the world
+e.g.: get data from a nearby node rather than one halfway round the world
 to make system faster by putting data closer to where people are
 avoid communication delay
 
 4. To solve bigger problems:
-e.g. huge amounts of data, can't fit on one machine
+this scale of task would simply not be possible to achieve on a single computer.
+e.g.: huge amounts of data, can't fit on one machine
+particle accelerator that includes the large hadron collider
 
 ------------------------
-The trouble with distributed systems:
+Another thing that can go wrong is that a node may crash, or run much slower than usual, or misbehave in some other way (perhaps due to a software bug or a hardware failure). If we want one node to take over when another node crashes, we need to detect that a crash has happened; as we shall see, even that is not straightforward. Network failures and node failures can happen at any moment, without warning.
+
+
+
+In a single computer, if one component fails (e.g. one of the RAM modules develops a fault), we normally don’t expect the computer to continue working nevertheless: it will probably just crash. Software does not need to be written in a way that explicitly deals with faulty RAM. However, in a distributed system we often do want to tolerate some parts of the system being broken, and for the rest to continue working. For example, if one node has crashed (a partial failure), the remaining nodes may still be able to continue providing the service
+
+If one component of a system stops working, we call that a fault, and many distributed systems strive to provide fault tolerance: that is, the system as a whole continues functioning despite the fault. Dealing with faults is what makes distributed computing fundamentally different, and often harder, compared to programming a single computer
+
+-----------------------------------------------
+The trouble(disadvantage) with distributed systems:
 1. Communication may fail (and we might not even know it has failed).
 even if communication is interrupted from time to time, the system as a whole still functions in some correct way where of course we can define what we mean with correct, but we want it continue functioning
 
@@ -89,13 +106,29 @@ what we want here is that one of the processes cur is temporarily out of action,
 out of action, the system as a whole to still continue nevertheless
 
 3. All of this may happen non-deterministically.
+and we still have to ensure that the software works nevertheless.
 
 
-=============
+==========================
 Fault tolerance
-=============
+==========================
 If one component of a system stops working, we call that a fault, and many distributed systems strive to provide fault tolerance: that is, the system as a whole continues functioning despite the fault.
 
 Fault tolerance: we want the system as a whole to continue working, even when some parts are faulty.
 This is hard.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 

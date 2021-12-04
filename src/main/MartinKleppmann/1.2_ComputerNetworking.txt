@@ -1,19 +1,37 @@
+=====================================================
+Distributed Systems and Computer Networking
+=====================================================
 any computing device that is involved in the system we call a node
 
 We use a simple abstraction of communication:
 one node can send a message to another node
 
+there're lots of different types of network, and different ways of getting a message from one node to another.
 
+
+In this course, we just assume that there is some way for one node to send a message to another node. We don’t particularly care how that message is physically represented or encoded – the network protocols, informally known as "the bytes on the wire" – because the basic principle of sending and receiving messages remains the same, even as particular networking technologies come and go. The “wire” may actually be radio waves, lasers, a USB thumb drive in someone’s pocket, or even hard drives in a van.
+
+Indeed, if you want to send a very large message (think tens of terabytes), it would be slow to send that data over the Internet, and it is in fact faster to write that data to a bunch of hard drives, load them into a van, and to drive them to their destination. But from a distributed systems point of view, the method of delivering the message is not important: we only see an abstract communication channel with a certain latency (delay from the time a message is sent until it is received) and bandwidth (the volume of data that can be transferred per unit time)
+
+using hard drives in a van to deliver message is just another channel for distributed system, just like the network communication. the distinction is just the latency and bandwidth of those different networking channels.
+
+The Computer Networking course in Lent term focuses on the network protocols that enable messages to get to their destination. The study of distributed systems builds upon that facility, and instead focuses on how several nodes should coordinate in order to achieve some shared task. The design of distributed algorithms is about deciding what messages to send, and how to process the messages when they are received.
+
+=================================
 Latency and bandwidth
+=================================
+Latency varies hugely depending on what sort of network you're looking at.
+
 Latency: time until message arrives
 depending on how congested the network is
 In the same building/ datacenter: ~ 1 ms
 One continent to another: ~ 100 ms
 
+Latency varies hugely too.
 Bandwidth: data volume per unit time
 3G cellular data: ~ 1 Mbit/s
 Home broadband: ~ 10 Mbit/s
-
+Hard drives in a van: 50 TB/box ≈ 1Gbit/s
 
 wireshark:
 capture individual web packet
