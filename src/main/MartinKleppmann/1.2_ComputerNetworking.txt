@@ -33,7 +33,35 @@ Bandwidth: data volume per unit time
 Home broadband: ~ 10 Mbit/s
 Hard drives in a van: 50 TB/box ≈ 1Gbit/s
 
-wireshark:
-capture individual web packet
+=======================================================
+Client-server example: the web
+=======================================================
+charles capture the messages that are sent and received over the network
 
-networks have this maximum size of packet
+In a URL, the part between the // and the following / is the hostname of the server to which the client is going to send the request (e.g. www.cst.cam.ac.uk), and the rest (e.g. /teaching/2021/ConcDisSys) is the path that the client asks for in its request message. Besides the path, the request also contains some extra information, such as the HTTP method (e.g. GET to load a page, or POST to submit a form), the version of the client software (the user-agent), and a list of file formats that the client understands (the accept header ). The response message contains the file that was requested, and an indicator of its file format (the content-type); in the case of a web page, this might be a HTML document, an image, a video, a PDF document, or any other type of file.
+
+
+Since the requests and responses can be larger than we can fit in a single network packet, the HTTP protocol runs on top of TCP, which breaks down a large chunk of data into a stream of small network packets (see Slide 13), and puts them back together again at the recipient. HTTP also allows multiple requests and multiple responses to be sent over a single TCP connection. However, when looking at this protocol from a distributed systems point of view, this detail is not important: we treat the request as one message and the response as another message, regardless of the number of physical network packets involved in transmitting them. This keeps things independent of the underlying networking technology
+
+==========================================================
+
+wireshark: capture individual web packet
+the reason that we have lots of packets is that there's a maximum size of each packet.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
