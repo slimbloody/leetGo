@@ -1,9 +1,42 @@
-1. we assume the messengers are reliable
-2. some of the general are not loyal, being malicious
+============================================
+2.2 The Byzantine generals problem
+============================================
+problem: some of the generals might be traitors
 
+
+
+we make problem easier in one way and harder in another way.
+1. (easier) we assume the messengers are reliable
+any message that gets sent will actually be received by the appropriate recipient
+2. (harder) some of the general are not loyal, being malicious
+they are going to try to activity undermine the other generals, so they are going to lie and deceive, and generally misbehave in any sort of way as they wish, they might even work together
+and nevertheless, we want the honest generals to come to agreement about the attack of the city
+
+
+
+
+=============================
+Generals that might lie
+=============================
+general1 -> general2: attack
+general1 -> general3: attack
+general2 -> general3: general1 said retreat
+
+general2 is malicious, unfortunately, for points of view of general3, it's impossible to tell the difference between these two scenarios
+
+
+general1 -> general2: retreat
+general1 -> general3: attack
+general2 -> general3: general1 said retreat
+general2 is being honest because general2 is just reporting honestly what general1 said, and it's general one who is being malicious by sending contradictory commands to general2 and general3
+
+
+
+core:
 for points of view of general3, it's impossible to tell the difference between these two scenarios
 
-
+now given this scenario where nodes might lie
+----------------------------------------------------------------
 Byzantine General Problem:
 1. Up to f generals might behave maliciously
 2. Honest generals don't know who the malicious ones are
@@ -22,18 +55,39 @@ so we can't get malicious generals to agree on any part of the plan, because we 
 
 ============
 todo: 证明这个数值
-Theorem: need 3f + 1 generals in total to tolerate f malicious generals (i.e. < -1/3 be malicious)
+Theorem: need 3f + 1 generals in total to tolerate f malicious generals (i.e. < 1/3 be malicious)
 Cryptography (digital signatures) helps - but problem remains hard
 ============
 a digital signature which is a form of message in which it can be proved that a certain party sent a certain message
 in this case, it allows general 2 to prove what a command general 1 sent to general 2, and prove that to general 3 in a way that general 3 would be convinced that general 2 really is honest
 
+todo: 怎么用这个签名的
+
+
+
+==============================================
+Trust relationships and malicious behaviour
+==============================================
+customer, online shop and the payments service are the third party, so we have this kind of three-way relationship between the shop, the payment service and customer, and we want all three of these parties to agree on the status of transaction or status of an order.
+
+
+
+from the point of view of the online shop, the customer needs to be treated as potentially malicious, because if the customer was just blindly trusted, then they might start doing fraudulent activity like that, so in that case we do have this kind of untrusting relationship, what about the online shop and payment service relationships? you can imagine maybe the payment service doesn't quite trust the online shop because otherwise someone might set up a fraudulent online shop, use stolen credit card number try to process transactions, and get money without actually shipping any real goods, so in that case, probably the payment service doesn't fully trust online shop, but maybe the shop does trust the payment service, so it might be this kind of asymmetric relationship.
+the trust relationship in real life get rather complicated, you do end up in these situations where one party does not trust another party, and they nevertheless want to get something done, and so in that sense, byzantine behaviour is real and practical.
+
+the byzantine general's problem is of course a simplification of this kind of scenario, because it's treating all of the generals as symmetric for example, but nevertheless, the byzantine generals problem is a useful starting point, for studying these kind of situations in which the participants don't fully trust each other.
 
 
 
 
 
 
+
+
+
+
+
+-------------------------------------------------------------------------------
 
 The Byzantine generals problem [Lamport et al., 1982] has a similar setting to the two generals problem. Again we have armies wanting to capture a city, though in this case there can be three or more. Again generals communicate by messengers, although this time we assume that if a message is sent, it is always delivered correctly
 
