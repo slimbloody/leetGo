@@ -1,5 +1,8 @@
-
-fulfilOrder
+// OnZine shop handling customer's card details
+Card card = new Card() ;
+card.setCardNumber("1234 5678 8765 4321");
+card.setExpiryDate("10/2024");
+card.setCVC("123");
 
 Result result = paymentService.processPayment(
     card,
@@ -7,19 +10,35 @@ Result result = paymentService.processPayment(
     Currency.GBP
 );
 
-when you call this process payment function, the implementation of that function is not within your program, the implementation is somewhere on another node at the other end of an internet connection, and what is actually happening here is what looks like a function called a method call is actually underneath being translated into some kind of network communication, this is called a remote procedure call
+if (result. isSuccess()) {
+    fulfilOrder();
+}
 
+paymentService.processPayment
+when you call this process payment function, the implementation of that function is not within your program, the implementation is somewhere on another node at the other end of an internet connection, and what is actually happening here is what looks like a function called a method call is actually underneath being translated into some kind of network communication, this is called a remote procedure call
 in java, it called remote method invocation, it's the same idea;
 
-the rpc framework provides what is called a stub,
+This type of interaction, where code on one node appears to call a function on another node, is called a Remote Procedure Call (RPC). In Java, it is called Remote Method Invocation (RMI). The software that implements RPC is called an RPC framework or middleware. (Not all middleware is based on RPC; there is also middleware that uses different communication models)
+
+
+
+(onlineShop) stub -->      marshal args --> m1 --> unmarshal args --> |processPayment()
+    |                                                                 |
+waiting                                                               |
+    |                                                                 |
+function returns  <--  unmarshal result <-- m2 <-- marshal result <-- |implementation
+
+
+
+so when code of the online shop calls this process payment function, it can't directly call the function on a different node because your programming language doesn't support that normally, instead, the rpc framework provides what is called a stub,
 so the stub function it has the same type signature, and it looks the same as the function on the remote node that you want to call this process payment function.
 what we make is this stub function that doesn't actually process the payment but what it does is sending a message to the service which then does process the payment
 
 so the online shop calls into this stub function here
 and the rpc client needs to take the arguments that were passed to that function, and translate them into a message that can be sent over the network.
 and this translation process from arguments in your programming language to message over the network is called marshalling(or encoding)
-it takes the function arguments and encodes it in some way that can be sent over the network
-
+it takes the function arguments and encodes it in some way that can be sent over the network(for example json)
+it becomes then essentially just a sequence of bytes that we can pack into a message, send over the network
 the recipient side(or the rpc server) is going to receive this message, it's going to translate it back into a function call on the server side.
 so here now this is where actual implementation of payment function lives;
 so here on th rpc server side, now this function is going to get called, and it's going to do whatever is necessary in order to make this payment happen and that will probably involve talking to the card network and the bank and updating some databases and doing a whole bunch of extra stuff
@@ -33,14 +52,32 @@ the rpc client unmarshalls it and turn it back into the data types of programmin
 what we've done now is to kind of pretend that what we're doing is calling a function locally, but actually what's happening underneath is this communication via messages to another service.
 
 
+
+================================
+Remote Procedure Call (RPC)
+================================
 Ideally, RPC makes a call to a remote function look the same as a local function call.
 
-this principle called:
-"Location transparency":
+this principle called: "Location transparency":
 system hides where a resource is located.
+so the location of where your resource located, that is
+1. whether the objects that you're calling your process payment on
+2. whether that's an object in your own process in you local address space
+3. or whether it's somewhere on the other end of internet connection
+we want that to be transparent, we want not to be able to tell the difference between the two.
 
+
+
+
+however, actually reality doesn't look that simple, the trouble with networks is that they can fail, so it can be that you send a message over the network and message does not arrive.
+you can send it again of course, but then are you going to charge the credit card multiple times, we have to be quite careful if we're going to send messages again.
+so messages might be lost what do we do about retries
+messages also might be delayed so it might be that the message did actually get through, but for some reason there was some networking hiccups somewhere that caused the message to be delayed by a while, that could happen as well,
+it could also happen that the service that is processing this function crashed in the middle of handling, in the middle of executing our function, in the way in that case, it won't be able to send us back a response, but it might have partially processed our request. I guess we can use transactions here, acid.
+but you can see that a lot of open questions here. and fundamentally it seems like actually making a function call to a remote resource is something totally different from calling a local function. they're simply two different things, we can make them look somewhat similar, we can give the functions a similar type signature, but calling a remote function has all of these error cases, that simply don't arise in local execution
+-------------------------------------------------
 In practice:
-1. what if the service crashes during the 1. function call?
+1. what if the service crashes during the function call?
 2. what if a message is lost?
 3. what if a message is delayed?
 4. if something goes wrong, is it safe to retry?
@@ -50,31 +87,57 @@ it might have partially processed our request
 I guess we can use transactions here.
 
 
+============================================
+Exercise 1. Networks and nodes might fail. What are the implications for code that calls another node through RPC? How is RPC different from a local function call? Is location transparency achievable?
+============================================
 
-RPC in enterprise systems:
-Service-oriented architecture(SOA) / "microservices":
-splitting a large software application into multiple services (on multiple nodes) that communicate via RPC.
+
+
+============================================
+RPC history
+============================================
+Today, the most common form of RPC is implemented using JSON data sent over HTTP. A popular set of design principles for such HTTP-based APIs is known as representational state transfer or REST [Fielding, 2000], and APIs that adhere to these principles are called RESTful. These principles include:
+• communication is stateless (each request is self-contained and independent from other requests),
+• resources (objects that can be inspected and manipulated) are represented by URLs, and
+• the state of a resource is updated by making a HTTP request with a standard method type, such as POST or PUT, to the appropriate URL.
+
+
+
+In modern websites it is very common to use JavaScript to make HTTP requests to a server without reloading the whole page. This technique is sometimes known as Ajax
+
+
+
 
 
 because of the sheer complexity, sometimes also because the large amounts of data that these things have to process, they are distributed systems, so you have multiple nodes running on multiple computers which are all providing part of infrastructure of this large organization, it might be a bank or a retailer.
+-------------------------------------------
+RPC in enterprise systems:
+-------------------------------------------
+Service-oriented architecture(SOA) / "microservices":
+splitting a large software application into multiple services (on multiple nodes) that communicate via RPC.
+RPC here is the key mechanism that allows these bits of software to interact with each other
+
 
 
 different services implemented in different languages:
 1. interoperability: datatype conversions
-interoperability between these systems written in different programming languages
-
+rpc can actually provide a mechanism for interoperability between these systems written in different programming languages
+this does mean that you know if the function caller and the code being called if they're written in different programming languages, you now have to make sure that the type signatures will match up somehow, so you have to perform some data type conversion
 2. interface definition language (IDL): language-independent api specification
 datatype conversions is often implemented using something called(IDL)
 language for specifying the type signature or function calls in a way that is not specific to any programming language
-IDL generate code for rpc client and rpc server
+
+you get the general principle this is a language independent specification of what the rpc can look like and the rpc framework can take this specification and generate code in all of your favorite programming languages. so that way then it(IDL) can generate the stubs for rpc client and rpc server, that make it easy to write code that performs the rpc on both the caller side and the side of the service that's being called.
 
 
 
 
 
 
+==============================================
+Such server-to-server RPC is especially common in large enterprises, whose software systems are too large and complex to run in a single process on a single machine. To manage this complexity, the system is broken down into multiple services, which are developed and administered by different teams and which may even be implemented in different programming languages. RPC frameworks facilitate the communication between these services.
 
-
+When different programming languages are used, the RPC framework needs to convert datatypes such that the caller’s arguments are understood by the code being called, and likewise for the function’s return value. A typical solution is to use an Interface Definition Language (IDL) to provide language independent type signatures of the functions that are being made available over RPC. From the IDL, software developers can then automatically generate marshalling/unmarshalling code and RPC stubs for the respective programming languages of each service and its clients. Slide 21 shows an example of the IDL used by gRPC, called Protocol Buffers. The details of the language are not important for this course.
 
 
 
