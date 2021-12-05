@@ -91,3 +91,18 @@ the failure detector might be wrong from time to time so the failure detector mi
 
 
 
+
+
+Exercise 2. Reliable network links allow messages to be reordered. Give pseudocode for an algorithm that strengthens the properties of a reliable point-to-point link such that messages are received in the order they were sent (this is called a FIFO link), assuming an asynchronous crash-stop system model.
+
+
+
+Exercise 3. How do we need to change the algorithm from Exercise 2 if we assume a crash-recovery model instead of a crash-stop model?
+
+
+
+
+
+
+
+

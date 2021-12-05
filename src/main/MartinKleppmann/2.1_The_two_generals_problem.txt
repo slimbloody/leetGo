@@ -1,10 +1,118 @@
-the two generals problem
-two general attack the city at the same time
+===========================================
+2 Models of distributed systems
+===========================================
+A system model captures our assumptions about how nodes and the network behave. It is an abstract description of their properties, which can be implemented by various technologies in practice. To illustrate common system models, we will start this section by looking at two classic thought experiments in distributed systems: the two generals problem and the Byzantine generals problem.
 
-two general can only communicate via messengers
+
+
+===========================================
+2.1 the two generals problem
+===========================================
+------------------------------------------------------------
+army1          |    army2          |    outcome
+------------------------------------------------------------
+does not attack|    does not attack|    nothing happens
+attacks        |    does not attack|    army1 defeated
+does not attack|    attacks        |    army 2 defeated
+attacks        |    attacks        |    city captured
+------------------------------------------------------------
+Desired: army 1 attacks if and only if army 2 attacks
+two general can only communicate via messengers, the messengers might get captured by the force of the city. so whenever one of the general sends a messenger to the other general that message may or may not get through, and there's no way for the sender of the message to know whether the message got through except by receiving a response.
+
+
+
 
 from general 1's point of view, this is indistinguishable from
+1. req1 that is sent by general1 received by general2, but res1 from general2 is lost
+general1 doesn't received the res
+2. general1 sends the req1 to general2, but that initial message is lost, and never gets through to general2.
+general1 doesn't received the res
 
+the only thing that general one observes is no response, but general one does not know whether there's no response because the initial message didn't get through or whether the response was lost
+but there's a big difference between the two of these because from general2's point of view, in the first case general two has agreed to attack, in the second case general2 doesn't even know about the attack
+so they look the same from general1's point of view, but they look very different from general2's point of view
+
+
+
+==============================================
+How should the generals decide?
+==============================================
+option 1
+General1 always attacks, even if no response is received?
+    Send lots of messengers to increase probability that one will get through.
+
+    general2 knows that general1 is always going to attack, so general2 knows that it's safe for general2 to also go into battle, even without responding to general1 because after all general one has promised that general1 is always going to attack
+
+    however, it could happen that all of the messengers are lost. If all are captured, general 2 does not know about the attack, so general1 loses
+
+option 2
+General 1 only attacks if positive response from general 2 is received?
+    Now general 1 is safe
+    But general 2 knows that general 1 will only attack if general 2's response gets through
+    Now general 2 is in the same situation as general 1 in option 1
+
+so you end up with these potentially infinite chains of
+"yes, i'm going to attack"
+"okay, i'm going to attack if you attack"
+"yes, okay i will attack but only if you attack"
+"yes, yes, already said i'm going to attack"
+and so on
+so they have to send each other back and forth these messages, you get actually an infinite chain before there's any certainty that they're actually both going to attack together.
+
+In the two generals problem , we imagine two generals, each leading an army, who want to capture a city. The city’s defences are strong, and if only one of the two armies attacks, the army will be defeated. However, if both armies attack at the same time, they will successfully capture the city
+
+
+this is called in distributed systems: the problem of having
 No common knowledge: the only way of knowing something is to communicate it
-三次握手,四次挥手解决不了?
+
+so there's no knowledge in the system that one node knows and the other node knows first node knows it, and the first node knows the second node knows that the first node knows it and so on
+so you can construct these arbitrary chains and the end result is just no matter how many finite sequences of messages we send back and forth, we never actually have absolute certainty that general1 is going to attack if and only if general2 is going to attack.
+so you can build up gradually increasing like probabilistic certainty maybe, depending on your assumptions of whether messengers get captured or not, but it's actually impossible to reach complete certainty here.
+
+
+==========================================
+The two generals problem applied
+==========================================
+Desired: online shop dispatches if and only if payment made
+
+make a form like two general problem:
+-----------------------------------------------
+online shop | payments service | outcome
+-----------------------------------------------
+like two general problem,
+it is actually not possible for the online shop and the payment service to achieve the certainty that one action will happen if and only if the other action happens.
+in practice, actually, online shops do work, but the reason they work is because there are a bunch second level safeguards then which ensure a reasonable outcome,
+so for example, if it turns out that the card got charged, but the online shop doesn't actually have the goods in stock anymore, then the online shop will just send an apology email saying oh sorry actually we're out of stock, we refunded your card and so that way it's fine, and so this it's possible to get out of this situation because the charge is actually a revokable action. it's possible to refund the charge, and therefore it's back, it's possible to get back into a safe state, where neither the goods dispatch all the payment has effectively happened.
+or another option is that the payment service may or may not have charged a card, and so the online shop then when the network is repaired and messenger's messages can get through again, then the online shop checks with the payment service saying now, did you actually charge that card or not, because i never heard back from you whether you charge it or not, and so what will probably happen is that the payment service will always go ahead and charge the card, even if it's not certain that the online shop is going to dispatch the goods, because in this case, it's fine, because the payment could get refunded if necessary, so that is the way in which this online shopping problem is not actually exactly the same as the two general problem.
+
+
+so that is the way in which this online shopping problem is not actually exactly the same as the two generals problem, but nevertheless, the two generals problem does illustrate this issue of uncertainty that we have in a distributed system, when we're not sure if the messages got through or not.
+
+-------------------------------------------------------------------------
+Thus, the two generals need to coordinate their attack plan. This is made difficult by the fact that the two armies are camped some distance apart, and they can only communicate by messenger. The messengers must pass through territory controlled by the city, and so they are sometimes captured. Thus, a message sent by one general may or may not be received by the other general, and the sender does not know whether their message got through, except by receiving an explicit reply from the other party. If a general does not receive any messages, it is impossible to tell whether this is because the other general didn't send any messages, or because all messengers were captured.
+
+
+What protocol should the two generals use to agree on a plan? For each general there are two options: either the general promises to go ahead with the attack in any case (even if no response is received), or the general waits for an acknowledgement before committing to attack. In the first case, the general who promises to go ahead risks being alone in the attack. In the second case, the general who awaits acknowledgement shifts the problem to the other general, who must now decide whether to commit to attack (and risk being alone) or wait for an acknowledgement of the acknowledgement
+
+
+The problem is that no matter how many messages are exchanged, neither general can ever be certain that the other army will also turn up at the same time. A repeated sequence of back-and-forth acknowledgements can build up gradually increasing confidence that the generals are in agreement, but it can be proved that they cannot reach certainty by exchanging any finite number of messages.
+
+This thought experiment demonstrates that in a distributed system, there is no way for one node to have certainty about the state of another node. The only way how a node can know something is by having that knowledge communicated in a message. On a philosophical note, this is perhaps similar to communication between humans: we have no telepathy, so the only way for someone else to know what you are thinking is by communicating it (through speech, writing, body language, etc).
+
+As a practical example of the two generals problem, Slide 25 adapts the model from Slide 22 to the application of paying for goods in an online shop. The shop and the credit card payment processing service communicate per RPC, and some of these messages may be lost. Nevertheless, the shop wants to ensure that it dispatches the goods only if they are paid for, and it only charges the customer card if the goods are dispatched.
+
+
+
+
+
+In practice, the online shopping example does not exactly match the two generals problem: in this scenario, it is safe for the payments service to always go ahead with a payment, because if the shop ends up not being able to dispatch the goods, it can refund the payment. The fact that a payment is something that can be undone (unlike an army being defeated) makes the problem solvable. If the communication between shop and payment service is interrupted, the shop can wait until the connection is restored, and then query the payments service to find out the status of any transactions whose outcome was unknown.
+
+
+
+
+
+
+todo: 四次挥手怎么解决的?
+
+
 
