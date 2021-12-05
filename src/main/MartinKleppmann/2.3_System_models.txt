@@ -1,23 +1,34 @@
+================================================
+System models
+================================================
 We have seen two thought experiments:
 1. Two generals problem: a model of networks
+nodes are honest but messengers might get lost
 2. Byzantine generals problem: a model of node behaviour
+message are reliable but nodes might be dishonest
 
 In real systems, both nodes and networks may be faulty!
+put the two problem together.
 
------------
-
+------------------------------------------------
 Capture assumptions in a system model consisting of:
-1. Network behaviour (e.g. message loss)
-network are unreliable
-
+1. Network behaviour (e.g. message loss) network are unreliable
 2. Node behaviour (e.g. crashes)
 3. Timing behaviour (e.g. latency)
 Choice of models for each of these parts
 
 
-======================
+===========================================
+Networks are unreliable
+===========================================
+1. In the sea, sharks bite fiber optic cables
+2. On land, cows step on the fiber optical cables
+
+
+
+============================================
 Network behaviour/models for network
-======================
+============================================
 Assume bidirectional point-to-point communication between two nodes(one sender and one recipient), with one of:
 
 1. Reliable (perfect) links:
