@@ -55,8 +55,89 @@ moreover, if one of the nodes involved in the transaction crashes, then we also 
 ==========================================
 Atomic commit versus consensus
 ==========================================
-Consensus                               Atomic commit
-One or more nodes propose a value       Every node votes whether to commit or abort
+----------------------------------------------------------------------------------------
+Consensus                               | Atomic commit
+----------------------------------------------------------------------------------------
+One or more nodes propose a value       | Every node votes whether to commit or abort
+----------------------------------------------------------------------------------------
+Any one of the proposed                 | Must commit if all nodes
+values is decided                       | vote to commit; must abort
+                                        | if 2 1 nodes vote to abort
+----------------------------------------------------------------------------------------
+Crashed nodes can be                    | Must abort if a participating
+tolerated, as long as                   | node crashes
+quorum is working                       |
+----------------------------------------------------------------------------------------
+
+
+
+
+with consensus the way I explained it previously was that you have one or more nodes may propose some value, and one of those values gets decided by the consensus algorithm, whereas in atomic commits we are a bit of constrained, we have to have all of the nodes voting on whether they are able to commit or a transaction or not.
+
+and we have to take all of those votes into account, while in consensus, it's okay to simply pick any one of the values that has been proposed, in atomic commit, it's very clearly defined what must happen if all of the vote or if all of the nodes vote to commit, then the transaction must commit if any one of the nodes votes to abort, then all of them must abort, so atomic commit is much more constrained in the decision that the algorithm has to make.
+
+and finally with consensus we've seen that we can have algorithms like raft which can continue working as long as a quorum of nodes is reachable and responding to requests whereas with atomic commit because we have this requirement that all of the nodes must vote, and we must get consensus across all of them, and this means now that even just one single node crash will cause the entire transaction to abort, so atomic commit is not able to tolerate any faulty nodes whereas a fault tolerate consensus algorithm like raft is able to tolerate a minority of faulty nodes in the system,
+
+
+
+so this is atomic commitment, and the way we typically implement atomic commit is using an algorithm called two-phase commit
+==========================================
+Two-phase commit: (2PC)
+==========================================
+two-phase commit sounds a bit like two-phase locking which you've seen previously, don't confuse the two they sound very similar, but they're very different things.
+
+two-phase locking is around serializable isolation, whereas two-phase commit is around getting atomicity.
+
+
+so the way we start two-phase commit is that the client wants to begin a transaction on multiple database nodes, and it just starts a transaction as usual sends some transaction identifier t1 to those nodes and then does its usual thing, so transaction may read and write arbitrary objects in the database and do whatever it needs to do any kind of logic.
+
+two-phase commit only starts when we're ready to commit the transaction, so rather than the usual form of transaction commits where client just sends directly to the database "hey commit now please".
+with two-phase commit instead the request to commit goes to a new node in the system called the transaction coordinator, so this commit request goes to the coordinator and the coordinator then sends a prepare message to all of the database nodes that are participating in the transaction, and the purpose of the prepare message is it's kind of like commit except it doesn't actually finish the transaction yet, so what prepare does is when a database node receives the prepare message, the database node has to write all of the changes all of the updates from that transaction to disk, and it has to check any constraints, to make sure that we have consistency of the database, because in response to that prepare message, the database node now has to reply with either yes or no whether it's willing to commit that transaction or not. and so as we said any one node response to this will cause the transaction to abort, but if all of them vote yes then the transaction will commit. so this means that once the database node replies saying "okay i'm happy to commit this transaction", it is promising that it will definitely be able to commit that transaction in the future. because at this point, the database node has abdicated it's responsibility, now it's up to the transaction coordinator to make the decision whether or not to commit the transaction, so the database node just has to promise that if it is asked later by the coordinator to commit the transaction, it will definitely be able to commit it, so it's not allowed to back out and flake out afterwards and say "oh sorry I don't want to commit this after all", because by that point it's too late, so by the time that the prepared message is telling trade-based notes that it must get everything ready to be able to commit, but without actually ending the transaction yet, and then if the coordinator says in phase two of two-phase commit, if the coordinator says okay now we're going to commit, then the individual database nodes go, they do the actual commit, they end the transaction they release all of the locks, and everything is done.
+
+so this is the model of two phase commit, and the key moment in this protocol is here, so after the databases nodes the participating nodes have replied to the coordinator saying whether or not they're willing to commit this transaction, at this point, the coordinator makes the decision whether to commit or abort. and this is really a key moment in the protocol.
+
+now we can think about what happens if some of these nodes crash,
+so if the database node crashes then we've discussed that means the transaction coordinator will timeout and it will say okay we're going to abort the transaction for everyone so that's fine the question is what happened if coordinator crashes
+
+===============================================
+The coordinator in two-phase commit
+===============================================
+What if the coordinator crashes?
+    Coordinator writes its decision to disk
+    When it recovers, read decision from disk and send it to replicas (or abort if no decision was made before crash)
+
+first of all, it has to make this decision on whether to abort or commit the transaction.
+so it can write that decision to disk and so then when the coordinator recovers from its crash and starts up again, it can read this decision from disk and send the decision that it made to the replicas that were participating in the transaction. or if there was no decision record on disk, then the coordinator can just abort. but if has to be even if the coordinator crashes if it made the decision before the crash to commit, then it must honor that decision after it restarts, because it might have already sent the commit message to some of the nodes but not all of them, and so some of the nodes may have already committed and released all of their locks, so we have to ensure that everybody else commits as well, and likewise if one aborts, then all of the others have to abort as well.
+
+
+
+
+
+this leaves us a problem, because the coordinator is now this linchpin in this protocol, because if the coordinator crashes just at the moment after the prepare requests have been sent out, but before the coordinator send out its decision on whether to commit or abort the transaction, then all of the other nodes don't know what the coordinator has decided it, they are simply stuck, they cannot end their transaction yet, they can't abort their transaction because as i said earlier they have promised, that they will be able to commit it, so if they abort it, then they wouldn't be able to commit it anymore,
+-------------
+Problem:
+-------------
+if coordinator crashes after prepare, but before broadcasting decision, other nodes do not know how it has decided
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
