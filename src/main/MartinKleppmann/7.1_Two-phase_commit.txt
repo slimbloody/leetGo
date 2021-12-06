@@ -113,26 +113,96 @@ so it can write that decision to disk and so then when the coordinator recovers 
 
 
 
-this leaves us a problem, because the coordinator is now this linchpin in this protocol, because if the coordinator crashes just at the moment after the prepare requests have been sent out, but before the coordinator send out its decision on whether to commit or abort the transaction, then all of the other nodes don't know what the coordinator has decided it, they are simply stuck, they cannot end their transaction yet, they can't abort their transaction because as i said earlier they have promised, that they will be able to commit it, so if they abort it, then they wouldn't be able to commit it anymore,
+this leaves us a problem, because the coordinator is now this linchpin in this protocol, because if the coordinator crashes just at the moment after the prepare requests have been sent out, but before the coordinator send out its decision on whether to commit or abort the transaction, then all of the other nodes don't know what the coordinator has decided it, they are simply stuck, they cannot end their transaction yet, they can't abort their transaction because as i said earlier they have promised, that they will be able to commit it, so if they abort it, then they wouldn't be able to commit it anymore, they're all stuck in this state of being uncertain of what the state of the transaction is, and so the individual nodes can't decide for themselves to abort or commit, because that would risk violating atomicity, so the entire algorithm is blocked until the coordinator restarts and recovers its state from disk, so this is not great, because if a quarter into crashes, it might take a while to come back again, if the machine where the coordinator was running on experience the hardware failure it's even worse because somebody has to go and take the hard disk out of that machine and put it into a new machine and son on, so the whole system could be down and locked up for quite a significant amount of time, and there is an algorithm a variant of two-phase commit, that is fault tolerant, and it relies on what we talked about in the last lecture on total order broadcast, iea consensus algorithm
 -------------
 Problem:
 -------------
 if coordinator crashes after prepare, but before broadcasting decision, other nodes do not know how it has decided
 
+Replicas participating in transaction cannot commit or abort after responding "ok" to the prepare request(otherwise we risk violating atomicity)
+Algorithm is blocked until coordinator recovers
+
+
+
+===============================================
+Fault-tolerant two-phase commit (1/2)
+===============================================
+the idea here is that we use a total order broadcast algorithm disseminate each node's vote whether to abort or to commit
+
+------------------------------------------------------------------
+on initialization for transaction T do
+    commit Votes[T] := {}; replicas[T] := {}; decided[T] := false
+end on
+------------------------------------------------------------------
+and so for each node we're going to have some state here,
+so for each transaction we're going to have a set containing replica ids that have voted in favor of committing a certain transaction,
+we have the set of all of the replicas that are participating in a certain transaction,
+and for each transaction we have a flag telling us whether we have decided yet or not
+
+
+
+------------------------------------------------------------------
+on request to commit transaction T with participating nodes R do
+    for each r∈R do send (Prepare,T,R) to r
+end on
+------------------------------------------------------------------
+when we want to commit a transaction, we do the same as we do usually the coordinator, what coordinator usually do which is just sends a prepare message to all of the nodes participating in the transaction. that's just a regular prepare message as before.
+
+
+
+------------------------------------------------------------------
+on receiving (Prepare, T, R) at node replicaId do
+    replicas[T]:= R
+    ok = "is transaction T able to commit on this replica?"
+    total order broadcast (Vote, T, replicaId, ok) to replicas[T]
+end on
+------------------------------------------------------------------
+when a node or a replica receives this prepared message, it now knows the set of replicas that are participating in this transaction called R, so it remembers that, this is the set of replicas participating in transaction T. and now as before, the replica needs to check whether it is able to commit the transaction, and it will reply to the prepare request saying either yes or no, and if it says yes, it promises that we will definitely be able to commit this transaction in the future. so this okay will simply be a boolean here saying true or false, whether it is able to commit a transaction or not,
+and now rather than sending this vote back to the coordinator, we use total order broadcast to send this vote to all of the replicas that are participating in this transaction, so now all of the replicas find out about each other of who is able to commit what, and this gets us most of way there.
+the question is just what if one of these replicas has crashed, and so if that replica has crashed then it is not able to broadcast its vote, so all of the others would be stuck waiting forever until this vote never turns up. so what we have in addition is a failure detector, and this failure detector can be running on any node for example on some of the other database replicas or even on the client, and it just checks whether it suspects any of the replicas to have failed, and so if it has sent the prepare request to some replica and the replica has not broadcast its vote yet, after some amount of time, some timeout, then this other node is just going to broadcast a vote on behalf of the replica that it has suspected to have failed, and it just votes false, so it votes to abort on behalf of this replica.
+now what could happen as you can see here is that actually it could be that the replica here that is suspected to have crashed, hasn't actually crashed, it might be fine, it might just be a bit slow, and so it could be that just around about the same time, we get two conflicting votes for the same replica that is one genuine vote from the replica that the replica itself is sending, and one vote or maybe even several votes from other replicas who think this particular node has failed, and so now we are relying on the property of total order broadcast, which is all of the participants, all of the nodes in the system will deliver the same messages in the same order, and because of that, this race between the different votes for the same replica is no longer a problem, because we can ensure that the first vote that we see from a given replica will be the same for all of the nodes, and so this means here whenever the we deliver one of votes here by total order broadcast, we can just consider the first vote from any given replica and ignore any future votes, and this will ensure that all of the nodes then come to the same decision as to whether to abort or commit the transaction
 
 
 
 
+------------------------------------------------------------------
+on a node suspects node replicaId to have crashed do
+    for each transaction T in which replicaId participated do
+        total order broadcast (Vote, T, replicaId, false) to replicas[T]
+    end for
+end on
+------------------------------------------------------------------
 
 
+===============================================
+Fault-tolerant two-phase commit (2/2)
+===============================================
+on delivering (Vote, T, replicaId, ok) by total order broadcast do
+    if replicaId ∉ commitVotes[T] ^ replicaId ∈ replicas[T] ^ -decided[IT] then
+        if ok = true then
+            commit Votes[T] := commit Votes[T] U {replicaId}
+            if commit Votes[T] = replicas[T] then
+                decided[T] := true
+                commit transaction T at this node
+            end if
+        else
+            decided[T] := true
+            abort transaction T at this node
+        end if
+    end if
+end on
 
 
+------------------------------------------------------------------
+so first of all here if the replica that is voting is not already one of the votes that has committed, and if the replica is one of the replicas in the transaction t, and we have not already made a decision for transaction t,
+then well okay it depends whether we voted in favor or not, so if we voted true which means vote in favor of committing, then we add the replica id to the set of replicas that have voted in favor of committing this particular transaction,
+and if this set of replicas that have voted in favor equals the set of all replicas participating in the transaction, that means now we have the unanimity that we require that we can decide to commit the transaction and do the actual commit at this node,
+on the other hand, if the vote was false, it was in against committing, that means we can immediately abort, because one single vote against is already enough to discover the whole transaction, we can set our flag to be decided to be true,
+and then we're going to abort the transaction at this node
 
 
-
-
-
-
+and if you think about this the logic that we have ensures that we only count the first vote form any given replica, and because all of the nodes will agree when they're delivering these votes, they will agree on which the first vote was from a given replica, this will ensure that all of the participants see the same and come to the same decision as to whether to commit or abort this transaction.
+it's that nice, we have this total order broadcast algorithm, and we can use it to solve this quite different problem in a reasonably simple way.
 
 
 
