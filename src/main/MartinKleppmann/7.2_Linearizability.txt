@@ -1,0 +1,10 @@
+====================================
+Linearizability(a consistency model)
+====================================
+
+Multiple nodes concurrently accessing replicated data.
+How do we define“consistency" here?
+
+
+what we've seen so far with two-phase commit and atomic commitment is ensuring consistency interface of crashes, so ensuring that even if nodes crash all of the nodes will either commit or abort a transaction, but we also have to worry about consistency in the face of concurrency, so what if multiple nodes are concurrently reading and writing some data, how do we ensure those operations are consistent with each other for some definition of consistency, and this is what linearizability is about. so it's one particular definition of consistency for concurrent systems, and it is the strongest such model that is in widespread use, and the idea behind linearizability is that the system as a whole behaves as if it was not replicated or distributed at all, so it behaves as if there was actually only a single copy of the data, and all of the operations happen atomically on that single copy of the data
+so when you issue a read or write operation that operation will take an effect atomically at some point in time, and even though there might be multiple replicas in the system, from the point of view of the clients it looks as though there was only a single copy of the data, and so this is very nice because it's easy to program against, because it kind of reduces the all of the distributed systems complexity down to something which is very nice and manageable, and small like a single copy of the data, a consequence of this definition of linearizability is that whenever you read some data, you're guaranteed to get an up-to-date value for some definition of up-to-date that we will see in a moment, and this is sometimes also called strong consistency, but the term strong consistency is a bit poorly defined it's a bit vague and hand
