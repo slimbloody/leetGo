@@ -10,15 +10,20 @@ The strongest option: linearizability
     Informally: every operation takes effect atomically sometime after it started and before it finished
     All operations behave as if executed on a single copy of the data (even if there are in fact multiple replicas)
     Consequence: every operation returns an "up-to-date" value, a.k.a. "strong consistency"
-
-
+    Not just in distributed systems, also in shared-memory concurrency (memory on multi-core CPUs is not linearizable by default!)
+Note: linearizability != serializability
 
 what we've seen so far with two-phase commit and atomic commitment is ensuring consistency interface of crashes, so ensuring that even if nodes crash all of the nodes will either commit or abort a transaction, but we also have to worry about consistency in the face of concurrency, so what if multiple nodes are concurrently reading and writing some data, how do we ensure those operations are consistent with each other for some definition of consistency, and this is what linearizability is about. so it's one particular definition of consistency for concurrent systems, and it is the strongest such model that is in widespread use, and the idea behind linearizability is that the system as a whole behaves as if it was not replicated or distributed at all, so it behaves as if there was actually only a single copy of the data, and all of the operations happen atomically on that single copy of the data
 so when you issue a read or write operation that operation will take an effect atomically at some point in time, and even though there might be multiple replicas in the system, from the point of view of the clients it looks as though there was only a single copy of the data, and so this is very nice because it's easy to program against, because it kind of reduces the all of the distributed systems complexity down to something which is very nice and manageable, and small like a single copy of the data, a consequence of this definition of linearizability is that whenever you read some data, you're guaranteed to get an up-to-date value for some definition of up-to-date that we will see in a moment, and this is sometimes also called strong consistency, but the term strong consistency is a bit poorly defined it's a bit vague and hand-waving, so we're going to stick with linearizablity which is formally defined, we will not go into exact formal definition in this course, i'm just going to give you the intuition behind linearizability through some examples, interestingly linearlizability is not only important in distributed systems, but it actually is used also in the context of shared memory concurrency on a single computer, and the reason there is that if you have multiple cpu cores, then actually each cpu core has its own memory caches, if you have threads running on two different cpu calls, you might have one thread writing a value to memory which actually goes to its cache, and then a different thread reading that same location in memory, and it might not see the value that was written by the first thread, because its caches hasn't yet been updated with that value, and so you get actually within the scope of a single computer, you get this similar kind of behavior as in a replicated system, because these different levels of caches gives you something quite like replication, I think this is interesting because we're taking now this idea from distributed systems, and a single computer starts actually behaving a little bit like a distributed system too.
-another piece of terminology just to be careful of is linearizability and serializability
+another piece of terminology just to be careful of is linearizability and serializability are not the same thing, even though the words look kind of similar, but they mean total different things, so serializability is a form of isolation between transactions, it's about transactions having the same effect as if they were executed in some serial of order.
 
+linearizability is around multiple replicas behaving as if there was a single replica, so they're very different things
 
-
+so in to give you a sense of what linearizability means, I'm going to go back to something we saw in a previous lecture, which is read-after-write consistency
+=========================================================
+Read-after-write consistency revisited
+=========================================================
+so if you remember what we discussed back then, this was in the context of read and write quorums, so if you have a client that wants to write some value v1 to some object x, it can make this write request to a quorum of replicas if a quorum responds okay, then this set request is successful.
 
 
 
