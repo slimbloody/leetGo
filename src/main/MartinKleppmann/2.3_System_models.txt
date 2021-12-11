@@ -29,33 +29,68 @@ Networks are unreliable
 ============================================
 Network behaviour/models for network
 ============================================
+No network is perfectly reliable: even in carefully engineered systems
+with redundant network links, things can go wrong. Someone might accidentally unplug the wrong network cable. Sharks and cows have both been shown to cause damage and interruption to long-distance networks. Or a network may be temporarily overloaded, perhaps by accident or perhaps due to a denial-of-service attack. Any of these can cause messages to be lost.
+
+
+
+In a system model, we take a more abstract view, which saves us from the details of worrying about sharks and cows. Most distributed algorithms assume that the network provides bidirectional message-passing between a pair of nodes, also known as point-to-point or unicast communication. Real networks do sometimes allow broadcast or multicast communication (sending a packet to many recipients at the same time, which is used e.g. for discovering a printer on a local network), but broadly speaking, assuming unicast-only is a good model of the Internet today.
+
+
+
+--------------------------------------------------------------------------
 Assume bidirectional point-to-point communication between two nodes(one sender and one recipient), with one of:
 
 1. Reliable (perfect) links:
 A message is received if and only if it is sent. Messages may be reordered.
 
+
+
+The fair-loss assumption means: that any network partition (network interruption) will last only for a finite period of time, but not forever,
 2. Fair-loss links:
+so we can guarantee that every message will eventually be received.
+
 Messages may be lost, duplicated, or reordered. If you keep retrying, a message eventually gets through.
 
 it has a non-zero probability of being delivered.
 if you keep repeating the sending of that message then we're going to assume that eventually it will get through. we're not going to make any assumptions about how long that might take
+------------
+The TCP protocol, which we discussed briefly, performs this kind of retry and deduplication at the network packet level. However, TCP is usually configured with a timeout, so it will give up and stop retrying after a certain time, typically on the order of one minute. To overcome network partitions that last for longer than this duration, a separate retry and deduplication mechanism needs to be implemented in addition to that provided by TCP.
+------------
 
+
+
+
+the network link allowed to do anything, we can model this in terms of a active adversary who modifies the network traffic
 3. Arbitrary links (active adversary):
 A malicious adversary may interfere with messages
 (eavesdrop, modify, drop, spoof, replay)
 
+------------
+An arbitrary link is an accurate model for communication over the Internet: whenever your communication is routed through a network (be it a coffee shop wifi or an Internet backbone network), the operator of that network can potentially interfere with and manipulate your network packets in arbitrary ways. Someone who manipulates network traffic is also known as an active adversary. Fortunately, it is almost possible to turn an arbitrary link into a fair-loss link using cryptographic techniques. The Transport Layer Security (TLS) protocol, which provides the "s" for “secure” in https://, prevents an active adversary from eavesdropping, modifying, spoofing, or replaying traffic.
+
+The only thing that TLS cannot prevent is the adversary dropping (blocking) communication. Thus, an arbitrary link can be converted into a fair-loss link only if we assume that the adversary does not block communication forever. In some networks, it might be possible to route around the interrupted network link, but this is not always the case.
+------------
+--------------------------------------------------------------------------
 if you're connecting to a coffee shop wi-fi, the owner of that wi-fi could be interfering with your network packets in arbitrary ways, and that means thery might not just be looking at your network communication like eavasdropping on it, but they might actually modify the packets, they might record the packets and then replay them at some later point of time, they might pretend to be some website and spoof it, and of course they might drop messages as well.
 An arbitrary link is allowed to do any of these things, it's a resonable model of how the internet works today
+------------
 
 Network partition: some links dropping/delaying all messages for extended period of time
+if you have some nodes where the nodes are still continuing to run fine, but the communication link between them is interrupted, usually we talk about this interruption of being for some finite period of time, so eventually the network partition does get repaired, and at some point in the future, they will be able to communicate again, but the period of interruption might be quite substantial, you might have a system where one subgroup of nodes is able to communicate, a different different subgroup of nodes is able to communicate, but those two groups cannot communicate between them, because the network link between the two groups is interrupted.
+
+
 
 convert of links:
-Arbitrary links -(TLS)-> fair-loss link - retry + deduplicate(重试,去重) -> reliable link
+Arbitrary links -(cryptographic protocol: like TLS)-> fair-loss link - retry + deduplicate(重试,去重) -> reliable link
 TLS:transport layer security;https
 
-the only thing we cannot do is if the active adversary just decides to block all communication ever in that case nothing is going to get through, and you can't turn that into a fair loss link because we can't make any guarantee that eventually a message will get through if keep retrying
+the only thing we cannot do is if the active adversary just decides to block all communication ever in that case nothing is going to get through, and you can't turn that into a fair loss link because we can't make any guarantee that eventually a message will get through if keep retrying, but if we're willing to assume that the adversary will interfere with a finite number of packets, then we could say that okay the arbitrary link can be actually upgraded to a fair loss link, and from there through retrying and deduplication we can actually turn it into a reliable link.
 
 
+
+
+Thus, the assumption of a reliable network link is perhaps not as unrealistic as it may seem at first glance: generally it is possible for all sent messages to be received, as long as we are willing to wait for a potentially arbitrary period of time for retries during a network partition. However, we also have to consider the possibility that the sender of a message may crash while attempting to retransmit a message, which may cause that message to be permanently lost. This brings us to the topic of node crashes.
 ======================
 node behavior/models for nodes
 ======================
@@ -64,6 +99,7 @@ Each node executes a specified algorithm, assuming one of the following:
 1. Crash-stop (fail-stop):
 A node is faulty if it crashes (at any moment).
 After crashing, it stops executing forever.
+the crash might not be a software crash, it could also be a catastrophic hardware failure(硬件损坏) where a node is simply destroyed and it will never be able to come back again.
 
 2. Crash-recovery (fail-recovery):
 A node may crash at any moment, losing its in-memory state. It may resume executing sometime later.
@@ -73,40 +109,72 @@ data that is stored in stable storage is able to survive the crash and will stil
 
 
 3. Byzantine (fail-arbitrary):
-A node is faulty if it deviates from the algorithm.
+
 Faulty nodes may do anything, including crashing or malicious behaviour.
 
-in the byzantine generals problem, what it means for a node to be byzantine faulty is it deviates from the algorithm. so we specify an algorithm that all of the nodes are supposed to follow, but a byzantine faulty node may not follow the algorithm, it might pretend to follow the algorithm, it might do stuff to try and make it look honest even though it's actually behaving in some malicious way.
-so we're not going to constrain the behavior of byzantine faulty node in any way. we're just going to assume that it can do anything that it wants, including malicious behavior.
 
-A node that is not faulty is called "correct"
-we can always categorize a node as either faulty or correct
 
-one node does not necessarily know whether another node is correct or faulty and we will come to the problem of fault detection in a little while
+what it means for a node to be byzantine faulty is just it deviates from the algorithm, we specify an algorithm that all of the nodes are supposed to follow, but a byzantine faulty node may not follow the algorithm. it might pretend to follow the algorithm, it might do stuff to try and make it look honest even though it actually behaving in some of malicious way, so we're not going to constrain the behavior of a byzantine faulty node in any way. we're just going to assume that it can do anything that it wants, including malicious behavior, and so a piece of terminology here we can always categorize a node as either faulty or correct, so a node is faulty if it crashes for example, or in the byzantine model faulty a node is faulty if it deviates from the algorithm,
+(we can always categorize a node as either faulty or correct)
+a node is correct if it's not faulty, so those are two possibility,
+now one node does not necessarily know whether another node is correct or faulty,
+and we will come to the problem of fault detection in a little while.
+
+
+
+In the crash-stop model, we assume that after a node crashes, it never recovers. This is a reasonable model for an unrecoverable hardware fault, or for the situation where a person drops their phone in the toilet, after which it is permanently out of order.
+With a software crash, the crash-stop model might seem unrealistic, because we can just restart the node, after which it will recover. Nevertheless, some algorithms assume a crash-stop model, since that makes the algorithm simpler. In this case, a node that crashes and recovers would have to re-join the system as a new node. Alternatively, the crash-recovery model explicitly allows nodes to restart and resume processing after a crash.
+Finally, the Byzantine model is the most general model of node behaviour: as in the Byzantine generals problem, a faulty node may not only crash, but also deviate from the specified algorithm in arbitrary ways, including exhibiting malicious behaviour. A bug in the implementation of a node could also be classed as a Byzantine fault. However, if all of the nodes are running the same software, they will all have the same bug, and so any algorithm that is predicated on less than one third of nodes being Byzantine-faulty will not be able to tolerate such a bug. In principle, we could try using several different implementations of the same algorithm, but this is rarely(not often) a practical option.
+
+todo: how to convert???
+In the case of the network, it was possible to convert one model to another using generic protocols. This is not the case with the different models of node behaviour. For instance, an algorithm designed for a crash-recovery system model may look very different from a Byzantine algorithm.
+
+
 
 ======================
 System model: synchrony (timing) assumptions/models for timing
 ======================
+1. 传播时间
+2. 代码处理时间
+
 Assume one of the following for network and nodes:
 
 1. Synchronous:
 1) Message latency no greater than a known upper bound.
 2) Nodes execute algorithm at a known speed.
+we assume that basically everything takes a know length of time, so when we send a message over the network, there is some maximum time after which the message will be either delivered or lost, but we assume that no message will take longer than some maximum amount of time to arrive. also, we're going to assume that nodes always execute their code at a know speed, so every step of execution, every step of the algorithm there's an upper bound for the length of time that execution is going to take. this is a very strong assumption.
 
-2. Partically synchronous:
+2. Partially synchronous:
 The system is asynchronous for some finite (but unknown) periods of time, synchronous otherwise.
+
+another assumption we could make is a partially synchronous model, where for some periods of time the system behaves as in the synchronous model, and for other periods of time, it behaves in a way that's asynchronous.
 
 3. Asynchronous: (no timing assumption at all)
 Messages can be delayed arbitrarily.
 Nodes can pause execution arbitrarily.
 No timing guarantees at all.
 
+so in an asynchronous model, we are not making any guarantees about how long it's going to take for messages to arrive, we assume no upper bound on message latency.
+
+moreover, we're not going to make any assumptions about how fast nodes are going to execute the algorithm. so we're going to assume that a node might pause its execution at any moment, and just like stop executing its steps for a while and then later resume executing again, and of course this can happen because a thread can be suspended as you know, so a thread can just pause execution for a while and then resume executing sometime later.
+
+so we have here the synchronous model as one extreme like we're making very strong assumptions about the network latency and the node processing speed, and the asynchronous model where we're making no assumption at all.
+
+so the partially synchronous model is a kind of a compromise between those two where we're saying that actually the asynchronous model is great if we can work in the asynchronous model, but there are certain problems that simply cannot be solved in the asynchronous model. so in some case we do have to make timing assumptions, but at the some time, it's unsafe to assume that those timing assumptions are always true, because if you write an algorithm in the synchronous model, and the system is ever asynchronous, if the system ever take longer than you upper bound to deliver message for example, then your algorithm might fail catastrophically, so the algorithms are very very sensitive to your timing assumption here, and in most cases it is very dangerous to assume a asynchronous model, because real networks do in fact behave in partially synchronous ways, so partially synchronous model is really our compromise where we're saying most of the time the system is well behaved and kind of synchronous, and occasionally it just goes weird, and occasionally messages take a really long time to arrive and occasionally nodes are really slow to execute, and then at some point they'll return back into a synchronous state, but we don't know whether they're asynchronous or synchronous right now.
+
 Note: other parts of computer science use the terms "synchronous" and "asynchronous" differently
 
-we are not making any guarantees about how long it's going to take for messages to arrive, we assume no upper bound on message latency
-moreover, we're not going to make any assumptions about how fast nodes are going to execute the algorithm. so we're going to assume that a node might pause its execution at any moment, and just like stop executing its steps for a while and then later resume executing again, and of course this can happen because a thread can be suspended as you know, so a thread can just pause execution for a while and then resume executing sometime later.
-so we have here the synchronous model as one extreme like we're making very strong assumptions about the network latency and the node processing speed, adn the asynchronous model where we're making no assumption at all.
-so the partially synchronous model is a kind of a compromise between those two where we're saying that actually the asynchronous model is great if we can work in the asynchronous model, but there are certain problems that simply cannot be solved in the asynchronous model. so in some case we do have to make timing assumptions, but at the some time, it's unsafe to assume that those timing assumptions are always true, because if you write an algorithm in the synchronous model, and the system is ever asynchronous, if the system ever take longer than you upper bound to deliver message for example, then your algorithm might fail catastrophically, so the algorithms are very very sensitive to your timing assumption here, and in most cases it is very dangerous to assume a asynchronous model, because real networks do in fact behave in partially synchronous ways, so partially synchronous model is really our compromise where we're saying most of the time the system is well behaved and kind of synchronous, and occasionally it just goes weird, and occasionally messages take a really long time to arrive and occasionally nodes are really slow to execute, and then at some point they'll return back into a synchronous state, but we don't know whether they're asynchronous or synchronous right now.
+--------------------------------------
+The third part of a system model is the synchrony assumption, which is about timing. The three choices we can make here are synchronous, asynchronous, or partially synchronous.(Note that the definitions of these terms differ somewhat across different parts of computer science; our definitions here are standard in the field of distributed computing.)
+
+A synchronous system is what we would love to have: a message sent over the network never takes longer than some known maximum latency, and nodes always execute their algorithm at a predictable speed. Many problems in distributed computing are much easier if you assume a synchronous system. And it is tempting to assume synchrony, because networks and nodes are well-behaved most of the time, and so this assumption is often true.
+
+Unfortunately, most of the time is not the same as always, and algorithms designed for a synchronous model often fail catastrophically if the assumptions of bounded latency and bounded execution speed are violated, even just for a short while, and even if this happens rarely. And in practical systems, there are many reasons why network latency or execution speed may sometimes vary wildly.
+
+The other extreme is an asynchronous model, in which we make no timing assumptions at all: we allow messages to be delayed arbitrarily in the network, and we allow arbitrary differences in node's processing speeds (for example, we allow one node to pause execution while other nodes continue running normally). Algorithms that are designed for an asynchronous model are typically very robust, because
+they are unaffected by any temporary network interruptions or spikes in latency.
+
+Unfortunately, some problems in distributed computing are impossible to solve in an asynchronous model, and therefore we have the partially synchronous model as a compromise. In this model, we assume that our system is synchronous and well-behaved most of the time, but occasionally it may flip into asynchronous mode in which all timing guarantees are off, and this can happen unpredictably. The partially synchronous model is good for many practical systems, but using it correctly requires care.
 
 =============
 Violations of synchrony in practice
@@ -116,7 +184,11 @@ Networks usually have quite predictable latency, which can occasionally increase
 2. Congestion/contention causing queueing
 3. Network/ route reconfiguration
 
-(upgrading a fair loss link to a reliable link, the cost of that upgrade in reliability was that potentially we have to wait for a very long time if there's a network partition, so in this case we can't assume any upper bound really on message latency because it might be up to the length that it takes for our network partition to be healed, other reasons why network latency might suddenly increase is just congestion and queuing in the network, or there have even benn examples of a network reconfiguration where packets just get stuck in a switch buffer for over a minute, before they're eventually delivered. so even in data center networks which are normally very well managed, it is possible occasionally have really extremely high message latency, and so any algorithm that we design must take into account this possibility that occasionally messages might take a very long time to arrive)
+1. upgrading a fair loss link to a reliable link, the cost of that upgrade in reliability was that potentially we have to wait for a very long time if there's a network partition, so in this case we can't assume any upper bound really on message latency because it might be up to the length that it takes for our network partition to be healed.
+2. other reasons why network latency might suddenly increase is just congestion and queuing in the network,
+3. or there have even been examples of a network reconfiguration where packets just get stuck in a switch buffer for over a minute, before they're eventually delivered.
+
+so even in data center networks which are normally very well managed, it is possible occasionally have really extremely high message latency, and so any algorithm that we design must take into account this possibility that occasionally messages might take a very long time to arrive
 
 
 Nodes usually execute code at a predictable speed, with occasional pauses:
@@ -126,17 +198,11 @@ Nodes usually execute code at a predictable speed, with occasional pauses:
 Real-time operating systems (RTOS) provide scheduling guarantees. but most distributed systems do not use RTOS
 
 nodes execution might be interrupted for a little while,
-you can have a context switch, you can have a thread that temporarily gets suspended while other processes run, and these might take a while before the operating system scheduler come back and start running your thread again, especially if there's some kind of problem going on like priority inversion() in the system, it could be a process is actually paused for significant amount of time before it gets to run again. as you know from multi-threading, a process or a thread can get paused that absolutely any moment, there's any point int the code, it could decide to pause and so even at the most inconvenient place possible in an algorithm you might have a thread pause or context switch.
-
-another real problem that happens in practiced is garbage collection. and there are lots of other things in the operating system that cause variable delays such as page faults and so on especially if memory is tight, so it is possible to get around these things so real-time operating system will provide scheduling guarantees they might guarantee that your code always runs at least once every 10 milliseconds.
-but most distributed systems are not built on real-time operating systems, they're built on general purpose operating systems which make no guarantees about how processes are going to get scheduled, and even if you are using a real-time operating system it's very hard work to actually ensure that those timing guarantees always hold. so for most practical distributed systems, we cannot assume any upper bound on how long it might take for both a message to be delivered, or a process to execute one step, because these delays can occur unpredictably and non-deterministically at any point.
-
+1. you can have a context switch, you can have a thread that temporarily gets suspended while other processes run, and these might take a while before the operating system scheduler come back and start running your thread again, especially if there's some kind of problem going on like priority inversion in the system, it could be a process is actually paused for significant amount of time before it gets to run again. as you know from multi-threading, a process or a thread can get paused that absolutely any moment, there's any point in the code, it could decide to pause and so even at the most inconvenient place possible in an algorithm you might have a thread pause or context switch.
 
 priority inversion:
 实时操作系统的一个基本要求就是基于优先级的抢占系统。保证优先级高的线程在“第一时间”抢到执行权，是实时系统的第一黄金准则
 https://zhuanlan.zhihu.com/p/146132061
-
-
 
 
 thrashing:
@@ -148,9 +214,25 @@ thrashing:
 如果分配给进程的存储块数量小于进程所需要的最小值，进程的运行将很频繁地产生缺页中断，这种频率非常高的页面置换现象称为抖动。解决方案优化置换算法。
 Belady奇异现象，是指采用页面置换FIFO算法时，如果对一个进程未分配它所要求的全部页面，有时就会出现分配的页面数增多，但缺页率反而提高的异常现象，这是一个违反直觉的现象。
 
+2. another real problem that happens in practiced is garbage collection. so in a language like java for example, which performs automatic memory management and which uses garbage collection to free up memory, you can have what is called a stop the world garbage collection pause where the garbage collector just has to stop all of the running threads for a while, while it performs the garbage collections, and those pause can last minutes sometimes if you have a large thread heap size, so that's another reason why a thread or process paused execution for a while
+
+3. and finally, there are lots of other things in the operating system that cause variable delays such as page faults and so on especially if memory is tight, so it is possible to get around these things so real-time operating system will provide scheduling guarantees they might guarantee that your code always runs at least once every 10 milliseconds.
+but most distributed systems are not built on real-time operating systems, they're built on general purpose operating systems which make no guarantees about how processes are going to get scheduled, and even if you are using a real-time operating system it's very hard work to actually ensure that those timing guarantees always hold. so for most practical distributed systems, we cannot assume any upper bound on how long it might take for both a message to be delivered, or a process to execute one step, because these delays can occur unpredictably and non-deterministically at any point.
+
+---------------------------
+There are many reasons why a system may violate synchrony assumptions. We have already talked about latency increasing without bound if messages are lost and retransmitted, especially if we have to wait for a network partition to be repaired before the messages can get through. Another reason for latency increases in a network is congestion resulting in queueing of packets in switch buffers. Network reconfiguration can also cause large delays: even within a single datacenter, there have been documented cases of packets being delayed for more than a minute.
+
+We might expect that the speed at which nodes execute their algorithms is constant: after all, an instruction generally takes a fixed number of CPU clock cycles, and the clock speed doesn't vary much. However, even on a single node, there are many reasons why a running program may unexpectedly get paused for significant amounts of time. Scheduling in the operating system can preempt a running thread and leave it paused while other programs run, especially on a machine under heavy load. A real problem in memory-managed languages such as Java is that when the garbage collector runs, it needs to pause all running threads from time to time (this is known as a stop-the-world garbage collection pause). On large heaps, such pauses can be as long as several minutes! Page faults are another reason why a thread may get suspended, especially when there is not much free memory left.
+
+As you know from the concurrent systems half of this course, threads can and will get preempted even at the most inconvenient moments, anywhere in a program. In a distributed system, this is particularly problematic, because for one node, time appears to "stand still" while it is paused, and during this time all other nodes continue executing their algorithms normally. Other nodes may even notice that the paused node is not responding, and assume that it has crashed. After a while, the paused node resumes processing, without even realising that it was paused for a significant period of time.
+
+Combined with the many reasons for variable network latency, this means that in practical systems, it is very rarely safe to assume a synchronous system model. Most distributed algorithms need to be designed for the asynchronous or partially synchronous model.
+
+
 
 
 System models summary
+choices of abstractions:
 1. Network:
 reliable, fair-loss, or arbitrary
 2. Nodes:
@@ -158,7 +240,19 @@ crash-stop, crash-recovery, or Byzantine
 3. Timing:
 synchronous, partially synchronous, or asynchronous
 
+
+These choices of abstractions are absolutely crucial, so if you're designing a distributed algorithm, you have to be absolutely certain that your assumption in regard of these are correct, so for example, if you're assuming a crash recovery model and actually you have some byzantine nodes in your system, the byzantine nodes are just going to destroy your algorithm. so if you think they're going to be byzantine behavior, then you have to take account for it in the algorithm and the algorithm has to be designed to tolerate byzantine behavior. it is perfectly fine if you're going to assume this is a fully trusted system, it's not going to have any byzantine nodes, and just assume only crash stop or crash recovery, that's fine you just have to be very sure that your assumption is correct.
+likewise with making synchrony assumptions as I said, assuming a asynchronous model when actually your system is partially synchronous is very dangerous. it's very likely that if you assume a synchronous model, and it goes partially synchronous even just for like 10 seconds somewhere, that all of the guarantees of your distributed algorithm are off. so you have to be very sure that your assumptions in terms of the synchrony model, the node behavior and the network are correct.
+
 如果系统里面有其中的一个model存在, 哪怕10秒, distributed algorithms中就要考虑这种model, 否则算法就是错的
+
+
+
+
+
+
+
+
 
 
 
