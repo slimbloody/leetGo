@@ -562,10 +562,48 @@ diminish
 v. 减弱，降低，减少；贬低，轻视
 
 
+impersonate
+英 [ɪmˈpɜːsəneɪt]  美 [ɪmˈpɜːrsəneɪt]
+vt. 扮演；模仿；拟人，人格化
 
+electromagnetic
+英 [ɪˌlektrəʊmæɡˈnetɪk]  美 [ɪˌlektroʊmæɡˈnetɪk]
+adj. 电磁的
 
+fluctuate
+英 [ˈflʌktʃueɪt]  美 [ˈflʌktʃueɪt]
+v. 波动，起伏不定；使波动，使动摇
 
+meridian
+英 [məˈrɪdiən]  美 [məˈrɪdiən]
+n. 子午线，经线；中医经脉；顶点
+adj. 子午线的，经线的；最高点的
 
+rule of thumb
+经验法则，拇指规则
 
+isotope
+英 [ˈaɪsətəʊp]  美 [ˈaɪsətoʊp]
+n. 同位素
+
+subsecond
+[sʌb'sekənd]
+adj. （与）亚秒（有关）的
+
+pragmatic
+英 [præɡˈmætɪk]  美 [præɡˈmætɪk]
+adj. 实际的；实用主义的
+
+infeasible
+英 [ɪnˈfiːzəb(ə)l]  美 [ɪnˈfizəbəl]
+adj. 不可实行的
+
+feasible
+英 [ˈfiːzəbl]  美 [ˈfiːzəbl]
+adj. 可行的，办得到的；很可能会发生的
+
+noticeable
+英 [ˈnəʊtɪsəbl]  美 [ˈnoʊtɪsəbl]
+adj. 显而易见的，明显的；值得注意的
 
 

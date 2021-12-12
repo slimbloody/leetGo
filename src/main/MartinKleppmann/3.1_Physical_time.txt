@@ -1,12 +1,31 @@
+===============================================
+Time, clocks, and ordering of events
+===============================================
+In this lecture we will look at the concept of time in distributed systems. We have already seen that our assumptions about timing form a key part of the system model that distributed algorithms rely on. For example, timeout-based failure detectors need to measure time to determine when a timeout has elapsed. Operating systems rely extensively on timers and time measurements in order to schedule tasks, keep track of CPU usage, and many other purposes. Applications often want to record the time and date at which events occurred: for example, when debugging an error in a distributed system, timestamps are helpful for debugging, since they allow us to reconstruct which things happened around the same time on different nodes. All of these require more or less accurate measurements of time.
+
+
+
+
+
 time, clocks, and ordering of events
 
 Distributed systems often need to measure time, e.g.: .
-    Schedulers, timeouts, failure detectors, retry timers
-    Performance measurements, statistics, profiling
-    Log files & databases: record when an event occurred
-    Data with time-limited validity (e.g. cache entries )
-    Determining order of events across several nodes
-dig www.cst.com.ac.uk
+1. Schedulers, timeouts, failure detectors, retry timers
+in an operating system scheduler, you want to context switch after a process has been running for 10 milliseconds maybe, so you have to measure those 10 milliseconds
+if you want to send some kind of time out, then you have to measure that time, last lecture we talked about failure detectors which again rely on measuring whether you got a response or not, with in a certain period of time.
+if you want to retry sending messages over a network again, you probably want to wait for a certain time.
+
+2. Performance measurements, statistics, profiling
+Performance measurements: so how long has the process been running for how much cpu time has it been using,
+Profiling: if you want to profile a system in order to improve its performance that also relies on time measurement,
+3. Log files & databases: record when an event occurred
+in log files you probably want to record the date and time at which a certain event happened, so for example a certain user logged in at a certain date and at a certain time you want to record that in the log.
+in database you might want to record when something happens, so at which point did a user make a purchase, for example, what date that time did that purchase occur
+4. Data with time-limited validity (e.g. cache entries )
+an interesting one is data that is only valid for a certain period of time, so in a cache for example, you might want data in the cache not not live forever, but to be expired from the cache after it has been there for a while. so I'll give one concrete example of this, we could use dns system for resolving domain names to ip address.
+eg: dig www.cst.com.ac.uk
+check whether the TLS certificate is expired.
+5. Determining order of events across several nodes
 
 We distinguish two types of clock:
     physical clocks: count number of seconds elapsed
@@ -17,15 +36,27 @@ in distributed systems, a clock is sth that you can ask for a timestamp, so it t
 NB. Clock in digital electronics (oscillator)
 != clock in distributed systems source of timestamps)
 
+the term clock is also used in digital electronics, and you've come across it there, where it means a signal which produces pulses of ones and zeros at a certain regular frequency,
+in distributed system we use the word clock in a slightly different way, so the meaning in distributed systems is a clock is something that you can ask for a timestamp, so it tells you what the current time is and the current time is represented, as a timestamp which might be the current date and time.
+
+
 
 Physical clocks include analogue/mechanical clocks based on pendulums or similar mechanisms
 and digital clocks based e.g. on a vibrating quartz crystal
 
+Quartz clocks are cheap, but they are not totally accurate. Due to manufacturing imperfections, some clocks run slightly faster than others. Moreover, the oscillation frequency varies with the temperature. Typical quartz clocks are tuned to be quite stable around room temperature, but significantly higher or lower temperatures slow down the clock. The rate by which a clock runs fast or slow is called drift.
+
+
+
 the most computers implement clocks nowadays is using quartz crystals.
 silicon dioxide
 
-it resonates at a certain frequency, the frequency at which it resonates can be tuned by cutting bits of the crystal using lasers
+it mechanically resonates at a certain frequency, the frequency at which it resonates can be tuned by cutting bits of the crystal using lasers.
 
+
+==============
+Quartz clock error: drift
+==============
 Piezoelectric effect:
 mechanical force <==> electric field
 if you apply an electric field to it, it induces a mechanical strain in the material, and also the other way if you apply a force to it then it creates an electric field.
@@ -34,15 +65,10 @@ but essentially it produces a signal with a certain fixed frequency, this freque
 because there are always going to be certain manufacturing difference between one crystal and another, they won't oscillate at precisely the same frequency, there will be a little of an error.
 moreover, the resonant frequency of a quartz crystal actually depends on the temperature. The crystals that used for quartz oscillators are tuned, and they're selected and created in such a way that their frequency is quite stable around room temperature, around 20 to 25 degrees c, but as you deviate from this temperature significantly, there's actually a quadratic decrease(呈倒二次函数形状, ax^2 + bx + c = y, a < 0的图像) in the clock speed, so if you're in a very hot server room for example, where you might reach significantly higher temperatures than your typical room temperature, then this actually can have a significant impact on the frequency at which the clock is running. so the clock speed is measured in parts per million usually, this just like percent but rather than dividing by 100 we divide by million, and so you can work out like if you have one ppm error that would mean that the clocks goes wrong by about 32 seconds per year, now most quartz clocks will be like 20 ppm or something like that order of magnitude of course depending on the temperature, as a rule of thumb probably most clock errors will be below 50 ppm
 
+rule of thumb
+经验法则，拇指规则
 
-atomic clocks are based on quantum mechanical effect, so they actually use cesium atoms of a certain isotope, any quantum mechanics atom have discrete energy levels, the difference between those energy levels corresponds to certain resonant frequencies of atom and there's one particular energy transition which is at a fairly friendly to measure nine gigahertz, so you get about nine oscillations of this per second, and this is actually how the second is now defined.
 
-SI unit: International System of Units
-The SI base units are the standard units of measurement defined by the International System of Units (SI)
-==============
-Quartz clock
-==============
-error: drift
 One clock runs slightly fast, another slightly slow
 
 clock drift: phenomenon where a clock gains or loses time compared to another clock
@@ -54,56 +80,137 @@ Most computer clocks correct within ~ 50 ppm
 The rate by which a clock runs fast or slow is called drift.
 
 
-When greater accuracy is required, atomic clocks are used. These clocks are based on quantum mechanical properties of certain atoms, such as caesium or rubidium
+============================
+Atomic clocks
+============================
+atomic clocks are based on quantum mechanical effect, so they actually use cesium atoms of a certain isotope, any quantum mechanics atom have discrete energy levels, the difference between those energy levels corresponds to certain resonant frequencies of atom and there's one particular energy transition which is at a fairly friendly to measure frequency of about nine gigahertz, so you get about nine oscillations of this per second, and this is actually how the second is now defined.
 
+When greater accuracy is required, atomic clocks are used. These clocks are based on quantum mechanical properties of certain atoms, such as caesium or rubidium.
+
+
+
+SI unit: International System of Units
+The SI base units are the standard units of measurement defined by the International System of Units (SI)
+
+
+1 second = 9,192,631,770 periods of that signal
+
+
+
+
+
+
+with atomic clock, you can build gps for example
 =========================
 GPS as time source
 =========================
+
+Another high-accuracy method of obtaining the time is to rely on the GPS satellite positioning system, or similar systems such as Galileo or GLONASS. These systems work by having several satellites orbiting the Earth and broadcasting the current time at very high resolution. Receivers measure the time it took the signal from each satellite to reach them, and use this to compute their distance from each satellite, and hence their location. By connecting a GPS receiver to a computer, it is possible to obtain a clock that is accurate to within a fraction of a micro-second, provided that the receiver is able to get a clear signal from the satellites. In a datacenter, there is generally too much electromagnetic interference to get a good signal, so a GPS receiver requires an antenna on the roof of the datacenter building.
+
+-------------------------
+
+1. 31 satellites, each carrying an atomic clock
+2. satellite broadcasts current time and location
+3. calculate position from speed-of-light delay between satellite and receiver
+4. corrections for atmospheric effects, relativity, etc.
+5. in datacenters, need antenna on the roof
+
+
 if you want a very precise clock signal, one way of getting that clock is actually to use gps, so the same system that you use smartphone to tell you where you are right now at map, it works by having a bunch of satellites that orbit the earth, and each satellite carries an atomic clock, broadcasts its current clock and its current location periodically, and so the gps receiver it receives the signals from several of these satellites, it calculates the time difference between when the signal was sent by the satellite and when the signal was received by your phone, and from the time distance and the speed of light it can work out the actual distance in space between you and the satellite, and from that it can work out where you are.
 now there's a lot of details that go into making this accurate, but for our purposes well you know all we're actually interested in right now is time not location, and you can use gps satellites as a very accurate way of getting time and clocks. now this does rely on being able to actually pick up teh signal from the satellite so if you're in the data center there's probably so much shielding and electromagnetic interference that you can't actually pick up the signal, so you have to put an antenna on the roof of the data center, but this is something that people actually do as a way of getting accurate clocks
 
 ===============================
 coordinated universal time(UTC)
 ===============================
-how is time defined?
-you might have come across the term UTC the coordinated universal time(UTC) which is the reference time that is used for all of our time zones we use nowadays.
+1. Greenwich Mean Time (GMT, solar time): it's noon when the sun is in the south, as seen from the Greenwich meridian
+
+you've probably come across the term GMT greenwich meantime, which unfortunately the meaning of that has changed over time, its original meaning was time based on astronomical observations. so it was literally when is the sun in the south, if you are looking at the sun from greenwich observatory. so you can literally go to greenwich in southeast London and visit the observatory there, and see meridian at which it was defined that when the sun is in the south as seen from this particular place, then it is noon. now it varied a little over the course of the year so that way we actually average this over the course of the year, but the idea is still, this is time based on astronomical observations.
 
 
-you've probably come across the term GMT greenwich meantime, which unfortunately the meaning of that has changed over time, its original meaning was time based on astronomical observations. so it was literally when is the sun in the south, if you are looking at the sun from greenwich observatory. so you can literally go to greenwich in southeast london and visit the observatory there, and see meridian at which it was defined that when the sun is in the south as seen from this particular place, then it is noon. now it varied a little over the course of the year so that way we actually average this over the course of the year, but the idea is still, this is time based on astronomical observations.
+2. International Atomic Time(TAI): using quantum mechanics
+so this is actually how is time defined.
+we take couple of hundred atomic clocks spread around the world, we synchronize those, and we count exactly the number of oscillations we have from this cesium resonate frequency, and that tells us how many seconds have elapsed.
 
-
-International Atomic Time(TAI): using quantum mechanics
 
 Problem: speed of Earth's rotation is not constant
-Compromise: UTC is TAI with corrections to account for Earth rotation
+now these two things don't unfortunately match up exactly,
+We now have a problem: we have two different definitions of time – one based on quantum mechanics, the other based on astronomy – and those two definitions don’t match up precisely. One rotation of planet Earth around its own axis does not take exactly 24 × 60 × 60 × 9,192,631,770 periods of caesium-133's resonant frequency. In fact, the speed of rotation of the planet is not even constant: it fluctuates due to the effects of tides, earthquakes, glacier melting, and some unexplained factors
 
+
+
+
+Compromise: UTC is TAI with corrections to account for Earth rotation
+you might have come across the term UTC the coordinated universal time(UTC) which is the reference time that is used for all of our time zones we use nowadays.
 
 and so the result is that we want to use atomic time because it's much more precise then this wobbly earth time, but at the same we want our time to be consistent with how the earth rotates around its axis.
-the compromise is utc, we take international atomic time and we apply some corrections to it based on astronomy and that will give us a time that is founded on quantum mechanics but still consistent with astronomical observations.
-
-summertime, wintertime, all of these are defined as offsets to utc. so if you're on the east coast US, for example, you'll be in like utc plus five.
+the compromise is utc, we take international atomic time and we apply some corrections to it based on astronomy, and that will give us a time that is founded on quantum mechanics but still consistent with astronomical observations.
 
 Time zones and daylight savings time are offsets to UTC
+summertime, wintertime, all of these are defined as offsets to utc. so if you're on the east coast US, for example, you'll be in like utc plus five.
 
+
+=========================
+Leap seconds
+=========================
 how does this correction from atomic time to utc look like, the answer is the correction takes the form of leap seconds. (just like leap year concept)
 
 a leap second is an extra second that can be either inserted or removed on a certain date. so every year there are typically two dates on which a leap second may or may not happen, that is the 30th of june and the 31th of december in principle.
 
-so if there's a second subtracted, and then there is no 23:59:59 second, the clock goes 48, and then immediately jumps to zero after one second, so 59 second simply skipped. or we can have a regular second. or we can have an additional second in which the clock goes from 59:59 to 60 then to zero after two seconds.
+so if there's a second subtracted, and then there is no 23:59:59 second, the clock goes 58, and then immediately jumps to zero after one second, so 59 second simply skipped. or we can have a regular second. or we can have an additional second in which the clock goes from 59:59 to 60 then to zero after two seconds.
 
+
+
+computers are not very good at dealing with leap second
+==================================================
 How computers represent timestamps
-T wo most common representations:
-1. Unix time: number of seconds since 1 January 1970 00:00:00 UTC (it is called the unix "epoch"), not counting leap seconds
+==================================================
+Two most common representations:
+1. Unix time: number of seconds since 1 January 1970 00:00:00 UTC (it is called the unix "epoch", and it was arbitrarily picked, we count the number of seconds except that unix time is defined as not counting leap seconds
+
+
+but the counting leap seconds is defined in terms of utc, it's not actually utc, it's kind of an international atomic time actually rather than utc, but everyone says it's utc,
 2. ISO 8601: year, month, day, hour, minute, second, and timezone offset relative to UTC
 example: 2020-11-09T09 : 50: 17+00:00
+
+------------------------------------------------
+The solution is Coordinated Universal Time (UTC), which is based on atomic time, but includes corrections to account for variations in the Earth’s rotation. In everyday life we use our local time zone, which is specified as an offset to UTC.
+
+The UK's local time zone is called Greenwich Mean Time (GMT) in winter, and British Summer Time (BST) in summer, where GMT is defined to be equal to UTC, and BST is defined to be UTC + 1 hour. Confusingly, the term Greenwich Mean Time was originally used to refer to mean solar time on the Greenwich meridian, i.e. it used to be defined in terms of astronomy, while now it is defined in terms of atomic clocks. Today, the term "UT1" is used to refer to mean solar time at 0° longitude.
+
+The difference between UTC and TAI is that UTC includes leap seconds, which are added as needed to keep UTC roughly in sync with the rotation of the Earth.
+------------------------------------------------
 
 ==================
 How most software deals with leap seconds
 ==================
+To be correct, software that works with timestamps needs to know about leap seconds. For example, if you want to calculate how many seconds elapsed between two timestamps, you need to know how many leap seconds were inserted between those two dates. For dates that are more than about six months into the future, this is impossible to know, because the Earth’s rotation has not happened yet!
+
+The most common approach in software is to simply ignore leap seconds, pretend that they don’t exist, and hope that the problem somehow goes away. This approach is taken by Unix timestamps, and by the POSIX standard. For software that only needs coarse-grained timings (e.g. rounded to the nearest day), this is fine, since the difference of a few seconds is not significant.
+
+However, operating systems and distributed systems often do rely on high-resolution timestamps for accurate measurements of time, where a difference of one second is very noticeable. In such settings, ignoring leap seconds can be dangerous. For example, say you have a Java program that twice calls System.currentTimeMillis(), 500 ms apart, within a positive leap second (i.e. while the clock is saying 23:59:60). What is the difference between those two timestamps going to be? It can’t be 500, since the currentTimeMillis() clock does not account for leap seconds. Does the clock stop, so the difference between the two timestamps is zero? Or could the difference even be negative, so the clock runs backwards for a brief moment? The documentation is silent about this question. (The best solution is probably to use a monotonic clock instead)
+
+Poor handling of the leap second on 30 June 2012 is what caused the simultaneous failures of many services on that day. Due to a bug in the Linux kernel, the leap second had a high probability of triggering a livelock condition when running a multithreaded process. Even a reboot did not fix the problem instead, but setting the system clock reset the bad state in the kernel.
+重启没解决, 而是靠设置系统时钟重设.
+
+
+---------------------------------------------------
 by ignoring them
 
-However, OS and DistSys often need timings with sub-second accuracy.
-one second can be rather significant and that means we do actually have to care about these leap seconds which brings us to the solution of the little puzzle, that i presented at the beginning of this lecture which is what is on earth happened on the 30th of june 2012, for all of these systems to go down at the same time, the answer was a leap second happened, and there hadn't been a leap second for a couple of years before that, so during those years of course, the linux kernel and all other software were updated and the bug was introduced, and as a result there was actually a live lock condition sort of when the leap second happened the system went into live lock and so it was just spinning 100 CPU and not getting any useful work done, and even rebooting the computers didn't actually help, the administrator figured out when was that you actually had to reset the system clock, and that somehow cleared out the bad state in the linux kernel, and allowed us to fix those computers again. you can imagine that was a really bad day for administrators of these systems who rebooted the systems and they still didn't work,
+However, OS and DistSystem often need timings with sub-second accuracy.
+subsecond
+[sʌb'sekənd]
+adj. （与）亚秒（有关）的
+
+Today, some software handles leap seconds explicitly, while other programs continue to ignore them. A pragmatic solution that is widely used today is that when a positive leap second occurs, rather than inserting it between 23:59:59 and 00:00:00, the extra second is spread out over several hours before and after that time by deliberately slowing down the clocks during that time (or speeding up in the case of a negative leap second). This approach is called smearing the leap second, and it is not without problems. However, it is a pragmatic alternative to making all software aware of and robust to leap seconds, which may well be infeasible.
+
+
+one second can be rather significant and that means we do actually have to care about these leap seconds which brings us to the solution of the little puzzle, that i presented at the beginning of this lecture which is what is on earth happened on the 30th of june 2012, for all of these systems to go down at the same time, the answer was a leap second happened, and there hadn't been a leap second for a couple of years before that, so during those years of course, the linux kernel and all other software were updated and the bug was introduced,
+and as a result there was actually a live lock condition sort of when the leap second happened the system went into live lock and so it was just spinning 100 percents CPU and not getting any useful work done, and even rebooting the computers didn't actually help, the administrator figured out when was that you actually had to reset the system clock, and that somehow cleared out the bad state in the linux kernel, and allowed us to fix those computers again. you can imagine that was a really bad day for administrators of these systems who rebooted the systems and they still didn't work.
+
+
+
+todo:
+Exercise 4. Describe some problems that may arise from leap second smearing.
 
 ==================
 live lock
@@ -146,11 +253,11 @@ oracle java tutorial 里面有个类比：
 This is comparable to two people attempting to pass each other in a corridor: Alphonse moves to
 his left to let Gaston pass, while Gaston moves to his right to let Alphonse pass. Seeing that they are still blocking each other, Alphone moves to his right, while Gaston moves to his left. They're still blocking each other, so...
 https://link.zhihu.com/?target=https%3A//docs.oracle.com/javase/tutorial/essential/concurrency/starvelive.html
-==================
+------------------
 Pragmatic solution: 'smear'(spread out)
 the leap second over the course of a day
 
-the solution is now more widely which tries to get around this problem that most software does not know how to deal with leap seconds correctly, and solution is called smearing, leap second smearing which is rather than if we're going to insert a leap second rather than inserting it at one particular moment, how about we just spread that leap second out over the course of a whole day.
+the solution is now more widely which tries to get around this problem that most software does not know how to deal with leap seconds correctly, and solution is called smearing, leap second smearing, which is rather than if we're going to insert a leap second rather than inserting it at one particular moment, how about we just spread that leap second out over the course of a whole day.
 so let's say for example 12 hours before and 12 hours after the leap second is supposed to be introduced, we just slow down the clocks ever so slightly, enough so that then in total, one additional second has elapsed over the course of this period, but without this discontinuity of time where we've added that extra second which confuses all of the software.
 it's a kind of hack, it's not a elegant solution, but it might be pragmatically the best that we can come up with
 
