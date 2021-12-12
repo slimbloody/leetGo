@@ -186,6 +186,10 @@ strata
 n. 层；[地质]地层；阶层
 n. （Strata）人名；（意、塞）斯特拉塔
 
+stratum
+英 [ˈstrɑːtəm]  美 [ˈstreɪtəm]
+n. （组织的）层；[地质] 地层；社会阶层
+
 
 outlier
 英 [ˈaʊtlaɪə(r)]  美 [ˈaʊtlaɪər]

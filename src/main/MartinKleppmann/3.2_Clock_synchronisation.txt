@@ -1,6 +1,8 @@
 ===============
 Clock synchronisation
 ===============
+atomic clock is too expensive and to bulky, what we need to do is make do with these less accurate quartz clocks and we have to somehow try and make the clocks reasonably accurate nevertheless.these quartz clocks may drift a little bit, we end up with clock skew.
+
 
 Computers track physical time/UTC with a quartz clock
 (with battery, continues running when power is off)
@@ -8,144 +10,181 @@ Computers track physical time/UTC with a quartz clock
 Due to clock drift, clock error gradually increases
 
 Clock skew: difference between two clocks at a point in time
+clock skew is if we look at two different clocks at the same instant in time, and we  compare the timestamps from those clocks, clocks use the difference between those two, and what we want to do with clock synchronization is to minimize the skew as much as possible.
 
-every computer pretty much contains a quartz clock
-
-what we need to do is make do with these less accurate quartz clocks and we have to somehow try and make the clocks reasonably accurate nevertheless.these quartz clocks may drift a little bit, we end up with clock skew
-
-Clock synchronisation: is to minimize the skew as much as possible
-
-it is not possible to reduce the to clock skew to zero, the best we can do is to reduce it as much as we can, but there's always going to be a bit of an error tolerance remaining,
-
+in the types of networks that we have in asynchronous or partially synchronous networks, it is not possible to reduce the to clock skew to zero, the best we can do is to reduce it as much as we can, but there's always going to be a bit of an error tolerance remaining.
 
 
 Solution: Periodically get the current time from a server that has a more accurate time source (atomic clock or GPS receiver)
-Protocols: Network Time Protocol (NTP), Precision Time Protocol (PTP)
-
-
-=================
+Protocols:
 Network Time Protocol (NTP)
-=================
+Precision Time Protocol (PTP)
+the way that we typically do clock synchronization in practice is using a protocol called NTP. the way NTP works is that there's a server, and we assume the server has some accurate clock source such as an atomic clock or gps receiver, and clients can query the server, and ask it for the server's current time and then the client will adjust its own time based on the time that it got from the server.
+
+
+Clock synchronisation: is to minimize the skew as much as possible
+every computer pretty much contains a quartz clock
+==================================
+Network Time Protocol (NTP)
+==================================
+Violations of synchrony in practice
+
+
+
 Many operating system vendors run NTP servers, configure OS to use them by default
 
 Hierarchy of clock servers arranged into strata:
-    Stratum 0: atomic clock or GPS receiver
-    Stratum 1: synced directly with stratum 0 device
-    Stratum 2: servers that sync with stratum 1
+    Stratum 0(accurate time sources): atomic clock or GPS receiver
+    Stratum 1(a server that is connected directly to a stratum 0 time source): synced directly with stratum 0 device
+    Stratum 2(a server that is connected directly to a stratum 1 time source): servers that sync with stratum 1
     etc...
 
 
-May contact multiple servers, discard outliers, average rest
-because it could be that one of those servers is mis-configured or it's got a fault or something, and so it's reporting a wildly inaccurate time, ntp can exclude the outlier and just keep the data points from the severs that seem to be reliable
+1. May contact multiple servers, discard outliers, average rest
+so one thing that ntp does is for example, to query multiple servers if they are available, because it could be that one of those servers is mis-configured or it's got a fault or something, and so it's reporting a wildly inaccurate time.
+so if you're querying three servers or five servers, then you can tell if there's one of servers which is a real outlier, and the other servers are all quite close together, in that case, ntp can exclude the outlier and just keep the data points from the severs that seem to be reliable
 
-Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency
-another techniques that is used to query a server not just once but multiple times over the course of several minutes and so that will then ensure that at least any random variations in network delay can hopefully get filtered out, now if there's systematic variations in network delay having multiple samples won't help you, but at least multiple sample will reduce the random error.
+2. Makes multiple requests to the same server, use statistics to reduce random error due to variations in network latency
+another techniques that is used to query a server not just once but multiple times over the course of several minutes, and so that will then ensure that at least any random variations in network delay can hopefully get filtered out, now if there's systematic variations in network delay having multiple samples won't help you, but at least multiple sample will reduce the random error.
 
-Reduces clock skew to a few milliseconds in good network conditions, but can be much worse!
+3. Reduces clock skew to a few milliseconds in good network conditions, but can be much worse!
 and with NTP, if you have a good quality network connection, it is possible to get your clock synchronized to the server within a couple of milliseconds skew, if you are on a poor quality network connection over some kind of busy-wifi, over heavily loaded internet connection, then the accuracy could be much much wore than that, so you always have to be careful when assuming synchronized clocks.
 
 
+
+let's have a look at how ntp estimates the clock between the client and the server.
+it works by sending a message over a network again as usual.
 =================
 Estimating time over a network
 =================
+
+ntp client                              ntp server
+               request: t1
+     t1     ------------------------->  t2
+
+             response: (t1, t2, t3)
+     t4     <-------------------------  t3
+
 t1: ntp-client 发送request的时间
 t2: ntp-server 收到request的时间
 t3: ntp-server 发送response的时间
 t4: ntp-client 收到response的时间
 
-Round-trip network delay: δ=(t4-t1)-(t3-t2)
+Round-trip network delay(total network delay): δ=(t4-t1)-(t3-t2)
 
-we don't have a way of measuring that one-way network latency, we can only measure the sum of two network latencies put together, but what we can do is just make an assumption that the network latency is symmetric in both directions, so we're going to assume that the request latency is the same as the response latency, and if this is true then the response latency will be delta over 2
+what we don't know is the breakdown of those two how much time that the request spent int the network, and how much time that the response spent in the network.
 
+if you want to work out that one-way network latency, you need synchronized clocks and the whole point of this exercise here is that we don't have a synchronized clock, we're trying to build a synchronized clock.
+so we don't have a way of measuring that one-way network latency, we can only measure the sum of two network latencies put together, but what we can do is just make an assumption that the network latency is symmetric in both directions, so we're going to assume that the request latency is the same as the response latency, and if this is true then the response latency will be delta over 2, because it's just going to be half the total delay. == δ / 2 == ((t4-t1)-(t3-t2)) / 2
+
+so this means now we can estimate the timestamp that the server should have at the moment in time when the response is received by the client.
+from the client's point of view, it's time t4, but we know that the server sent its response at t3, and we're going to estimate that the response spent delta over 2 traveling through the network, so we're going to estimate that at the time when the client receives the response, the clock on the server says t3 plus delta 2.
 Estimated server time when client receives response: t3+δ/2
 
+
+now that we have an estimate of the server clock, we can estimate the clock skew, because we can just take our estimates of the service clock minus t4 which is the client's clock. and that will gives the instantaneous difference in time between the two clocks at that moment. and if you substitute in delta and simplify the expression, you get this expression here, which is our best estimate that we can do of what the clock skew is
 estimated clock skew: θ = t3 + δ/2 - t4 = (t2 - t1 + t3 - t4) / 2
 
 
 
+now that we have to skew between the two clocks, the client can correct its own clock, and tries to bring it in sync with the server, what the client does in that situation depends on how big the clock skew is
 =================
 Correcting clock skew
 =================
 Once the client has estimated the clock skew θ, it needs to apply that correction to its clock.
 
-now that we have to skew between the two clocks, the client can correct its own clock, and tries to bring it in sync with the server, what the client does in that situation depends on how big the clock skew is
 
-
+(the clock skew is fairly small)
 1. If θ < 125 ms, slew the clock:
 slightly speed it up or slow it down by up to 500 ppm
 (brings clocks in sync within≈5 minutes)
 
+int this case what the client is going to do is to slightly speed up or slow down its clock as necessary, in order to bring it in line with what the server is, and so it's going to change its clock rate at most by 500ppm. so at most by half a millisecond per second adjustment.
 
-so over the course of a couple of minutes, this means hopefully the client clock and the server clock will drift together and converge towards the same state, and this is called slewing the clock that is the term that npt uses for this.
+so over the course of a couple of minutes, this means hopefully the client clock and the server clock will drift together and converge towards the same state, and this is called "slewing the clock" that is the term that NPT uses for this.
 
+
+
+step. verb: shift or move by taking a step
 2. If 125 ms <= θ < 1,000 s, step the clock:
 suddenly reset client clock to estimated server timestamp
-if the skew is too big between the client of the server, then ntp is going to step the clock which means it's simply going to forcibly adjust the clock, so even if this might mean moving the clock backwards or moving it forward but it's just going to jump right to the time stamp, estimated from the server clock, and from then onwards it's going to try and do everything smoothly, but there is this initial discontinuity of time where the client steps its clock.
+if the skew is too big between the client of the server, then ntp is going to step the clock which means it's simply going to forcibly adjust the clock, so even if this might mean moving the clock backwards or moving it forward but it's just going to jump right to the timestamp, estimated from the server clock, and from then onwards it's going to try and do everything smoothly, but there is this initial discontinuity of time where the client steps its clock.
 
 3. If θ >= 1,000 s, panic and do nothing
 (leave the problem for a human operator to resolve)
-finally it could happen that ntp decides that the skew between the client and the server is so big that ntp refuse to adjust the clock, it just says "no i'm not going to do anything i'm going to assume that something has gone very wrong i don't know if the clients clock is very wrong or the server clock is very wrong, but this is just so bad i'm not going to do anything here, it's going to leave the adjustment for the human operator to solve".
+finally it could happen that NTP decides that the skew between the client and the server is so big that ntp refuse to adjust the clock, it just says "no i'm not going to do anything i'm going to assume that something has gone very wrong i don't know if the clients clock is very wrong or the server clock is very wrong, but this is just so bad I'm not going to do anything here, it's going to leave the adjustment for the human operator to solve".
 
-so this means now if you do have software that is relying on clocks being synchronized you have to be very careful to actually measure the clock skew between the clocks and make sure that it doesn't get too big, because it could happen that an NTP client ends up this panic state and just refuse to sync its clock with the server, so you've got an ntp client whose clock is way off, it might be half an hour or more wrong compare to the server, and ntp is not going to correct it, so you do have to be very careful if you have software that assumes synchronized clocks
+so this means now if you do have software that is relying on clocks being synchronized you have to be very careful to actually measure the clock skew between the clocks and make sure that it doesn't get too big, because it could happen that an NTP client ends up this panic state and just refuse to sync its clock with the server, so you've got an NTP client whose clock is way off, it might be half an hour or more wrong compare to the server, and ntp is not going to correct it, so you do have to be very careful if you have software that assumes synchronized clocks.
 
 
+==================================================
+This is an example of slewing in action
+==================================================
+red line: clock skew
+it starts off at about 10 milliseconds offset, and the correction gets applied, so that ends up being round about zero clock skew.
 
-红线: clock skew
-蓝线: the tick rate at which the client clock is running
+blue line: the tick rate at which the client clock is running
 
 so the client here has applied slewing up to about minus 45 ppm,
-
 that means that quartz crystal in the client must have been a bit fast, it was running a bit fast by about 45ppm, and by slowing down the quartz by 44ppm, now the ntp client has brought the tick rate of the client roughly in line with the server, so both clocks are moving ahead at about the same rate and no longer drifting apart
 
 
 
+the consequence of ntp is that you have to be very careful when writing certain pieces of code
 =====================
 Monotonic and time-of-day clocks
 =====================
-the consequence of ntp is that you have to be very careful when writing certain pieces of code
-
 // BAD:
-long startTime = System. currentTimeMillis() ;
+long startTime = System.currentTimeMillis() ;
 doSomething() ; // if NTP client steps the clock during this
-long endTime = System. currentTimeMillis() ;
+long endTime = System.currentTimeMillis() ;
 long elapsedMillis = endTime - startTime; // elapsedMillis may be negative!
 
+if the clock was moved backwards in which case this difference in timestamps could end up being negative, and who knows what your software is going to do if it measure a negative amount of time elapsed. things could crash or things could go badly wrong in all sorts of interesting ways.
 also it(elapsedMillis) could be that this number ends up being far too large because if the ntp client steps the clock forwards, in that case it's going to have in time being much greater timestamp that it ought to be, and so the difference will be greater than it ought to be.
 
 if you want to do this kind of time measurement, it is not good to rely on a clock like current time millis, instead what you should do is use a different api, nanotime
 
-
-
 // GOOD:
-long startTime = System . nanoTime() ;
+long startTime = System.nanoTime() ;
 doSomething();
-long endTime = System . nanoTime() ;
+long endTime = System.nanoTime() ;
 long elapsedNanos = endTime - startTime;
 // elapsedNanos is always >= 0
 
 
-it's the superficial difference that one use millisecond an another use nanosecond,
-the real difference is that nano time is what's called a monotonic clock, and monotonic clock is one in which NTP stepping will not affect it, so the clock is not going to suddenly jump forwards or backwards, as the name says, monotonic clock means that it moves forward at a more or less constant rate, slewing will still affect it. slewing will still affect it, because that improves the accuracy of the clock, but it's not going to suddenly jump with a discontinuity.
+it's the superficial difference that one use millisecond, another use nanosecond,
+the real difference is that nanotime is what's called a monotonic clock,
+###
+and monotonic clock is one in which NTP stepping will not affect it,
+###
+so the clock is not going to suddenly jump forwards or backwards, as the name says, monotonic clock means that it moves forward at a more or less constant rate, slewing will still affect it. slewing will still affect it, because that improves the accuracy of the clock, but it's not going to suddenly jump with a discontinuity.
 
 
 
-
+======================================
 Monotonic and time-of-day clocks
-1. Time-of-day clock:
+======================================
+1. Time-of-day clock:(核心: 有起始时间, 并且受leap second的跳跃影响)
 1) Time since a fixed date (e.g. 1 January 1970 epoch)
 2) May suddenly move forwards or backwards (NTP stepping), subject to leap second adjustments
 3) Timestamps can be compared across nodes (if synced)
 4) Java: System. currentTimeMillis ()
 5) Linux: clock_ gettime (CLOCK_REALTIME)
 
-2. Monotonic clock:
+2. Monotonic clock: (核心: 无起始时间, 不太受leap second的影响)
 1) Time since arbitrary point (e.g. when machine booted up)
 2) Always moves forwards at near-constant rate
 3) Good for measuring elapsed time on a single node
 4) Java: System.nanoTime()
 5) Linux: clock_gettime(CLOCK_MONOTONIC)
 
-java's current time mills which gives you the time elapsed since a fixed reference point in the case of unix timestamps, it's the 1st January 1970 epoch date, whereas a monotonic clock the value you get back from it is some arbitrary time since, for example, this particular computer booted up, this means that the timestamp by itself doesn't mean anything, you can't send the timestamp over a network to another computer and compare those, because two different computers will have booted up at different times, and so their monotonic timestamps are simply not comparable. but you can use the monotonic clock for time measurements, because if you calculate the difference between two timestamps from a monotonic clock, then the time will have moved forward at a near constant rate between those two timestamps, and so that's a meaningful measure of time elapsed, whereas if you do that sort of difference with time of day clocks, then you are affected by jumping NTP, you're also affected by leap seconds potentially which we talked about earlier, so these are very bad for measuring elapsed time, but on the other hand, time of day timestamps you can compare across different computers if you remember earlier, for example, i had of the TLS certificate which was valid until a certain date, if my computer wants to check whether that certificate is still valid, it has to have the accurate current date, otherwise, it's not going to be able to compare the timestamp in the certificate with the current timestamp on that computer. so in this case we do have to use a time of day clock, and we do have to synchronize those clocks across multiple machines, because otherwise we won't have accurate timestamps.
+so this is difference between monotonic and time of day clocks is very important, so the time of day clock is, for example, the java's current time millis which gives you the time elapsed since a fixed reference point in the case of unix timestamps, it's the 1st January 1970 epoch date, whereas a monotonic clock the value you get back from it is some arbitrary time since, for example, this particular computer booted up, this means that the timestamp by itself doesn't mean anything, you can't send the timestamp over a network to another computer and compare those, because two different computers will have booted up at different times, and so their monotonic timestamps are simply not comparable.
+
+but you can use the monotonic clock for time measurements, because if you calculate the difference between two timestamps from a monotonic clock, then the time will have moved forward at a near constant rate between those two timestamps, and so that's a meaningful measure of time elapsed, whereas if you do that sort of difference with time of day clocks, then you are affected by jumping NTP, you're also affected by leap seconds potentially which we talked about earlier, so these are very bad for measuring elapsed time.
+
+but on the other hand, time of day timestamps you can compare across different computers if you remember earlier, for example, i had of the TLS certificate which was valid until a certain date, if my computer wants to check whether that certificate is still valid, it has to have the accurate current date, otherwise, it's not going to be able to compare the timestamp in the certificate with the current timestamp on that computer. so in this case we do have to use a time of day clock, and we do have to synchronize those clocks across multiple machines, because otherwise we won't have accurate timestamps.
+
 
 
 if you do need to measure times, it's not just about the resolution of the clocks but the distinction between a monotonic and non-monotonic clock is very important.
