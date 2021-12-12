@@ -6,6 +6,11 @@ Service unavailability = downtime = losing money
 Availability = uptime = fraction of time that a service is
 functioning correctly
 
+
+The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
+The definition of whether a service is "available" or "unavailable" can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available? What if it takes 30 seconds? An hour?
+
+so a typical model for how we usually talk about availability is the fraction of time during which a service is functioning correctly.
 两个九"Two nines" = 99% up = down 3.7 days/year
 三个九"Three nines" = 99.9% up = down 8.8 hours/year
 四个九"Four nines" = 99.99% up = down 53 minutes/ year
@@ -18,8 +23,19 @@ the goal that you are setting yourself in terms of the availability of a service
 
 Service-Level Agreement (SLA):
 contract specifying some SLO, penalties for violation
-sla is basically a contract between a service and its customers specifying what the expected service level is
+SLA is basically a contract between a service and its customers specifying what the expected service level is
 
+Typically, the availability expectations of a service are formalised as a service-level objective (SLO), which typically specifies the percentage of requests that need to return a correct response within a specified timeout, as measured by a certain client over a certain period of time.
+A service-level agreement (SLA) is a contract that specifies some SLO, as well as the consequences if the SLO is not met (for example, the service provider may need to offer a refund to its customers).
+
+
+
+
+
+Faults (such as node crashes or network interruptions) are a common cause of unavailability. In order
+to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called fault tolerance. Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero. Instead, fault tolerance is the approach taken by many distributed systems.
+
+in order to achieve that sort of very high availability, the way we typically do that is in distributed systems is by fault tolerance,
 =====================================
 2. Achieving high availability: fault tolerance
 =====================================
@@ -29,28 +45,50 @@ Fault: some part of the system isn't working
 1. Node fault: crash
 (crash-stop/crash-recovery)
 deviating from algorithm (Byzantine)
-2. Network fault: dropping or significantly delaying messages
+2. Network fault(might be a network partition): dropping or significantly delaying messages
 
+
+what we want the system to tolerate some number of faults, it doesn't make sense to say that the system will tolerate all faults, because if all of your nodes crash the same time, all of your network links go down at the same time, the system is not going to be able to do anything. obviously there's no way it can make any progress in that case.
+but what you might be able to say is that:
 Fault tolerance:
 system as a whole continues working, despite faults
 (some maximum number of faults assumed) eg: the system as a whole will continue working if fewer than half of our nodes have crashed for example
 
 Single point of failure (SPOF):
-node/ network link whose fault leads to failure
+node/network link whose fault leads to failure
 if one node crashes, system as a whole becomes unavailable
+but if we can design a system without a single point of failure, that means that we can take out any one component of the system, and system as a whole will hopefully still continue working.
 
+
+
+
+
+
+
+If all nodes crash and don't recover, then no algorithm will be able to get any work done, so it does
+not make sense to tolerate arbitrary numbers of faults. Rather, an algorithm is designed to tolerate some specified number of faults: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed.
+
+In fault-tolerant systems we want to avoid single points of failure (SPOF), i.e. components that would cause an outage if they were to become faulty. For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
+
+The first step towards tolerating faults is to detect faults, which is often done with a failure detector. ("Fault detector" would be more logical, but "failure detector" is the conventional term.) A failure detector usually detects crash faults. Byzantine faults are not always detectable, although in some cases Byzantine behaviour does leave evidence that can be used to identify and exclude malicious nodes.
+
+
+
+
+
+
+in order to enable to tolerate faults, usually the first thing we have to do is to detect a fault, and then we can handle it. so the mechanism for detecting a fault is known as a failure detector, terminology is a little bit odd, it actually should be called a fault detector that would make more sense, but a failure detector is the common term that is used, so we're going to stick with that. A failure detectors could be like a software algorithm or it could be a piece of hardware or something, some mechanism for detecting whether another node is faulty
 =============
 Failure detectors
 =============
 Failure detector: get a response or not within a certain period time
 
-algorithm that detects whether another node is faulty
-
+and ideally what we would love to have is:
 Perfect failure detector:
 labels a node as faulty if and only if it has crashed
 that is some mechanism that is always accurate at telling us whether another node is faulty or not
 
-Typical implementation for crash-stop/crash-recovery:
+Typical implementation for crash-stop/crash-recovery: timeout
 send message, await response, label node as crashed if no reply within some timeout
 
 Problem:
@@ -68,30 +106,70 @@ because we sent a message
 6. or of course the node might have crashed
 and it's impossible to the difference between any of these, so it's impossible for sender of these check messages to tell whether the absence of a response is due to a network problem or due to some kind of random delay or due to problems because the node is actually crashed
 
-we could build a perfect detector if we have a synchronous system model, and if we're going to assume only crash stop failures and certainly not going to assume any byzantine behavior in the system.
+we can build a perfect detector if we have a synchronous system model, and if we're going to assume only crash stop failures and certainly not going to assume any byzantine behavior in the system.
 but as soon as you go to a partially synchronous model then timeouts are no longer an exact ways of detecting failures
 
 so the best we can do in a partially synchronous system is what is called an eventually perfect failure detector
+the context of failure
 the failure detector might be wrong from time to time so the failure detector might detect a timeout even though the other node hasn't crashed yet just because a message happened to be delayed a bit, so it means a timeout does not accurately indicate that a crash has happened, also a failure detector is not immediate, so if a crash has happened it might actually take a while until we detect that crash, the detections of the crash is not instantaneous, so we might be wrong we might have both false positives and false negatives for a while, but eventually the failure labels a node as crashed if and only if it really has crashed, so that means that any temporarily suspecting another node of being failed will stop, and we'll go back to thinking that a node is correct, provided that node really is still correct, and also if a node has failed then eventually we will detect it as failed, so this is the best we can do in terms of failure detection
 
 
 
 
 
+In most cases, a failure detector works by periodically sending messages to other nodes, and labelling a node as crashed if no response is received within the expected time. Ideally, we would like a timeout to occur if and only if the node really has crashed (this is called a perfect failure detector).
+However, the two generals problem tells us that this is not a totally accurate way of detecting a crash, because the absence of a response could also be due to message loss or delay.
+
+A perfect timeout-based failure detector exists only in a synchronous crash-stop system with reliable
+links;
+in a partially synchronous system, a perfect failure detector does not exist.
+Moreover, in an asynchronous system, no timeout-based failure exists, since timeouts are meaningless in the asynchronous model.(todo: 应该也有, mq堆积, )
+However, there is a useful failure detector that exists in partially synchronous systems: the eventually perfect failure detector.
 
 
 
 
 
+====================================================
+Failure detection in partially synchronous systems
+====================================================
+
+Perfect timeout-based failure detector exists only in a synchronous crash-stop system with reliable links.
+
+Eventually perfect failure detector:
+1. May temporarily label a node as crashed,
+even though it is correct
+2. May temporarily label a node as correct,
+even though it has crashed
+3. But eventually, labels a node as crashed
+if and only if it has crashed
+
+Reflects fact that detection is not instantaneous, and we may have spurious timeouts
+
+
+in the context of a failure detector eventually perfect means that the failure detector might be wrong from time to time, so the failure detector might detect a timeout, even though the other node hasn't actually crashed yet, just because a message happened to be delayed a bit, so it means a timeout does not accurately indicate that a crash has happened.
+also failure detector is not immediate, so if a crash has happened it might actually take a while until we detect that crash, the detection of the crash is not instantaneous, so we might be wrong, we might have both false positives and false negatives for a while, but eventually the failure detector labels a node as crashed if and only if it really has crashed, so that means that any temporarily suspecting another node of being failed will stop, and we'll go back to thinking that a node is correct, provided that the node really is still correct, and also if a node has failed then eventually we will detect it as failed.
+and so this is the best we can do in terms of failure detection, but it's still quite useful, so even though we might have this failure detector that is only eventually perfect, this is actually sufficient in order to build some useful algorithms.
+------------------------------------
 
 
 
+We will see later how to use such a failure detector to design fault-tolerance mechanisms and to
+automatically recover from node crashes. Using such algorithms it is possible to build systems that are highly available. Tolerating crashes also makes day-to-day operations easier: for example, if a service can tolerate one out of three nodes being unavailable, then a software upgrade can be rolled out by installing it and restarting one node at a time, while the remaining two nodes continue running the service. Being able to roll out software upgrades in this way, without clients noticing any interruption, is important for many organisations that are continually working on their software.
+
+For safety-critical applications, such as air-traffic control systems, it is undoubtedly important to
+invest in good fault-tolerance mechanisms. However, it is not the case that higher availability is always better. Reaching extremely high availability requires a highly focussed engineering effort, and often conservative design choices. For example, the old-fashioned fixed-line telephone network is designed for "five nines" availability, but the downside of this focus on availability is that it has been very slow to evolve. Most Internet services do not even reach four nines because of diminishing returns: beyond some point, the additional cost of achieving higher availability exceeds the cost of occasional downtime, so it is economically rational to accept a certain amount of downtime.
 
 
 
-
-
-
+todo:
+es:
+precision
+recall
+true/false negatives
+true/false positives
+https://en.wikipedia.org/wiki/Precision_and_recall
+https://discuss.elastic.co/t/precision-recall-plot/251232
 
 Exercise 2. Reliable network links allow messages to be reordered. Give pseudocode for an algorithm that strengthens the properties of a reliable point-to-point link such that messages are received in the order they were sent (this is called a FIFO link), assuming an asynchronous crash-stop system model.
 

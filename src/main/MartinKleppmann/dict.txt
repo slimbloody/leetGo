@@ -525,14 +525,41 @@ preempt
 英 [priːˈempt]  美 [priˈempt]
 vt. 先占；先取；以先买权获得
 
+spurious
+英 [ˈspjʊəriəs]  美 [ˈspjʊriəs]
+adj. （声明、论据等）站不住脚的，谬误的；虚假的，伪造的
+
+from time to time
+英  美 [frəm taɪm tu taɪm]
+不时，有时
 
 
+false positives
+误报；假阳性；主动错误信息
 
+false negatives
+美 [fɔːls ˈneɡətɪvz]
+漏报率
 
+true positive
+正确肯定；真阳性
 
+true negatives
+真阴性；正确否定
 
+formalise
+英 [ˈfɔːməlaɪz]  美
+使成为正式
+the availability expectations of a service are formalised as a service-level objective (SLO).
+正式的叫法
 
+outage
+英 [ˈaʊtɪdʒ]  美 [ˈaʊtɪdʒ]
+n. （电力等）停止供应期，断供期；设备停开期
 
+diminish
+英 [dɪˈmɪnɪʃ]  美 [dɪˈmɪnɪʃ]
+v. 减弱，降低，减少；贬低，轻视
 
 
 
