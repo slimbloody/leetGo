@@ -1,7 +1,7 @@
 ===============
 Clock synchronisation
 ===============
-atomic clock is too expensive and to bulky, what we need to do is make do with these less accurate quartz clocks and we have to somehow try and make the clocks reasonably accurate nevertheless.these quartz clocks may drift a little bit, we end up with clock skew.
+atomic clock is too expensive and too bulky, what we need to do is make do with these less accurate quartz clocks and we have to somehow try and make the clocks reasonably accurate nevertheless. these quartz clocks may drift a little bit, because their rate does not match up exactly with what the correct clock tick rate should be, and we end up with clock skew.
 
 
 Computers track physical time/UTC with a quartz clock
@@ -39,7 +39,7 @@ Hierarchy of clock servers arranged into strata:
     Stratum 2(a server that is connected directly to a stratum 1 time source): servers that sync with stratum 1
     etc...
 
-
+improve the quality of our estimates of time:
 1. May contact multiple servers, discard outliers, average rest
 so one thing that ntp does is for example, to query multiple servers if they are available, because it could be that one of those servers is mis-configured or it's got a fault or something, and so it's reporting a wildly inaccurate time.
 so if you're querying three servers or five servers, then you can tell if there's one of servers which is a real outlier, and the other servers are all quite close together, in that case, ntp can exclude the outlier and just keep the data points from the severs that seem to be reliable
@@ -52,11 +52,11 @@ and with NTP, if you have a good quality network connection, it is possible to g
 
 
 
-let's have a look at how ntp estimates the clock between the client and the server.
+let's have a look at how ntp estimates the clock skew between the client and the server.
 it works by sending a message over a network again as usual.
-=================
+==================================
 Estimating time over a network
-=================
+==================================
 
 ntp client                              ntp server
                request: t1
@@ -140,8 +140,9 @@ doSomething() ; // if NTP client steps the clock during this
 long endTime = System.currentTimeMillis() ;
 long elapsedMillis = endTime - startTime; // elapsedMillis may be negative!
 
-if the clock was moved backwards in which case this difference in timestamps could end up being negative, and who knows what your software is going to do if it measure a negative amount of time elapsed. things could crash or things could go badly wrong in all sorts of interesting ways.
-also it(elapsedMillis) could be that this number ends up being far too large because if the ntp client steps the clock forwards, in that case it's going to have in time being much greater timestamp that it ought to be, and so the difference will be greater than it ought to be.
+NTP decides to step the clock right while you're in the middle of executing this do something function, and stepping the clock means that now the timestamp returned by current time millis after the do something is going to be somehow wildly different form what is was before, so it could be that
+1. the clock was moved backwards in which case this difference in timestamps could end up being negative, and who knows what your software is going to do if it measure a negative amount of time elapsed. things could crash or things could go badly wrong in all sorts of interesting ways.
+2. also it(elapsedMillis) could be that this number ends up being far too large because if the ntp client steps the clock forwards, in that case it's going to have in time being much greater timestamp that it ought to be, and so the difference will be greater than it ought to be.
 
 if you want to do this kind of time measurement, it is not good to rely on a clock like current time millis, instead what you should do is use a different api, nanotime
 
@@ -153,6 +154,8 @@ long elapsedNanos = endTime - startTime;
 // elapsedNanos is always >= 0
 
 
+1ppm == 1 millisecond/second
+nanotime is designed for this kind of thing,
 it's the superficial difference that one use millisecond, another use nanosecond,
 the real difference is that nanotime is what's called a monotonic clock,
 ###
@@ -181,7 +184,7 @@ Monotonic and time-of-day clocks
 
 so this is difference between monotonic and time of day clocks is very important, so the time of day clock is, for example, the java's current time millis which gives you the time elapsed since a fixed reference point in the case of unix timestamps, it's the 1st January 1970 epoch date, whereas a monotonic clock the value you get back from it is some arbitrary time since, for example, this particular computer booted up, this means that the timestamp by itself doesn't mean anything, you can't send the timestamp over a network to another computer and compare those, because two different computers will have booted up at different times, and so their monotonic timestamps are simply not comparable.
 
-but you can use the monotonic clock for time measurements, because if you calculate the difference between two timestamps from a monotonic clock, then the time will have moved forward at a near constant rate between those two timestamps, and so that's a meaningful measure of time elapsed, whereas if you do that sort of difference with time of day clocks, then you are affected by jumping NTP, you're also affected by leap seconds potentially which we talked about earlier, so these are very bad for measuring elapsed time.
+but you can use the monotonic clock for time measurements, because if you calculate the difference between two timestamps from a monotonic clock, then the time will have moved forward at a near constant rate between those two timestamps, and so that's a meaningful measure of time elapsed, whereas if you do that sort of difference with time of day clocks, then you are affected by jumping due to NTP, you're also affected by leap seconds potentially which we talked about earlier, so these are very bad for measuring elapsed time.
 
 but on the other hand, time of day timestamps you can compare across different computers if you remember earlier, for example, i had of the TLS certificate which was valid until a certain date, if my computer wants to check whether that certificate is still valid, it has to have the accurate current date, otherwise, it's not going to be able to compare the timestamp in the certificate with the current timestamp on that computer. so in this case we do have to use a time of day clock, and we do have to synchronize those clocks across multiple machines, because otherwise we won't have accurate timestamps.
 

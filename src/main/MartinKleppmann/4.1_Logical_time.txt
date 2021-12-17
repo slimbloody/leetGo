@@ -1,14 +1,17 @@
+=============================================
 Broadcast protocols and logical time
+=============================================
 
 ===========================
 Physical timestamps inconsistent with causality
 ===========================
+what could happen with physical clocks is that the timestamp of message one ends up being greater than the timestamp of message two, so it could be the case that those timestamps are inconsistent with the order that we intuitively expect of those two messages, that those messages are inconsistency with causality.
 this is a problem with physical clocks even after we've gone to all of this efforts to synchronized them using NTP, even then it could happen that you get these inconsistencies with causality, so this is where logical clocks come in.
 
 
-===============
+==============================
 Logical vs physical clocks
-===============
+==============================
 1. Physical clock: count number of seconds elapsed
 2. Logical clock: count number of events occurred
 
@@ -17,12 +20,12 @@ Physical timestamps: useful for many things, but may be inconsistent with causal
 Logical clocks: designed to capture causal dependencies.
 (e1 -> e2) -> (T(e1) < T(e2))
 
-logical clocks are an alternative definition of clocks that are used in distributed systems which are specifically designed to capture the casual relationships between the events that happen in a system, and so logical clocks are sort of clocks, they're not clocks in the sense of measuring how long it's been, measuring how far the sun has, at the earth has turned around the sun measuring how far this the earth has rotated around, it's own axis those kind of things. that's all physical time.
+logical clocks are an alternative definition of clocks that are used in distributed systems which are specifically designed to capture the casual relationships between the events that happen in a system.
+ and so logical clocks are sort of clocks, they're not clocks in the sense of measuring how long it's been, measuring how far the sun has at the earth has turned around the sun, measuring how far this the earth has rotated around it's own axis, those kind of things. that's all physical time.
 in logical time we're not actually interested in how many seconds have elapsed, instead what we're interested in is how many events have occurred, so logical timestamps are essentially just counters that we increment every time when something happens, and so this means they do move forwards in time, they get greater as stuff happens, but they don't have a direct relationship to physical time.
 
 
-
-so the key thing that we want of a logical clock, is that it captures causality, it captures the happens before relationship, in particular, if event one happened before event two, then we want the timestamp of event one to be less than the timestamp of event two. this is like a minimum basic thing that we expect of our logical clocks.
+so the key thing that we want of a logical clock is that it captures causality, it captures the happens before relationship, in particular, if event one happened before event two, then we want the timestamp of event one to be less than the timestamp of event two. this is like a minimum basic thing that we expect of our logical clocks.
 
 and we're going to look at two different constructions of logical clocks, lamport clocks and vector clocks.
 
@@ -30,35 +33,40 @@ We will look at two types of logical clocks:
 1. Lamport clocks
 2. Vector clocks
 
-both of these satisfy the need to capture causality, but they have different properties, in other areas as we shall see.
-
+both of these satisfy this need to capture causality, but they have slightly different properties, in other areas as we shall see.
 
 ======================
 Lamport clocks algorithm: these are named after lamport who published this algorithm in about 1978
 ======================
+---------------------------------------------------------
 on initialisation do
     t := 0        (each node has its own local variable t)
 end on
+---------------------------------------------------------
+the algorithms starts at every node, we have a variable that we call t, and this variable is initialized to zero when we start up the system, and each node has its own copy of this variable, each node has its own t
+
+---------------------------------------------------------
 on any event occurring at the local node do
     t := t + 1
 end on
+---------------------------------------------------------
+and every time when some events occurs at a node, we just increment t, so an event could be some local execution step taking place so it could be sending a message or receiving message, in all of these cases we just increment t
 
+---------------------------------------------------------
 on request to send message m do
     t := t + 1; send (t, m) via the underlying network link
 end on
+---------------------------------------------------------
+everytime we want to send over the network, we increment t as usual as for any local event, and also we take the value of t after incrementing it, and we attach that to the message, so the message we send is actually this pair of a timestamp and the actual message, and that is what gets sent over the network
 
+---------------------------------------------------------
 on receiving (t', m) via the underlying network link do
     t := max(t, t')+ 1
     deliver m to the application
 end on
+---------------------------------------------------------
+now when one of these pairs is received, at the other end of the node that is receiving the message, takes the timestamp out of message, t prime(t') is the timestamp in the message, and it looks at its own local variable t, and it updates t to be the maximum of either its own local existing timestamp or the timestamp of the message plus one, incrementing it again like for every local event
 
-the algorithms starts at every node, we have a variable that we call t, and this variable is initialized to zero when we start up the system, and each node has its own copy of this variable, each node has its own t
-
-and every time when some events occurs at a node, we just increment t, so an event could be some local execution step taking place so it could be sending a message or receiving message, in all of these cases we just increment t
-
-everytime we want to send over the network, we increment t as usual as for any local event, and also we take the value of t after incrementing it, and we attach that to the message, so the message we send is actually this pair of a timestamp and the actual message, and that is what gets centered with the network
-
-now when one of these pairs is received, at the other end of the node that is receiving the message takes the timestamp out of message, t prime(t') is the timestamp in the message, and it looks at its own local variable t, and it updates t to be the maximum of either its own local existing timestamp or the timestamp of the message plus one, incrementing it again like for every local event
 so after this has been done we've got updated value t and we deliver the message to the application
 本地时间是t, request里面拆出来的数据是t', 把两者中大的值设为t的值
 

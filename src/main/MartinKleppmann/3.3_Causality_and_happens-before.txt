@@ -1,7 +1,7 @@
 =====================
 Ordering of messages
 =====================
-let's say reliable network links the messages might be delayed or might be reordered as usual.
+let's say reliable network links, but the messages might be delayed or might be reordered as usual.
 
 
 attach timestamp to each message by using local clock generating timestamp
@@ -11,16 +11,24 @@ attach timestamp to each message by using local clock generating timestamp
 Problem: even with synced clocks, t2 < t1 is possible.
 Timestamp order is inconsistent with expected order!
 
-we're going to assume that these are of course physical time of day clocks, we're going to assume that the clocks are synchronized using something like ntp
+we're going to assume that these are of course physical time of day clocks, we're going to assume that the clocks are synchronized using something like NTP,
 but it could still happened even if clocks are synchronized, it can happen that the timestamp t2 is actually less than the timestamp t1. this could happen because the clock skew between two nodes in a system might be greater than the one-way network delay between those two nodes, and even with ntp synchronization we cannot rule out the possibility that the clock skew is greater than the one-way network latency.
+
+m1 is experiencing some kind of latency, but that latency is smaller than the clock skew between users a and b, in that case, if user b's lock is running slightly behind, and user a's lock is running slightly fast, then you could end up with t2 being less than t1.
+
+t1 + lantency < t2(realtime + skew)
 
 
 so our whole aim of this exercise was to ensure that messages get put in the right order, according to time, but even using time here we have not actually been able to put the messages in the right order, because the timestamp order is inconsistent with our understanding of which message is a reply to which other message.
 
 
+
+so how do we solve this problem, what we do in distributed systems is we use something called:
 ===========================
 The happens-before relation
 ===========================
+this(The happens-before relation) is a mathematical model of activity that has happened in the distributed system, first of all, we need to define what are the things that happen, so we'll say the things that happen are events.
+
 An event is something happening at one node (sending or receiving a message, or a local execution step).
 
 the things that happen are events, an event can be just one node in the system making a local execution step, one node doing something that can be an event,
@@ -28,46 +36,78 @@ or an event could be a message that one node sends to another, so the sending of
 
 We say event a happens before event b (written a -> b) iff:
 
-so now we can define a relation which is a set of pairs of events that describes how those events relate to each other, and this happens before relationship is written as a A arrow B, if a happened before b, we say that a happened before b, if at least three things are true:
+so now we can define a relation which is a set of pairs of events that describes how those events relate to each other, and this happens before relationship is written as a A arrow B(A -> B), if a happened before b, we say that a happened before b, if at least three things are true:
 1. a and b occurred at the same node, and a occurred before b in that node's local execution order; or
-we assume that each node is a single threaded process that is just doing one thing after another, so there's no ambiguity about the order in which things happened on a single node, if there's a single thread, then things only happen one after another and we can define exactly which thing happened first and which happened second. so we're going to assume that for each node, there's a strict total order of all of the events that happened on that particular node, if we did wanted to support multi-thread processes, then we could have each thread being a separate node for the purposes of this model here. so we can just assume single threads for now. and so we're going to say that a happened before b is they happened on the same node, and they were executed, a was executed before b, that makes sense
+so that means we assume that each node is a single threaded process that is just doing one thing after another, so there's no ambiguity about the order in which things happened on a single node, if there's a single thread, then things only happen one after another and we can define exactly which thing happened first and which happened second. so we're going to assume that for each node, there's a strict total order of all of the events that happened on that particular node.
+###
+if we did wanted to support multi-thread processes, then we could have each thread being a separate node for the purposes of this model here.
+###
+so we can just assume single threads for now. and so we're going to say that a happened before b is they happened on the same node, and they were executed, a was executed before b, that makes sense
 
 2. event a is the sending of some message m, and event b is the receipt of that same message m (assuming sent messages are unique); or
-otherwise you could have two different events for the sending of the sme message, which of course could happen in a real system, but it makes the thing difficult to model mathematically, so for simplicity's sake here, we just assume that every message that is sent is unique, and if we wanted to actually make messages unique in practice, we could attach some kind of sequence number and the identifier of the node that sent the message for example we could attach that to every message, or we could pick a long random number for every message and that would be sufficient to make every message unique. and so this happens before relationship make sense because a message can only be received after it has been sent, and so it makes sense for the sending of that particular message to the happen-before receipt of that message.
+if a is the event that a certain message m was sent, and b is the event that this same message was received, for the purpose of making this unambiguous, we have to assume that messages are unique, because otherwise you could have two different events for the sending of the same message, which of course could happen in a real system, but it makes the thing difficult to model mathematically, so for simplicity's sake here, we just assume that every message that is sent is unique, and if we wanted to actually make messages unique in practice, we could attach some kind of sequence number and the identifier of the node that sent the message for example we could attach that to every message, or we could pick a long random number for every message and that would be sufficient to make every message unique. and so this happens before relationship make sense, because a message can only be received after it has been sent, and so it makes sense for the sending of that particular message to the happen-before receipt of that message.
 
 3. there exists an event c such that a> c and c> b.
-if we can find some event c such that a happened before c, and c happened before b, then it must also be the case that a happened before b, so this is simply taking the transitive closure of the first two points and extending the whole thing into what is called a partial order, so a partial order is it behaves a bit like a less than relationship between two things. so it allows you to compare two things, and say which one happened first, but there might be something incomparable according to this order where we simply it is not the case that a happened before b or b happened before a, the two are simply unrelated, it is not the case that either one happened before the other, and in that case we say that a and b are concurrent, and we write it with this little double bar(the parallel sign) here.
+if we can find some event c such that a happened before c, and c happened before b, then it must also be the case that a happened before b, so this is simply taking the transitive closure of the first two points and extending the whole thing into what is called a partial order, so a partial order is it behaves a bit like a less than relationship between two things. so it allows you to compare two things, and say which one happened first.
 
-
+----------------------------------
 The happens-before relation is a partial order: it is possible
 that neither a -> b nor b -> a. In that case, a and b are concurrent (written a || b).
+but there might be something incomparable according to this order where it is not the case that a happened before b or b happened before a, the two are simply unrelated, it is not the case that either one happened before the other, and in that case we say that a and b are concurrent, and we write it with this little double bar(the parallel sign)(a || b) here.
+
+So this is interesting here now, for any two events a and b, it turns out that there are only three possibilities
+1. a -> b
+2. b -> a
+3. a || b
 
 todo: the exercise to prove these three possibilities.
-
 ========================================
 Happens-before relation example
 ========================================
 we're going to build up the happens before relationship from the individual clauses
-
 1. a -> b, c -> d, and e -> f, due to process order
+A(a -> b)
+B(c -> d)
+B(e -> f)
+
 2. b -> c, d -> f, due to messages m1 and m2
+b -> c : m1
+d -> f : m2
+
 3. a -> c, a -> d, a -> f, b -> d, b -> f, c -> f, due to transitivity
-
-
 message m1/m2 traveling over the network.
-so now we've got all of these relationships between some of the events. now we extend this whole thing with the transitive closure. essentially what you can imagine here, is we can take a path through this graph, you can imagine any path that moves forward in time on a node, or that moves from the sending of a message to the receipt of the message. and then moves through other nodes, you can take any path through this graph as long as you're always moving forward in time, then you will get from any a that happened before any other event
+so now we've got all of these relationships between some of the events. now we extend this whole thing with the transitive closure, essentially what you can imagine here, is we can take a path through this graph, you can imagine any path that moves forward in time on a node, or that moves from the sending of a message to the receipt of that message. and then moves through other nodes, you can take any path through this graph as long as you're always moving forward in time, then you will get from any a that happened before any other event
+eg:
+a -> f: correct
+you can go from a to f by traversing these two message sends
+a -> e: wrong
+you can not go from a to e, because going from a to e would required going backwards in the node order of c, and that would not be allowed.
 
-4. a || e, b || e,  c || e, adn d || e
+that means for example a and e are concurrent, a did not happen before e, e did not happen before a, the two are simply concurrent, which means they are independent, one event did not know about the other when it happened.
+4. a || e, b || e,  c || e, and d || e
 concurrent does not literally mean simultaneous, it doesn't mean happened literally at the same instant in time, it just means the two events did not know about each other when they occurred.
-therefore, A is concurrent with E, b is concurrent with all a b c and d, they're all concurrent to e, but e and f are not concurrent of course, because of the order on USER C
+therefore, A is concurrent with E, B is concurrent with all A B C and D, they're all concurrent to e, but E and F are not concurrent of course, because of the order on USER C
+
+
+
+
+
+
 
 
 
 that happens before relation is very closely connected to the concept of causality in distributed systems.
-in particular, if a happened before b, then it might be the case that a caused b or a influenced b in some way. so there's some information flow, that has happened from a to b, whereas if the events a and b are concurrent, we know that a cannot have caused b and b cannot have caused A. there's no causal relationship between the two, so this concept of causality is actually taken from physics where typically people reason about events that happen far apart in space. and the time that is takes the speed of light to travel between those things.
+in particular, if a happened before b, then it might be the case that a caused b or a influenced b in some way. so there's some information flow, that has happened from a to b, whereas if the events a and b are concurrent, we know that a cannot have caused b and b cannot have caused A, there's no causal relationship between the two, so this concept of causality is actually taken from physics, where typically people reason about events that happen far apart in space. and the time that is takes the speed of light to travel between those things.
 
+if you have two events happening on different planet or even different galaxies, and they are very far apart in space, but you could have those events happening around about the same time, they don't have to be exactly at the same time but they're happening fairly close together in time, but fairly far apart in space, then we can draw this space-time diagram here.
+we can draw this space-time diagram where imagine that you send out a beam of light from event A at the time when event A occurs, and you send it out in all directions, and so then as time goes here downwards, and space is from left to right, so this light just spreads through space at the speed of light, and any event that happens with this cone here with it this is called a light cone, that event might somehow be dependent on a.
+but you can see B here is way outside of light cone of A, and also A is outside of the light cone of B, so information from B at the time when B occurred could not possibly have got to A by the time A happened, and likewise the information when A happened could not possibly have got to B by the time B happened, simply because that would have required information to travel faster than the speed of light, and as far as we know in our universe it is not possible for information to travel faster than the speed of light.
+so this event C here for example, that could be influenced by A or B, but A and B cannot influence each other, and so this concept from physics is very closely related to what we have in distributed systems, in distributed systems, which typically talk about messages flowing over a network rather than light traveling through the universe, but essentially it's the same idea, it's reasoning about which events could possibly have affected each other. and once we have got this potential causality, and this happen before relationship, we can now order events.
+and so remember in our case of first "the moon is made of cheese", and then the reply to it "oh no, it's not", what we want is for the moon is made of cheese to come first in this order of the conversation thread, and then reply to come second in that order, and here because we have a causal relationship between m1 which is the moon is made of cheese, and m2 which is the reply to m1, so there's a causal relationship between the two. so therefore, a happened before b the message one happened before message two.
+what we want is that any order that we put the messages into should be consistent with that. so whenever a happened before b, then a occurs before b in that causal order, this is called causal order, it's a way of putting the events in the system into an order in such a way that they are consistent with causality, that is if one thing happened before another thing, then they appear in the correct order, but if two things are concurrent then they could appear in either order, because you know one could have happened before the other, there's no real way of saying which one happened first, so in that case, they could be ordered arbitrary.
+so this a very useful concept, and we're going to use this in the next lecture when it comes to building upon this idea of the happens before relationship, and making some actual distributed algorithm that implement this.
 
-
+the last thing I will point out is it's very easy to confuse the word causal with the word casual.
 =================
 Causality
 =================
