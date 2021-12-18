@@ -80,10 +80,9 @@ Lamport clocks in words
 4. Recipient moves its clock forward to timestamp in the message (if greater than local counter), then increments
 
 
-so we have this counter t here on each node and we can associate a particular value of t with every event, so let's say some local event occurred and it called that event e,
-for every local event we increment the counter so after that increment we take the value of that counter, and associated that with that event e and call that l of e for lamport lock.
+so we have this counter t here on each node and we can associate a particular value of t with every event, so let's say that some local event occurred and it called that event e,
+for every local event we increment the counter so after that increment we take the value of that counter, and associated that with that event e and call that L of e for lamport lock.
 as i said we attach those values over on the message that we send over the network as well
-
 
 
 Properties of this scheme:
@@ -92,31 +91,34 @@ first of all, if event a happened before event b, then this scheme guarantees th
 todo: exercise in the lecture note that asks you to prove that this is indeed the case
 
 2. However, L(a) < L(b) does not imply a -> b
-however, the converse is not true. so if we have two lamport timestamp and we compare them and we find that l of a is less than l of b, that does not imply that a happened before b, it could also be the case that a and b were concurrent, so the lamport timestamp don't allow to tell whether a or b working current or if a happened before b, the only thing we can do is we can rule out that b happened before a, because if b happened before a then the timestamp would have to be the other way around.
+however, the converse is not true. so if we have two lamport timestamp and we compare them and we find that l of a is less than l of b, that does not imply that a happened before b, it could also be the case that a and b were concurrent, so the lamport timestamp don't allow us to tell whether a or b working current or if a happened before b, the only thing we can do is we can rule out that b happened before a, because if b happened before a then the timestamp would have to be the other way around.
 
 
 3. Possible that L(a)= L(b) for a≠b
-that we have two different events with the same timestamp, there's nothing preventing this,
+it's possible that we have two different events with the same timestamp, there's nothing preventing this,
 
 
 ===============
 Lamport clocks example
 ===============
-there are two different events with the same timestamp three, and also two different events with the timestamp one.
-and so one thing we might want to do is to have timestamps that uniquely identify events in the entire system and we can do this by combining the lamport timestamp with the name of node at which that particular event occurred.
-
+Notice:
+1.
 Let N(e) be the node at which event e occurred.
 Then the pair (L(e), N(e)) uniquely identifies event e.
 
-within the scope of A, each of events has a unique timestamp, because we always increment, we never generate two events at the same node with the same timestamp, and so therefore within one particular node, each event timestamp is unique, if we assume each node has a unique name, we combine the lamport timestamp of an event with the name of the node at which that event occurred. those two taken together will uniquely identify a particular event that combination is a unique identifier
+there are two different events with the same timestamp three, and also two different events with the timestamp one.
+and so one thing we might want to do is to have timestamps that uniquely identify events in the entire system and we can do this by combining the lamport timestamp with the name of node at which that particular event occurred.
 
+
+within the scope of A, each of events has a unique timestamp, because we always increment, we never generate two events at the same node with the same timestamp, and so therefore within one particular node, each event timestamp is unique, if we assume each node has a unique name, we combine the lamport timestamp of an event with the name of the node at which that event occurred. those two taken together will uniquely identify a particular event that combination is a unique identifier
 
 so we could actually update this diagram here and instead of just having the timestamp at each we have the pair of the timestamp and the node, and now we can see here this event here has an identifier of three comma A(3, A), whereas this one here is three comma B (3, B). so they're no longer the same.
 
 and now there's one more thing that we can do with lamport timestamps and this is extremely useful. and that is we can define a total order using those
 
-
-(a<b) <=> (L(a)< L(b) V (L(a)= L(b) ^ N(a) < N(b))
+=================================================================================
+2.
+(a<b) <=> (L(a)< L(b) V (L(a) = L(b) ^ N(a) < N(b))
 The order is casual: (a < b) <=> (a < b)
 
 we can define that a is less than b according to this little curly less than symbol symbol,
@@ -125,29 +127,32 @@ a is less than b
 if and only if
 the lamport timestamp of a is less than the timestamp of a lamport timestamp of b,
 or
-if a and b have the same timestamp, but the name of the event a is the less than the node name of event b
-
+if a and b have the same timestamp, but the name of the event a is the less than the node name of event b.
 so this assuming we have some way of comparing node names like a b and c, we could just have like a lexical graphic comparison of those, so that a comes before b and b comes before c for example, so this now means we can define an ordering on these events by first of all looking at their lamport timestamp, and if the timestamp are the same, we break the ties using the name of the nodes.
 
-this ordering here is a total order that means for any two events, if they're distinct events it is always the case that either a is less than b or b is less than a, so it's not a partial order that happens before relationship was partial order in which some events are incomparable if they are concurrent but here this is a total order which means any event that happened anywhere in the system we can always put them one after the other according to this order, and this order is consistent with causality which means that if event a happened before event b then it is always the case that a is less than b according to the total order and that follows directly from the fact that the lamport timestamps are consistent with causality.
 
-they(lamport timestamp) essentially give a way attaching timestamps to all of the events in a system in a way that captures that happens before relationships, so we can now define this total order using their timestamps, so we can use the timestamps as a way of detecting the order of the events that happened in the system.
+this ordering here is a total order that means for any two events, if they're distinct events it is always the case that either a is less than b or b is less than a, so it's not a partial order that happens before relationship was partial order in which some events are incomparable if they are concurrent, but here this is a total order which means any event that happened anywhere in the system we can always put them one after the other according to this order, and this order is consistent with causality which means that if event a happened before event b then it is always the case that a is less than b according to the total order and that follows directly from the fact that the lamport timestamps are consistent with causality.
+### 拓扑排序也可以变成total order? ###
+
+they(lamport timestamp) essentially give us a way attaching timestamps to all of the events in a system in a way that captures that happens before relationships, so we can now define this total order using their timestamps, so we can use the timestamps as a way of detecting the order of the events that happened in the system.
 
 
 
 
-==============
+============================
 Vector clocks
-==============
+============================
 limitation of Lamport clock:
 Given Lamport timestamps L(a) and L(b) with L(a) < L(b)
 we can't tell whether a -> b or a || b(current).
+we can tell that b did not happen before a because if that were the case the lamport timestamps would have to be the other way around. so we can tell something, but we can't actually tell the difference between two events that are concurrent and two events where one happened before the other. so it might also be useful to have a scheme of logical clocks in which it is possible to tell the difference between two events that are concurrent, and two events where one happened before the other, and this is where vector clocks come in.
 
 
 If we want to detect which events are concurrent, we need vector clocks:
-we can tell that b did not happen before a because if that were the case the lamport timestamps would have to be the other way around. so we can tell something, but we can't actually tell the difference between two events that are concurrent and two events where one happened before the other. so it might also be useful to have a scheme of logical clocks in which it is possible to tell the difference between two events that concurrent and two events where one happened before the other, and this is where vector clocks come in.
+So vector clocks are a different scheme for logical time that allows us to tell this difference,
+so vector clocks work as follows:
 
-1. Assume n nodes in the system, N = (N1, N2,..,Nn)
+1. Assume n nodes in the system, N = <N1,N2,...,Nn>
 we're going to assume we know the names of all the nodes in the system, and we're going to put them in a vector, so this is an n-dimensional vector where each of the elements of the vector is one of the nodes in the system.
 
 2. Vector timestamp of event a is V(a) = <t1,t2,...,tn〉
@@ -156,9 +161,7 @@ and we can define timestamps which are also vectors. in this case we have a time
 4. Each node has a current vector timestamp T
 5. On event at node Ni, increment vector element T[i]
 
-
-
-like lamport timestamp we can attach a vector timestamp on every event, and there are certain rules for updating these timestamps, so if we want to compute the timestamp for a particular event, the first thing we do is every time that an event occurs at a node ni, we increment the particular entry T[i], the particular element of that vector, corresponding to that particular node.
+like with the lamport timestamp we can attach a vector timestamp to every event, and there are certain rules for updating these timestamps, so if we want to compute the timestamp for a particular event, the first thing we do is every time that an event occurs at a node Ni, we increment the particular entry T[i], the particular element of that vector, corresponding to that particular node.
 
 6. Attach current vector timestamp to each message
 7. Recipient merges message vector into its local vector
@@ -168,36 +171,44 @@ like with the lamport timestamps we're going to attach vector clocks to messages
 vector clocks algorithm
 ========================
 1.
+-------------------------------------------------------
 on initialisation at node Ni do
-T := <0,0,..,0>     => local variable at node N;
+T := <0,0,...,0>     => local variable at node N;
 end on
-
+-------------------------------------------------------
 every node locally has a timestamp, in this case, timestamps is not just an integer but it's a vector of integers, which starts off as being all zeros so we have one entry in this vector for each node in the system
 
 2.
+-------------------------------------------------------
 on any event occurring at node Ni do
     T[i] := T[i] + 1
 end on
-
+-------------------------------------------------------
 and every time a local event occurs somewhere in the system we're going to increment particular vector element corresponding to the node at which that event occurs, so Ni processes some event it increment its own entry in the vector.
 
-3.
-on request to send message m at node Ni do
-    T[i] := T[i]+ 1;    send (T, m) via network
-end on
+-------------------------------------------------------
 
-when we want to send a message over the network again, we increment our own entry like the vector like for every local event, and then we attach the vector T to the message to consent of the network
+3.
+-------------------------------------------------------
+on request to send message m at node Ni do
+    T[i] := T[i] + 1;    send (T, m) via network
+end on
+-------------------------------------------------------
+when we want to send a message over the network again, we increment our own entry in the vector like the vector like for every local event, and then we attach the vector T to the message to consent of the network
 
 
 4.
+-------------------------------------------------------
 on receiving (T',m) at node N; via the network do
     T[j]:= max(T[j],T'[j]) for every j∈{1,...,n}
     T[il := T[i] + 1; deliver m to the application
 end on
-
+-------------------------------------------------------
 when we receive one to these messages over the network, say T prime is the timestamp in the message.
-now we're going to merge the recipient nodes current local time T, with the timestamp in the message T prime, and the way we're going to merge those is we're going to go through the vectors element wise, and so we're going to take the first element of T and the first element of T prime, I'm going to take the maximum of those two and that becomes the first element of T. so element wise, we take the maximum and the result is this updated variable T here.
+now we're going to merge the recipient nodes current local time T, with the timestamp in the message T prime, and the way we're going to merge those is we're going to go through the two vectors element wise, and so we're going to take the first element of T and the first element of T prime, I'm going to take the maximum of those two and that becomes the first element of T. so element wise, we take the maximum and the result is this updated variable T here.
 then again we increment the local entry in T and we deliver m to the application.
+
+
 
 ======================================
 vector clocks example
@@ -208,7 +219,6 @@ e union all of the events that happened before e, and so visually we can think o
 
 
 one way of thinking about these vectors here is that a vector represents a set of events
-
 For example, <2, 2, 0> represents the first two events from A, the first two events from B, and no events from C
 
 there is a direct correspondence between vectors and the set of events in the system, the vector is essentially a way of summarizing a set of events that occurred in the system, simply by counting for each node from the start of that node's execution of how many events down do we go in that node's history
@@ -218,27 +228,62 @@ Vector clocks ordering
 ==================================
 Define the following order on vector timestamps
 (in a system with n nodes):
-1. T = T'  iff  T[i]=T'[i]  for all i∈{,...,n}
-2. T ≤ T'  iff  T[i]≤T'[i]  for all i∈{.,...,n}
-3. T < T'  iff  T≤T'        and     T≠T'
-we can define strict inequalities, strictly less than simply as being t less than or equal to t prime and not being equal, which means that there must be at least one element in which they differ, but they might be the same in all of the other elements
+1. T = T' iff T[i]=T'[i] for all i ∈ {,...,n}
+two vector timestamps are equal if each of the elements are equal, so t equals t prime if for each elements t subscript i(T[i]) equals t prime subscript i(T'[i]), and so this is just a straightforward equality.
+2. T ≤ T' iff T[i] ≤ T'[i] for all i∈{.,...,n}
+also similarly, we defined the less than or equals operator, so T less than or equals T prime(T'), if element i's for each we compare the two vectors look at the first element of T and the first element of T prime(T'), and if that's less than or equal, and the second one is less than or equal, and the third one is less than or equal... if all of them are less than or equal then we say that t as a whole is less than or equal to t prime(T').
+3. T < T' iff T ≤ T' and T ≠ T'
+we can define strict inequalities, strictly less than simply as being T less than or equal to T prime(T') and not being equal, which means that there must be at least one element in which they differ, but they might be the same in all of the other elements
 4. T || T'  iff  T !≤ T' and  T' !≤ T
-two vector timestamp, neither is t less than or equal to t prime, nor is t prime less than or equal to t
-in that case we say that t and t prime are incomparable
+two vector timestamp, neither is t less than or equal to t prime, nor is t prime less than or equal to t, in that case we say that t and t prime are incomparable
 
 V(a)≤V(b) iff ({a}∪{e|e→a}) ⊆ ({b}∪{e|e→b})
+you can relate back to what I just said about sets of events, so remember we said that here this vector clock of A (V(a)) here corresponds to the set of events of A plus all of the events that happened before a ({a}∪{e|e→a}).
+and the vector timestamp of B(V(b)) corresponds to the set of events b plus all of the events that happened before b. ({b}∪{e|e→b})
+now this less than recall relationship on the vectors corresponds exactly to a subset relationship on those two sets of events, this gives you a nice way of reasoning about what these vectors actually mean, because since they are correspond to sets of event, there's a subset relationship between the two, and it might be the case that one is a subset of the other, or it might be the case that neither is a subset of the other because there are some elements that they don't have in common, and so now this order that we have defined on these vector timestamps is very useful because it corresponds exactly to the happens before relationship, so it gives us a partial order, and this partial order is consistence with causality
 
-vector clock of A here corresponds to the set of events of A plus all of the events that happened before a and the vector timestamp of B corresponds to the set of events b plus all of the events that happened before b, now this less than recall relationship on the vectors corresponds exactly to a subset relationship on those two sets of events, this gives you a nice way of reasoning about what these vectors actually mean, because since they are correspond to sets of event, there's a subset relationship between the two, and it might be the case that one is a subset of the other, or it might be the case that neither is a subset of the other because there are some elements that they don't have in common, and so now this order that we have defined on these vector timestamps is very useful because it corresponds exactly to the happens before relationship, so it gives us a partial order, and this partial order is consistence with causality
-
-Properties of this order:
-1. (V(a) <  V(b)) <=> (a -> b)
-first of all, we have the fact that given two events a and b, the vector timestamp of a is strictly less than the vector timestamp of b, according to this order above here, if and only if a happened before b.
-for lamport timestamp we only had a one-way implication, we had that if a happened before b, then the timestamp L(a) is less than L(b). but with vector clocks we have an if and only if relationship, it's a bidirectional implication
-2. (V(a) =  V(b)) <=> (a =  b)
+Properties of this order(partial order):
+1. (V(a) < V(b)) <=> (a -> b)
+first of all, we have the fact that given two events a and b, the vector timestamp of A is strictly less than the vector timestamp of b, according to this order above here, if and only if a happened before b.
+for lamport timestamp we only had a one-way implication, we had that if A happened before B, then the timestamps one less than the other. but with vector clocks we have an if and only if relationship, it's a bidirectional implication.
+2. (V(a) = V(b)) <=> (a = b)
+so we can also conclude that looking at two timestamps if one is less than the other, then we know that A must have happened before B, it's also the case that the timestamps uniquely identify events, so if two events have the same vector timestamps, that means that those events are the same. this is again a bidirectional implication.
 3. (V(a) || V(b)) <=> (a || b)
-
-
+if two timestamps are comparable according to the definition up here, that means that the two events are concurrent, and if the two events are concurrent, then their timestamps will be incomparable.
 
 
 so what we have here using vector clocks is a way of computing that happens before relationship, so far that happens before relation has been essentially this abstract definition, we can by looking at the diagram of the events on paper, we can work out what thing happened before which other thing, but that's not an algorithm for computing it, whereas here with vector clocks, we actually have an algorithm for computing exactly which event happened before which other event, and we have a way of telling whether two events are concurrent or not.
+
+
+
+https://juejin.cn/post/6844904147053969421
+Lamport Timestamp 不能很好的满足分布式系统，比如你不能区分两个事件是否有关联，或者在一个多点读的 key-value 数据库中，你无法确定保存哪一份副本（通常保存最新的那份副本）。
+
+Vector Clock 缺陷
+1. 系统伸缩（Scale）缺陷
+其实 Vector Clock 对资源的伸缩支持并不是很好，因为对于一个 key 来说，随着服务器数量的增加，Vector Clock 中向量的元素也同样增长。假设集群有 1000 台机器，每次传递信息时都要携带这个长度为 1000 的 Vector，这个性能不太好接受。
+2. 非唯一缺陷
+在正常的系统下面，假设所有的消息都是有序的（即同一台机器发送 消息 1 和 2 到另一台机器，另一台机器也会先接收到消息 1 再接收消息 2）。那么我们可以根据每一台机器的 Vector Clock 来恢复它们之间的计算（computation）关系，也就是每一种计算都有着对应自己独一无二的 Vector Clock
+但是，如果消息不是有序的，消息之间会‘超车‘（overtaking），那么问题就来了
+
+1) 解决办法 1
+在 Vector Clock 中添加事件类型，例如用内部（internal），发送（send），接收（receive）3 种事件表明 Vector Clock。但是这样的话还是有问题，
+我们标明了 send 和 receive 两种事件，但是结果还是不同的 computation 产生了相同的 Vector Clock。
+2) 解决办法 2
+将 Vector Clock 改为既包含接收到消息的时间和本地时间。
+通过这种方法，我们能够确定每一种 computation 有着唯一的 Vector Clock。虽然这种会导致 Vector Clock 体积增长了一倍。
+
+当然这种方法也不一定完全需要，因为只要我们能够保证消息发送到达的有序，即不产生消息超车（Overtaking）的情况下，原来的 Vector Clock 也够用了。
+
+
+
+
+
+
+
+
+
+
+
+
 

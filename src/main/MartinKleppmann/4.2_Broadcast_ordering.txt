@@ -1,8 +1,9 @@
-the broadcast protocols generalize the type of network communication that we can do in a distributed system.
+===================================
+4.2: Broadcast ordering
+===================================
 
 
-we're mostly going to assume that the set of nodes in the group is fixed and known in advance, but in general, you may have a system in which nodes can join and leave, or be added or removed by an administrator. that is something that real protocols need to deal with.
-
+so the broadcast protocols generalize the type of network communication that we can do in a distributed system.
 ======================
 Broadcast protocols
 ======================
@@ -11,8 +12,17 @@ Broadcast (multicast) is group communication:
     2. Set of group members may be fixed (static) or dynamic
     3. If one node is faulty, remaining group members carry on(fault tolerance)
     4. Note: concept is more general than IP multicast (we build upon point-to-point messaging)
+1.
+next, we are going to look at broadcast protocols, this might seem like a bit of a sudden jump from logical time, but actually as we will see in a moment there's a strong connection between the two.
+so far we've been considering point-to-point communication where one sender sends a message to one recipient over the network, the message may or may not arrive, but it's still one-to-one communication between two nodes.
+2.
+in broadcast or multicast communication, we generalize this to a group of nodes, so that one node may send a message to all of the nodes in the group at the same time.
+nwo for the purpose fo this course, we're mostly going to assume that the set of nodes in the group is fixed and known in advance, but in general, you may have a system in which nodes can join and leave, or be added or removed by an administrator. that is something that real protocols need to deal with.
+3.
+so one particular thing that we want of a broadcast protocol is fault tolerance, and this means that say one of the nodes in the group is faulty, all of the remaining nodes should still be able to continue broadcasting an delivering messages as before, so we don't want a single faulty node to grind to a halt.
 
- there are a couple of different implementations of broadcast or multicast, one that you might have come across in the context of computer networking, is that some local area networks support broadcast or multicast at hardware level. this is quite useful on local area networks, generally, that kind of multicast does not work over the public internet. so what we will consider in this course is more general form of multicast or broadcast, where we assume that the underlying network only provides point-to-point messaging as in uni-cast, and we are going to build broadcast protocols on top of that. so the underlying network just allows us to send a message from one node to one other node, but on top of that we can build broadcast as an abstraction of that, we then can use for higher level protocols.
+4.
+ there are a couple of different implementations of broadcast or multicast, one that you might have come across in the context of computer networking, is that some local area networks support broadcast or multicast at hardware level. this is quite useful on local area networks, generally, that kind of multicast does not work over the public internet. so what we will consider in this course is more general form of multicast or broadcast, where we assume that the underlying network only provides point-to-point messaging as in uni-cast, and we are going to build broadcast protocols on top of that. so the underlying network just allows us to send a message from one node to one other node, but on top of that we can build broadcast as an abstraction that we then can use for higher level protocols.
 
 https://colobu.com/2014/10/21/udp-and-unicast-multicast-broadcast-anycast/
 单播(unicast): 是指封包在计算机网络的传输中，目的地址为单一目标的一种传输方式。它是现今网络应用最为广泛，通常所使用的网络协议或服务大多采用单播传输，例如一切基于TCP的协议。
@@ -30,16 +40,48 @@ Build upon system models from lecture 2:
 2. reliable (non-faulty nodes deliver every message, by retransmitting dropped messages)
 
 Asynchronous/ partially synchronous timing model => no upper bound on message latency
-we're not going to assume any upper bound on message latency, we can say that the messages will eventually get through, but we're not making any promises about how long it might take until the message might get through.
+we're not going to assume any upper bound on message latency, we can say that the messages will eventually get through,
 
+-----------------------
+if you think back to the discussion of system models in lecture two, we have the distinction between fair loss links and reliable links, and of course most network links are fair loss but you can make them reliable by re-transmitting messages.
+exact the same distinction happens in broadcast protocols, except here that a network that might lose message we call best effort broadcast typically.
+best effort broadcast just means one node tries to send message to all the other nodes, but it may or may not arrive, especially if the sender crashes, for example, the message might not reach all of the other nodes. or we can make it reliable which again relies on re-transmitting lost messages.
 
+like in the context of system models, we're going to assume not a synchronous system model but an asynchronous or partially asynchronous system model, which means that we're not going to assume any upper bound on message latency.
+so in a reliable broadcast protocol we can say that the message will eventually get through, but we're not making any promises about how long it might take until the message might get through.
+
+=================================
+Receiving versus delivering
+=================================
+-------------------------------------------------------------
+
+        Node A:                 Node B:
+┌────────────────────┐     ┌────────────────────┐
+│  Application       │     │  Application       │
+└───────────┬────────┘     └───────▲────────────┘
+            │                      │
+ broadcast  │                      │  deliver
+┌───────────▼────────┐     ┌───────┴────────────┐
+│Broadcast algorithm │     │Broadcast algorithm │
+│(middleware)        │     │(middleware)        │
+└────────┬─▲─────────┘     └───────┬─▲──────────┘
+         │ │                       │ │
+    send │ │receive        send    │ │ receive
+┌────────▼─┴───────────────────────▼─┴──────────┐
+│                   Network                     │
+│                                               │
+└───────────────────────────────────────────────┘
+
+-------------------------------------------------------------
 
 Assume network provides point-to-point send/receive
 
 After broadcast algorithm receives message from network, it may buffer /queue it before delivering to the application.
 
 
-in the context of point-to-point network links, we have talked about sending and receiving messages over the network, whereas in the context of broadcast protocols, we talk about broadcasting a message and then delivering it as the counter part, so what happens is the application on one node wants to broadcast a message to the entire group, we call this action to a broadcast, and then the underlying broadcast algorithm may send or receive multiple messages over the network, and there are point-to-point messages that are sent or received. and on some other node, those messages might be received, they get again picked up by the broadcast algorithm. and broadcast algorithm at some point then delivers the message to the application. so here the delivery is the counterpart to the broadcast, one detail that happens here is that when broadcast algorithm receives a message it might not immediately deliver that to the application, it may actually have to wait for a little bit before that message is ready to be delivered, because we want to ensure that the messages are delivered in a certain order.
+in the context of point-to-point network links, we have talked about sending and receiving messages over the network, whereas in the context of broadcast protocols, we talk about broadcasting a message and then delivering it as the counter part.
+so what happens is the application on one node wants to broadcast a message to the entire group, we call this action to a broadcast, and then the underlying broadcast algorithm may send or receive multiple messages over the network, and these are point-to-point messages that are sent or received.
+and on some other node, those messages might be received, they get again picked up by the broadcast algorithm. and broadcast algorithm at some point then delivers the message to the application. so here the delivery is the counterpart to the broadcast, one detail that happens here is that when broadcast algorithm receives a message it might not immediately deliver that to the application, it may actually have to wait for a little bit before that message is ready to be delivered, because we want to ensure that the messages are delivered in a certain order.
 
 
 ====================================================
