@@ -69,7 +69,6 @@ Receiving versus delivering
     send │ │receive        send    │ │ receive
 ┌────────▼─┴───────────────────────▼─┴──────────┐
 │                   Network                     │
-│                                               │
 └───────────────────────────────────────────────┘
 
 -------------------------------------------------------------
@@ -79,24 +78,44 @@ Assume network provides point-to-point send/receive
 After broadcast algorithm receives message from network, it may buffer /queue it before delivering to the application.
 
 
+
 in the context of point-to-point network links, we have talked about sending and receiving messages over the network, whereas in the context of broadcast protocols, we talk about broadcasting a message and then delivering it as the counter part.
 so what happens is the application on one node wants to broadcast a message to the entire group, we call this action to a broadcast, and then the underlying broadcast algorithm may send or receive multiple messages over the network, and these are point-to-point messages that are sent or received.
-and on some other node, those messages might be received, they get again picked up by the broadcast algorithm. and broadcast algorithm at some point then delivers the message to the application. so here the delivery is the counterpart to the broadcast, one detail that happens here is that when broadcast algorithm receives a message it might not immediately deliver that to the application, it may actually have to wait for a little bit before that message is ready to be delivered, because we want to ensure that the messages are delivered in a certain order.
+and on some other node, those messages might be received, they get again picked up by the broadcast algorithm. and broadcast algorithm at some point then delivers the message to the application. so here the delivery is the counterpart to the broadcast, one detail that happens here is that when the broadcast algorithm receives a message it might not immediately deliver that to the application, it may actually have to wait for a little bit before that message is ready to be delivered, because we want to ensure that the messages are delivered in a certain order.
 
 
+
+the point here is that these are all forms of reliable broadcasts, so we're assuming we have a mechanism for re-transmission which ensures that all of the messages eventually get through, now we want to distinguish different types of broadcast based on the order in which messages get delivered.
 ====================================================
 Forms of reliable broadcast
 ====================================================
 1. FIFO/fai:fo/ broadcast:
 If m1 and m2 are broadcast by the same node, and broadcast(m1) -> broadcast(m2), then m1 must be delivered before m2
-all nodes will deliver those messages in the same order as they were broadcast. so for any messages broadcast from one particular node, they remain in order. but for any message is broadcast by two different nodes, there's no guarantee about the order in which they might arrive.
+all nodes will deliver those messages in the same order as they were broadcast. so for any messages broadcast from one particular node, they remain in order.
+but for any message is broadcast by two different nodes, there's no guarantee about the order in which they might arrive.
+
+
+todo: a node deliver a message to itself will become apparent when we talk about total order broadcast shortly
+
+we have again three nodes a b and c, a wants to broadcast message m1 to the group, and so it sends the message over the network to b and to c.
+and notice also that A sends the message to itself which here denoted by this little loop back arrow, now this might seem unnecessary, because why do you need to deliver a message back to yourself? because the sender of the message already knows what message is send, it doesn't need to receive it again. the reason why a node delivers a message to itself will become apparent when we talk about total order broadcast shortly. so for now just assume this as a little quirk that the guarantee of the broadcast protocol is also always delivers a message to itself.
+then after m1 has been delivered, node B decides that it wants to broadcast message m2 to the group. and so it sends m2 of the network to a and c, and it also delivers m2 to itself.
+and then finally node A wants to broadcast message m3, so again it sends that message over the network to B and C, and it delivers m3 to itself.
+what we require FIFO broadcast as I said just now, is that because m1 and m3 are both broadcast by the same node A. we require that all nodes deliver m1 before they deliver m3, and we can check that this is the case here:
+A delivers m1 here, and then delivers m3.
+B delivers m1 then delivers m3.
+C also delivers m1 and then delivers m3.
+
+All of the nodes delivered these messages in the right order, now there are several possible orders that would be vaild here under FIFO order broadcast. In particular, the message m2 that is sent by b, that can be ordered arbitrarily with respect to A's messages, because we are not making any guarantees about ordering across different nodes, and m2 was sent by B.
+so this means that it's okay for m2 to be delivered before m1 and m3,
+or in between the two
+or after the two.
+All of those are fine, and here for example, we can consider these two different executions in which the messages are delivered by c in a different order.
 
 valid order:
 (m2, m1, m3)
 (m1, m2, m3)
 (m1, m3, m2)
-
-todo: a node deliver a message to itself will become apparent when we talk about total order broadcast shortly
 
 2. Causal broadcast:
 If broadcast(m1) -> broadcast(m2) then m1 must be delivered before m2
