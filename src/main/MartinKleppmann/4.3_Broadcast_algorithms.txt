@@ -6,17 +6,22 @@ Break down into two layers:
 1. Make best-effort broadcast reliable by retransmitting dropped messages
 2. Enforce delivery order on top of reliable broadcast
 
-
 algorithms for actually implementing these different models of broadcast, so we're going to that in two separate stages.
-first of all, we'll show how to take best effort broadcast and make it reliable, and then once we've got reliable broadcast, we can layer on top of that modules for delivery order which allows us to do either FIFO or causal or total order broadcast.
+1. first of all, we'll show how to take best effort broadcast and make it reliable
+2. and then once we've got reliable broadcast, we can layer on top of that modules for delivery order which allows us to do either FIFO or causal or total order broadcast.
 
 so let's start with the reliability layer here.
 
+----------------------------------------------
 First attempt: broadcasting node sends message directly to every other node
 1. use reliable links (retry + deduplicate)
 2. Problem: node may crash before all messages delivered
+----------------------------------------------
+the most obvious thing you might think about like as a broadcast algorithm, is you have the node that wants to broadcast a message just sends that message individually to every other node via point to point links, and make those point-to-point links reliable. so that if the message gets dropped along the way then the sender will resend it, and so because then through the retransmission, the message will eventually get through to every other node.
+this unfortunately does not quite work, because what could happen is this here, A could try to broadcast message m1 to b and c, the message gets through to c, but the message gets dropped on its way to b, so a has to retransmit the message to b, but then a crashes, before a is able to complete this retransmission, and in this case, nobody is ever going to retry the sending of message m1 to b, and  so therefore c will have delivered a message that b did not deliver, b is never going to deliver this message and therefore we have an in consistency.
+so we have to now design an algorithm which is robust so that even if the sender of a message crashes, all of the remaining nodes will still agree on which message was actually delivered,
 
-
+and so one technique we can use is called eager reliable broadcast. and that relies on essentially just everybody sending messages everywhere.
 ================================
 Eager reliable broadcast
 ================================
@@ -24,27 +29,36 @@ Idea: the first time a node receives a particular message, it re-broadcasts to e
 
 Reliable, but.. up to O(n^2) messages for n nodes!
 
+so first of all A wants to broadcast m1 to b and c, when b first receives m1, it re-broadcast the same message again via point-to-point links to every other node, and so this way then even if A crashed, b will have further disseminated the message, and when c first receives the message, C will also rebroadcast the message to everyone else, and so this algorithm actually does ensure reliability, it ensures that even if nodes crash, all of the non-crashsed nodes receive the message.
+however it is quite expensive, because every node that receives a message will again send that message to n minus one other nodes, and so in total, we're going to end up with on the order of n squared(O^2) of messages being sent, for every single message that a node wants to broadcast, so we get reliability but at the cost of fairly high network bandwidth.
+
+now lots of algorithms have been designed to optimize this. and one particular interesting group of algorithm are called gossip protocols. they are modeled in the way how gossip might spread through a network of people where one person hears gossip from somebody and they then tell a few other people about this gossip and so eventually this information spreads through a group, through a population of people. and they're sometimes also called epidemic protocols, because they're somewhat similar to the way that an infectious disease might spread through a population.
 ====================================
 Gossip protocols/epidemic protocols
 ====================================
 Useful when broadcasting to a large number of nodes.
-Idea: when a node receives a message for the first time, forward it to 3 other nodes, chosen randomly.
+Idea: when a node receives a message for the first time, forward it to 3 other nodes(已经收到的不传播了), chosen randomly.
+
+
+each node sends on the message to three other nodes, and those three other nodes are picked at random, and so here the red node is sending the message to three other nodes, and then three other nodes each receive the message and they each rebroadcast the message to three other randomly selected nodes, and those recipients of those broadcasts, they again broadcast them further to others, and you see that sometimes messages go to a node that has already received a message previously, sometimes messages even go back to a node that had the message sometime in the past, but eventually over several rounds of this protocol, there with very high probability, we reach a stage in which the message has received all of the nodes.
+
 
 Eventually reaches all nodes (with high probability).
-there's lots of details that you can tune about gossip protocols about how exactly they decide when to send messages and when to stop sending messages and so on, but basic principle is this they are a way of achieving reliable broadcast, and they are quite robust so that even if some of the nodes crash or some of the messages get lost in the network, we still have very high probability that all of the messages get through to all of the nodes. and that gives us the reliability.
+there's lots of details that you can tune about gossip protocols about how exactly they decide when to send messages and when to stop sending messages and so on, but basic principle is this they are a way of achieving reliable broadcast, and they are quite robust so that even if some of the nodes crash or some of the messages get lost in the network, we still have very high probability that all of the messages get through to all of the nodes.
 
 
+okay that gives us the reliability, next, let's look at the ordering
 ===============================
 FIFO broadcast algorithm
 ===============================
-next, let's look at the ordering. if we want to achieve FIFO broadcast for example, that means we have to ensure that all of the messages by the same sender are delivered in the right order. this is an algorithm of how we might achieve this.
+if we want to achieve FIFO broadcast for example, that means we have to ensure that all of the messages by the same sender are delivered in the right order. this is an algorithm of how we might achieve this.
 
 --------------------------------------------------------------------
 on initialisation do
     sendSeq:= 0; delivered := <0, 0,...,0>; buffer:= {}
 end on
 --------------------------------------------------------------------
-each node here maintains three variables, a sender sequence number is just an integer that gets incremented for every node for every message broadcast by this particular node. delivered is a vector of integers indicating how many messages from each particular sender we have delivered, and buffer is a hold-back queue of messages, so that if a message is not yet ready to be delivered, we put it in the buffer and then pick it out of the buffer sometime later.
+each node here maintains three variables, a (sender sequence number) is just an integer that gets incremented for every node for every message broadcast by this particular node. delivered is a vector of integers indicating how many messages from each particular sender we have delivered, and buffer is a hold-back queue of messages, so that if a message is not yet ready to be delivered, we put it in the buffer and then pick it out of the buffer sometime later.
 
 
 
@@ -59,7 +73,7 @@ if we want to broadcast a message, we attach the node number of the sender i, an
 
 
 --------------------------------------------------------------------
-on receiving msg from reliable broadcast at node N; do
+on receiving msg from reliable broadcast at node Ni; do
     buffer := buffer ∪ {msg}
     while 3sender, m.(sender, delivered[sender], m) ∈ buffer do
         deliver m to the application
@@ -67,7 +81,7 @@ on receiving msg from reliable broadcast at node N; do
     end while
 end on
 --------------------------------------------------------------------
-also when we receive a message via reliable broadcast at node. we first of all add the message to the buffer. and then we look at the buffer trying to find any messages that are ready to be delivered.
+also when we receive a message via reliable broadcast at node Ni. we first of all add the message to the buffer. and then we look at the buffer trying to find any messages that are ready to be delivered.
 and here ready to be delivered means that for any given sender, we have a message in the buffer where the sequence number is the next integer that we are expecting in the sequence number from the particular sender.
 and so if we have a message matching that then we take that message delivered to the application and we increment local vector of number of messages we have delivered from a particular sender.
 

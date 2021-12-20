@@ -97,16 +97,16 @@ but for any message is broadcast by two different nodes, there's no guarantee ab
 
 todo: a node deliver a message to itself will become apparent when we talk about total order broadcast shortly
 
-we have again three nodes a b and c, a wants to broadcast message m1 to the group, and so it sends the message over the network to b and to c.
+we have again three nodes A B and C, A wants to broadcast message m1 to the group, and so it sends the message over the network to B and to C.
 and notice also that A sends the message to itself which here denoted by this little loop back arrow, now this might seem unnecessary, because why do you need to deliver a message back to yourself? because the sender of the message already knows what message is send, it doesn't need to receive it again. the reason why a node delivers a message to itself will become apparent when we talk about total order broadcast shortly. so for now just assume this as a little quirk that the guarantee of the broadcast protocol is also always delivers a message to itself.
-then after m1 has been delivered, node B decides that it wants to broadcast message m2 to the group. and so it sends m2 of the network to a and c, and it also delivers m2 to itself.
+then after m1 has been delivered, node B decides that it wants to broadcast message m2 to the group. and so it sends m2 of the network to A and C, and it also delivers m2 to itself.
 and then finally node A wants to broadcast message m3, so again it sends that message over the network to B and C, and it delivers m3 to itself.
 what we require FIFO broadcast as I said just now, is that because m1 and m3 are both broadcast by the same node A. we require that all nodes deliver m1 before they deliver m3, and we can check that this is the case here:
 A delivers m1 here, and then delivers m3.
 B delivers m1 then delivers m3.
 C also delivers m1 and then delivers m3.
 
-All of the nodes delivered these messages in the right order, now there are several possible orders that would be vaild here under FIFO order broadcast. In particular, the message m2 that is sent by b, that can be ordered arbitrarily with respect to A's messages, because we are not making any guarantees about ordering across different nodes, and m2 was sent by B.
+All of the nodes delivered these messages in the right order, now there are several possible orders that would be valid here under FIFO order broadcast. In particular, the message m2 that is sent by b, that can be ordered arbitrarily with respect to A's messages, because we are not making any guarantees about ordering across different nodes, and m2 was sent by B.
 so this means that it's okay for m2 to be delivered before m1 and m3,
 or in between the two
 or after the two.
@@ -116,11 +116,22 @@ valid order:
 (m2, m1, m3)
 (m1, m2, m3)
 (m1, m3, m2)
+the message m2 you would say that happened after m1 in a causal sense, but still FIFO broadcast makes no guarantees about delivering m2 after m1.
+(FIFO 只保持第一轮顺序)
 
+If you do want that kind of ordering property(delivering m2 after m1) you need causal broadcast.
 2. Causal broadcast:
 If broadcast(m1) -> broadcast(m2) then m1 must be delivered before m2
-Causal broadcast ensures that messages are delivered in causal order. that means that if the broadcasting of one message happened before the broadcasting of another, in the sense that happens before relation, then those messages must be delivered in that order that matches that happens before relationship.
+Causal broadcast ensures that messages are delivered in causal order. That means that if the broadcasting of one message happened before the broadcasting of another, in the sense that happens before relation, then those messages must be delivered in that order that matches that happens before relationship.
 
+m1 is broadcast by A, and it's received by B and C, and it's delivered by B here, and then after B has delivered m1, B wants to broadcast m2, and so here m2 may have a causal dependency on m1, and therefore we require that all of the nodes must deliver m1 first and m2 second.
+next the node A might broadcast a message m3 again, it sends out of the network to the other two nodes and it delivers the message to itself. and in this case notice that the broadcast of m2 is concurrent with the broadcast of m3, because on A, m2 is delivered after m3 is broadcast, and on B m3 is delivered after m2 is broadcast. so these two messages do not depend on each other.
+so in this case here, what we require is that any messages that have a causal dependency are delivered in causal order
+and so in this case here,
+we have a causal dependency between m1 and m2,
+and we have a causal dependency between m1 and m3 because m1 and m3 were broadcast by the same node A,
+but there's no causal dependency between m2 and m3
+so this means m2 and m3 can be delivered in either order.
 
 Causally related messages must be delivered in causal order.
 Concurrent messages can be delivered in any order.
@@ -137,20 +148,38 @@ valid order:
 
 
 
-we actually want to require that all of the nodes deliver messages in the same order
+notice here for example that A delivers first m1 then m3 then m2, whereas B delivers first m1 then m2 then m3, so both of these orders are valid causal orders, but they are not the same, and in some cases, we actually want to require that all of the nodes deliver messages int the same order.
 
+and if that is what we want(require that all of the nodes deliver messages int the same order) we need to move to what is called total order broadcast, so total order broadcast puts all of the messages that are broadcast in the system into a total order. That means it's always clear which one came first, and it ensures that all of the nodes deliver messages in that same order. so there's agreement between all of the nodes on the order in which the messages
 3. Total order broadcast:
+We start with m1 broadcast by A, then we have m2 broadcast by B which happens after m1, and finally we have a message m3 that is broadcast by A again. Now in this case something somewhere has to decide on the order in which these will be delivered.
+Let's say that the order that was decided is to deliver first m1, then m2, then m3.
+and so we can see on C for example that's what happened, C first delivers m1, then it delivers m2, then it delivers m3, so C is delivering them in the correct order.
+let's look at B here, B first delivers m1, then it delivers m2 to itself, then it delivers m3. so B also delivers the messages in the correct order.
+let's look at a here, node A first delivers m1 to itself, then it broadcast m3; but wait, it's not allowed to deliver m3 to itself yet, because the order that was decided is that m2 must be delivered before m3. so therefore node A cannot immediately deliver m3 to itself instead it has to wait for m2 to arrive, and m2 to be delivered by A, and only then is A allowed to deliver m3 to itself.
+----------------------------------------------------------------
+so this is now where this delivery to self becomes very interesting and crucial, because you can see that sometimes there has to be this delay, if A node wants to deliver A message to itself.
+now here, m1, m2 then m3 is possible order of delivering these messages. it could also be that we decide on a different order. so a different valid order might be for the delivery order to be (m1, m3, m2), and that is also fine as long as all of the nodes deliver the messages in that same order. and so here again we have start with C, so C first delivers m1 then m3 then m2, notice here that it's possible that C receives m2 over the network before it receives m3, in which case C will have to delay the delivery of m2 over the network before it receives m3, in which case C will have to delay the delivery of m2, until after m3 has arrived,
+###
+this is called a hold-back in the broadcast algorithm, it's often necessary for a message to be held back, if it's not yet ready to be delivered, because if we're waiting for some other message to arrive first.
+###
+for the delivery order to be one three two(1 3 2), we first delivery one, but we can't immediately deliver m2 to ourselves we have to first wait for m3 to be delivered, and then we're allowed to deliver m2 to ourselves at B.
+And on node A, things are simpler now, so first we deliver m1 to ourselves then we deliver m3 to ourselves, and finally m2 arrives over the network and we deliver m2 to ourselves.
+----------------------------------------------------------------
+so both of these here are valid executions of total order broadcasts, the crucial thing is just that whatever order the messages get delivered in that order has to be the same for all of the nodes.
+
+
 If m1 is delivered before m2 on one node, then m1 must be delivered before m2 on all nodes
 
-so total order broadcast puts all of the messages that are broadcast in the system into a total order, that means it's always clear which one came first, and it ensures that all of the nodes deliver messages in the same order. so there's agreement between all of the nodes on the order in which the messages should be delivered
+so total order broadcast puts all of the messages that are broadcast in the system into a total order, that means it's always clear which one came first, and it ensures that all of the nodes deliver messages in the same order. so there's agreement between all of the nodes on the order in which the messages should be delivered.
+so in this example again, we start with m1 broadcast by A, then we have m2 broadcast by B which happens after m1, and finally we have a message m3 that is broadcast by A again. Now in this case, something somewhere has to decide on the order in which these will be delivered, let's say that the order
 
 All nodes must deliver messages in the same order
 valid:
-m1, m3, m2
-m1, m2, m3
+(m1, m3, m2)
+(m1, m2, m3)
 This includes a node's deliveries to itself!
 
-this is called a hold-back in the broadcast algorithm, it's often necessary for a message to be held back, if it's not yet ready to be delivered, because if we're waiting for some other message to arrive first.
 
 4. FIFO-total order broadcast:
 Combination of FIFO broadcast and total order broadcast, all the nodes have to deliver messages in the same order, and also messages sent by the same node have to be delivered in the order they were sent
@@ -161,7 +190,7 @@ now we want to distinguish different types of broadcast based on the order in wh
 
 todo: prove these relationships between broadcast models
 
-
+FIFO-total order broadcast is strictly stronger than causal broadcast, so every execution of FIFO total order broadcast also meets the requirement of causal order broadcast.
 ================================
 relation ascii diagram
 ================================

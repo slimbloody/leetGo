@@ -7,6 +7,7 @@ Availability = uptime = fraction of time that a service is
 functioning correctly
 
 
+
 The availability of a service is typically measured in terms of its ability to respond correctly to requests within a certain time.
 The definition of whether a service is "available" or "unavailable" can be somewhat arbitrary: for example, if it takes 5 seconds to load a page, do we still consider that website to be available? What if it takes 30 seconds? An hour?
 
@@ -32,8 +33,9 @@ A service-level agreement (SLA) is a contract that specifies some SLO, as well a
 
 
 
-Faults (such as node crashes or network interruptions) are a common cause of unavailability. In order
-to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called fault tolerance. Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero. Instead, fault tolerance is the approach taken by many distributed systems.
+Faults (such as node crashes or network interruptions) are a common cause of unavailability.
+In order to increase availability, we can reduce the frequency of faults, or we can design systems to continue working despite some of its components being faulty; the latter approach is called fault tolerance. Reducing the frequency of faults is possible through buying higher-quality hardware and introducing redundancy, but this approach can never reduce the probability of faults to zero. Instead, fault tolerance is the approach taken by many distributed systems.
+
 
 in order to achieve that sort of very high availability, the way we typically do that is in distributed systems is by fault tolerance,
 =====================================
@@ -65,8 +67,7 @@ but if we can design a system without a single point of failure, that means that
 
 
 
-If all nodes crash and don't recover, then no algorithm will be able to get any work done, so it does
-not make sense to tolerate arbitrary numbers of faults. Rather, an algorithm is designed to tolerate some specified number of faults: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed.
+If all nodes crash and don't recover, then no algorithm will be able to get any work done, so it does not make sense to tolerate arbitrary numbers of faults. Rather, an algorithm is designed to tolerate some specified number of faults: for example, some distributed algorithms are able to make progress provided that fewer than half of the nodes have crashed.
 
 In fault-tolerant systems we want to avoid single points of failure (SPOF), i.e. components that would cause an outage if they were to become faulty. For example, the Internet is designed to have no SPOF: there is no one server or router whose destruction would bring down the entire Internet (although the loss of some components, such as key intercontinental fibre links, does cause noticeable disruption).
 
@@ -104,7 +105,7 @@ because we sent a message
 4. or the response was delayed in the network
 5. or maybe the node is actually alive but it's just experiencing a long garbage collection pause and so it will respond to your message in one minute's time once it's finished it's garbage collection
 6. or of course the node might have crashed
-and it's impossible to the difference between any of these, so it's impossible for sender of these check messages to tell whether the absence of a response is due to a network problem or due to some kind of random delay or due to problems because the node is actually crashed
+and it's impossible to tell the difference between any of these, so it's impossible for sender of these check messages to tell whether the absence of a response is due to a network problem or due to some kind of random delay or due to problems because the node is actually crashed.
 
 we can build a perfect detector if we have a synchronous system model, and if we're going to assume only crash stop failures and certainly not going to assume any byzantine behavior in the system.
 but as soon as you go to a partially synchronous model then timeouts are no longer an exact ways of detecting failures
@@ -117,13 +118,13 @@ the failure detector might be wrong from time to time so the failure detector mi
 
 
 
-In most cases, a failure detector works by periodically sending messages to other nodes, and labelling a node as crashed if no response is received within the expected time. Ideally, we would like a timeout to occur if and only if the node really has crashed (this is called a perfect failure detector).
+In most cases, a failure detector works by periodically sending messages to other nodes, and labeling a node as crashed if no response is received within the expected time. Ideally, we would like a timeout to occur if and only if the node really has crashed (this is called a perfect failure detector).
 However, the two generals problem tells us that this is not a totally accurate way of detecting a crash, because the absence of a response could also be due to message loss or delay.
 
 A perfect timeout-based failure detector exists only in a synchronous crash-stop system with reliable
 links;
 in a partially synchronous system, a perfect failure detector does not exist.
-Moreover, in an asynchronous system, no timeout-based failure exists, since timeouts are meaningless in the asynchronous model.(todo: 应该也有, mq堆积, )
+Moreover, in an asynchronous system, no timeout-based failure exists, since timeouts are meaningless in the asynchronous model.(todo: 应该也有, mq堆积)
 However, there is a useful failure detector that exists in partially synchronous systems: the eventually perfect failure detector.
 
 
