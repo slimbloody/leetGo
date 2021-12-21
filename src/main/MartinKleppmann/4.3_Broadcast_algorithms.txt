@@ -55,36 +55,44 @@ if we want to achieve FIFO broadcast for example, that means we have to ensure t
 
 --------------------------------------------------------------------
 on initialisation do
-    sendSeq:= 0; delivered := <0, 0,...,0>; buffer:= {}
+    sendSeq := 0; delivered := <0, 0,..., 0>; buffer := {}
 end on
 --------------------------------------------------------------------
-each node here maintains three variables, a (sender sequence number) is just an integer that gets incremented for every node for every message broadcast by this particular node. delivered is a vector of integers indicating how many messages from each particular sender we have delivered, and buffer is a hold-back queue of messages, so that if a message is not yet ready to be delivered, we put it in the buffer and then pick it out of the buffer sometime later.
+each node here maintains three variables,
+a [sender sequence number] is just an integer that gets incremented for every node for every message broadcast by this particular node.
+delivered is a vector of integers indicating how many messages from each particular sender we have delivered,
+and buffer is a hold-back queue of messages, so that if a message is not yet ready to be delivered, we put it in the buffer and then pick it out of the buffer sometime later.
 
 
 
 --------------------------------------------------------------------
-on request to broadcast m at node N; do
-    send (i, sendSeq, m) via reliable broadcast
+on request to broadcast m at node Ni do
+    send(i, sendSeq, m) via reliable broadcast
     sendSeq := sendSeq + 1
 end on
 --------------------------------------------------------------------
-if we want to broadcast a message, we attach the node number of the sender i, and we attach the sequence number of the sender to the message, and this triple gets disseminated to all of the nodes via reliable broadcast and then we increment the sequence number for next time we want to broadcast.
+if we want to broadcast a message,
+we attach the node number of the sender i,
+and we attach the sequence number of the sender to the message,
+and this triple gets disseminated to all of the nodes via reliable broadcast and then we increment the sequence number for next time we want to broadcast.
 
 
 
 --------------------------------------------------------------------
-on receiving msg from reliable broadcast at node Ni; do
+on receiving msg from reliable broadcast at node Ni do
     buffer := buffer ∪ {msg}
-    while 3sender, m.(sender, delivered[sender], m) ∈ buffer do
+    while ∃ sender, m.(sender, delivered[sender], m) ∈ buffer do
         deliver m to the application
         delivered[sender] := delivered[sender] + 1
     end while
 end on
 --------------------------------------------------------------------
-also when we receive a message via reliable broadcast at node Ni. we first of all add the message to the buffer. and then we look at the buffer trying to find any messages that are ready to be delivered.
+also when we receive a message via reliable broadcast at node Ni.
+we first of all add the message to the buffer. and then we look at the buffer trying to find any messages that are ready to be delivered.
 and here ready to be delivered means that for any given sender, we have a message in the buffer where the sequence number is the next integer that we are expecting in the sequence number from the particular sender.
 and so if we have a message matching that then we take that message delivered to the application and we increment local vector of number of messages we have delivered from a particular sender.
 
+todo: 如果buffer满了呢?不能接收新的信息了
 ===============================
 Causal broadcast algorithm
 ===============================
@@ -94,24 +102,34 @@ on initialisation do
     sendSeq:= 0; delivered := <0, 0,...,0>; buffer:= {}
 end on
 -----------------------------------------------------------------------
+we start with the same three variables, so again,
+we have a sender sequence number,
+we have a vector counting the number of delivered messages,
+and we have the holdback buffer.
 
 -----------------------------------------------------------------------
-on request to broadcast m at node N; do
+on request to broadcast m at node Ni do
     deps := delivered; deps[i] := sendSeq
     send (i, deps, m) via reliable broadcast
     sendSeq := sendSeq + 1
 end on
 -----------------------------------------------------------------------
 when we want to broadcast messages at Ni,
-1. first of all we create this new variable dependencies(deps), so that captures the causal dependencies of this messages. so it's a way of determining which message happened before this particular message, and those will have to be then all of the messages that have to be delivered before this message being broadcast, wo we take dependencies to be a copy of your delivered vector, and we update the sending broadcasting node's own entry to be equal to the sequence number.
+1. first of all we create this new variable dependencies(deps), so that captures the causal dependencies of this messages. so it's a way of determining which message happened before this particular message, and those will have to be then all of the messages that have to be delivered before this message being broadcast, so we take dependencies to be a copy of your delivered vector,
+
+solvingTodo: copy一份就能说明之前的顺序了?只能说明现在有的顺序吧?
+ans: 是的, 后面在buffer里面会依赖dependencies对所有的消息进行排序
+
+and we update the sending broadcasting node's own entry to be equal to the sequence number.
+
 2. then we send the message via reliable broadcast again. this time we don't attach the sequence number, but we attach this dependencies vector, in addition to i which is the index of the node
 3. and then we increment the sender sequence number as before.
 
 so this time we've got messages that have a vector attached to them rather than a single integer.
 -----------------------------------------------------------------------
-on receiving msg from reliable broadcast at node N; do
-    buffer := buffer∪{msg}
-    while 3(sender, deps, m)∈buffer. deps≤delivered do
+on receiving msg from reliable broadcast at node Ni do
+    buffer := buffer ∪ {msg}
+    while ∃ (sender, deps, m) ∈ buffer.deps ≤ delivered do
         deliver m to the application
         buffer := buffer \ {(sender, deps, m)}
         delivered[sender] := delivered[sender] + 1
@@ -119,9 +137,13 @@ on receiving msg from reliable broadcast at node N; do
 end on
 -----------------------------------------------------------------------
 when one of these messages gets delivered at a node,
-we first of all put the messages in the buffer as usual, and now we search for any messages that are ready to be delivered, and these are any messages whose causal dependencies have been satisfied. so any messages that were broadcast before current message, they have already been delivered by the local node. if those have been delivered, then this message is ready to be delivered, because its causal dependencies have already been delivered.
+we first of all put the messages in the buffer as usual,
+(while line:)
+and now we search for any messages that are ready to be delivered, and these are any messages whose causal dependencies have been satisfied. so any messages that were broadcast before current message, they have already been delivered by the local node. if those have been delivered, then this message is ready to be delivered, because its causal dependencies have already been delivered.
 
-so here we search for any sender dependencies and message in the buffer, such that the dependencies vector is less than or equal to the delivered vector and this less than or equal operator is exactly the less than or equal operator that we defined on vector clocks a little while back. so even this algorithm is not exactly the same as the vector clock algorithm. it's similar in the way that it does use these vectors of numbers and it uses this less than equal comparison as a part of its algorithm for causal broadcast. if we have a message that satisfies dependencies.
+so here we search for any sender dependencies and message in the buffer, such that the dependencies vector is less than or equal to the delivered vector. And this less than or equal operator is exactly the less than or equal operator that we defined on vector clocks a little while back. so even this algorithm is not exactly the same as the vector clock algorithm. it's similar in the way that it does use these vectors of numbers and it uses this less than equal comparison as a part of its algorithm for causal broadcast.
+
+if we have a message that satisfies dependencies.
 
 we deliver it,
 we remove the message from the buffer,
@@ -142,10 +164,13 @@ Single leader approach:
 Problem: leader crashes => no more messages delivered
 Changing the leader safely is difficult
 
-let's say one simple way of doing this, we're going to pick one of the nodes as the leader, and this leader is going to be in charge of determining the order in which the messages get delivered. so that's why it's also sometimes known as a sequencer because it sequences the messages, and if one node wants to broadcast message, it doesn't directly broadcast it to the other nodes, instead, the node sends it to the leader via a FIFO link probably, and leader then broadcast by a FIFO broadcast to the entire group. and so because all of the messages are going through the leader, simply the order in which the leader broadcasts the messages, then is the order in which all of the other nodes will delivered the messages since we're talking about FIFO broadcast.
+let's say one simple way of doing this, we're going to pick one of the nodes as the leader, and this leader is going to be in charge of determining the order in which the messages get delivered. so that's why it's also sometimes known as a sequencer because it sequences the messages.
+and if one node wants to broadcast message, it doesn't directly broadcast it to the other nodes, instead, the node sends it to the leader via a FIFO link probably, and leader then broadcast by a FIFO broadcast to the entire group. and so because all of the messages are going through the leader, simply the order in which the leader broadcasts the messages, then is the order in which all of the other nodes will delivered the messages since we're talking about FIFO broadcast.
+(todo: 为什么这个时候要用FIFO link?)
 this works quite nicely, it just has the problem that if our leader crashes, then no more messages can get delivered, because we're requiring all of our messages to go through the leader.
 so really we would need some kind of way of changing the leader from one node to another in case that leader crashes, but this is quite difficult to do safely because you know what if you end up with two different leaders then your guarantee of total order is gone.
 
+so we will see ways of actually doing this kind of leader change safely in a later lecture when we'd come to talked about consensus.
 
 there's another way you could achieve total order broadcast which does not rely on a leader, instead you could rely on lamport clocks.
 ------------------------
@@ -157,7 +182,12 @@ Problem:
 how do you know if you have seen all messages with timestamp < T?
 Need to use FIFO links and wait for message with timestamp > T from every node
 
-so remember lamport timestamps have an associated total order, and we can use that total order as the order in which we are going to deliver the messages, so we attach a lamport or timestamp to every message, create those lamport timestamps in the usual way like we have discussed, and then broadcast those messages via some kind of reliable broadcast, and then each node needs to ensure that it delivers messages in increasing order of their lamport timestamps, and this works, but it does rely on one particular piece of knowledge, which is a node needs to be sure when at the time when a node delivers a message, it needs to be sure that there will be no future messages with a lamport timestamp less than it's about to deliver, because if it did deliver the message now, and then later a message with a lower timestamp arrives, then it would have delivered them in the wrong order, because it has to deliver them in the messages in strictly ascending order of lamport timestamp, therefore we need some way of knowing that there will not be any future messages with a timestamp less than some particular threshold, and it is possible to know that, because if we use FIFO links between the nodes, then actually we know that each node will send messages in increasing order of lamport timestamp, and we receive those messages in increasing order. so therefore if we heard from every other node, then we know that the minimum timestamp that we've seen across any of the other nodes is going to be the minimum we're going to see, so there will never be any later time stamps than this one. and so based on that it is now possible to again create total order broadcast. again, unfortunately, this approach is not fault tolerant, because in this case, if just one of the nodes crashes, it will not be sending any more messages, so the lamport timestamps won't be moving forward anymore, and so on messages get delivered anymore. so these two algorithms do work, but neither of them is fault tolerant, and in a later lecture, we will see ways of achieving total order broadcast in a way that is fault tolerant.
+todo: 这里为什么不可以用causal?
+so remember lamport timestamps have an associated total order, and we can use that total order as the order in which we are going to deliver the messages, so we attach a lamport timestamp to every message, create those lamport timestamps in the usual way like we have discussed.
+and then broadcast those messages via some kind of reliable broadcast, and then each node needs to ensure that it delivers messages in increasing order of their lamport timestamps, and this works, but it does rely on one particular piece of knowledge, which is a node needs to be sure where at the time when a node delivers a message, it needs to be sure that there will be no future messages with a lamport timestamp less than this message it's about to deliver, because if it did deliver the message now, and then later a message with a lower timestamp arrives, then it would have delivered them in the wrong order, because it has to deliver them in the messages in strictly ascending order of lamport timestamp.
+so therefore we need some way of knowing that there will not be any future messages with a timestamp less than some particular threshold, and it is possible to know that, because if we use FIFO links between the nodes, then actually we know that each node will send messages in increasing order of lamport timestamp, and we receive those messages in increasing order.
+so therefore if we heard from every other node, then we know that the minimum timestamp that we've seen across any of the other nodes is going to be the minimum we're going to see, so there will never be any later timestamps than this one. and so based on that it is now possible to again create total order broadcast.
+again, unfortunately, this approach is not fault tolerant, because in this case, if just one of the nodes crashes, it will not be sending any more messages, so the lamport timestamps won't be moving forward anymore, and so on messages get delivered anymore. so these two algorithms do work, but neither of them is fault tolerant, and in a later lecture, we will see ways of achieving total order broadcast in a way that is fault tolerant.
 
 
 
