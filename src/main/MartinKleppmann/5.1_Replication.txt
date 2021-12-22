@@ -1,51 +1,61 @@
 ============================
-Replication
+Lecture 5 Replication
 ============================
 Keeping a copy of the same data on multiple nodes (Databases, filesystems, caches, ...)
 A node that has a copy of the data is called a replica
 
-reason:
-If some replicas are faulty, others are still accessible
-Spread load across many replicas
+reason(why you might want replication in a system):
+1. If some replicas are faulty, others are still accessible
+2. Spread load across many replicas
 
-1. software crash or hardware stop working, network partition
-2. deliberately make nodes inaccessible from time to time, eg: reboot the system
-3. let you handle more request
+there are quite a few different reasons why a replica might be inaccessible from time to time,
+1. there might be a software problem causing it to crash, there might be a hardware problem causing it just stop working, there might be a network problem which means you might have a network partition, so you might be able to communicate with some of the replicas but not the with others, especially if the replicas are distributed across different locations, you might be able to talk to your local replica, but not a replica that is somewhere remotely.
+2. and anther reason why you might want replication is you might deliberately make nodes inaccessible from time to time, eg: you might choose to reboot the a node in order to install software updates, and while that computer is rebooting, it can't be processing any user requests or any messages.
+
+and so during that time that node is unavailable ,and really what we want is that a service as a whole of a database, for example, it continues working even if some of the nodes are unavailable, and replication is one of the mechanisms we have which allows us to provide that sort of fault tolerance, which is very useful especially if you need to do maintenance of the system, because it means you can reboot one node at a time, as long as you're not turning them all off at the same time, as long as you just reboot one at a time, then the remaining nodes at any one time can continue processing requests,
 
 
+3. Spread load across many replicas
+another reason why you might want replication, is if there's very heavy load, for example, lots and lots of different users around the world, all want the same piece of data, then that might be too much for a single node to handle, and in which case having copies of that data on multiple nodes, simply lets you handle more request from more users which is important in internet scale systems.
 
+
+----------------------------------------------------------------------
 Easy if the data doesn't change: just copy it
-We will focus on data changes
+We will focus on data changes(it's a hard part that requires the most care)
 
+----------------------------------------------------------------------
 
-
+Now one form of replication that you might come across in the context of operating systems is called raid, and so this is if you have multiple hard disks attached to the same computer, you can use raid to redundantly store data on more than one hard disk. for example in the case of raid 1, you actually have two separate disks that are basically mirrors of each other.
+any file that is written to one disk is also written to the other disk, which means that if one of those disks experiences a hardware failure, you've still got the data on the other disk, extremely useful if you don't like losing data.
+------------------------------------------------
 Compare to RAID (Redundant Array of Independent Disks):
 replication within a single computer
 RAID has single controller; in distributed system, each node acts independently
 Replicas can be distributed around the world, near users
 
-raid is designed for a single computer, there's a single controller that manage all of the data.
+The replication we talked in distributed systems is somewhat similar to that, except the techniques that are used for raid, don't immediately apply in a distributed system, because raid is designed for a single computer, there's a single controller that manage all of the data.
 in distributed system, we've got each node in acting independently, we've got the unreliable network in between the two nodes, the nodes might be distributed around the world, so they might be not located in the same location, but they might be on different continents communicating over the internet, and so we have to deal with all of challenges that this sort of distributed setup brings.
 
 ==============================
 Retrying state updates
 ==============================
+点赞如果没有收到ack, 就再次点击点赞, 数据库可能就收到了两次点赞.
+
 prevent:
 1. De-duplicating requests requires that the database tracks which requests it has already seen (in stable storage)
-with the database, generally, we want to support a crash recovery type system model, that means if a node crashes, it doesn't stay offline forever, it will come back, which means that any data that needs to be not lost in the process of that restart needs to be stored on disk in stable storage in some durable form, and if you want to deduplicate requests to a database, in a way that will work even across crashes and restarts, that means that all of the requests actually need to be stored in the database as well, that can end up being quite a lot of data.
+with the database, generally, we want to support a crash recovery type system model, that means if a node crashes, it doesn't stay offline forever, it will come back, which means that any data that needs to be not lost in the process of that crash restart needs to be stored on disk in stable storage in some durable form, and if you want to deduplicate requests to a database, in a way that will work even across crashes and restarts, that means that all of the requests actually need to be stored in the database as well, that can end up being quite a lot of data.
 
+
+how to deal this kind of problem in our system:
 ==============================
 Idempotence
 ==============================
 Idempotence is a concept from math which means that if you apply a function once to some argument, it has the same effect as applying it any number of times.
 
 A function f is idempotent: f(x)= f(f(x)).
-    Not idempotent: f(likeCount) = likeCount + 1
-    increment a counter
-    Idempotent: f(likeSet) = likeSet ∪ {userID}
-    adding an element to set
+    1. Not idempotent: f(likeCount) = likeCount + 1  =>increment a counter
+    2. Idempotent: f(likeSet) = likeSet ∪ {userID} => adding an element to set
 Idempotent requests can be retried without deduplication.
-
 
 Choice of retry semantics:
 1. At-most-once semantics:
@@ -58,9 +68,20 @@ you're going to retry until you get an acknowledgement which means the request m
 retry + idempotence or deduplication
 operation takes effect exactly once. even if the operation is applied multiple times, the effect is as if it had been applied exactly once, or of course, we can achieve exactly once through deduplication as well, as long as we're willing to store the requests, that have already happened in some from.
 
+todo: 为了deduplication, 只有把请求存储下来这一种办法吗?
+
+
+Let's look at another problem
 ==============================
 Adding and then removing again
 ==============================
+client1 -> db: add like
+db -> client1: ack lost
+db -> client2: sync like
+client2 -> db: unlike
+client1 -> db: add like
+db -> client1: ack
+db -> client2: ack(sync)
 
 f: like     g: unlike
 f(likes) = likes ∪ {userID}
@@ -69,51 +90,78 @@ g(likes) = likes \ {userID}
 Idempotent?
 f(f(x)) = f(x) but f(g(f(x)) != g(f(x)))
 
+because the user first liked it, and then unliked it, and this retry of adding the like still causally belongs to this first request here, so it's not a separate request to add it back in again, but actual intention is that the end result is this update is not liked.
 
 
+let's look at a approach that we can use to solve this problem. and I'll illustrate this with another problem that can happen with replication:
 ==============================
 Another Adding and then removing again
 ==============================
+(add some data to set operation)
 client -> A: add x, remove x
 client -> B: add x, remove x(request lost)
 final state: (x ∉ A, x ∈ B) is the same as in this case.
 
-client -> A: add x, remove x(request lost)
-client -> B: add x, remove x
-final state: (x ∈ A, x ∉ B) is the same as in this case.
+client -> A: add x(request lost), remove x
+final state: (x ∈ A, x ∉ B)
 
+so again we have the same state that x is present on b but absent on a, so that the final state of the two replicas is the same in these two examples, but actually we don't want it to be the same because the user intention is different.
+in the case of first scenario here, the user first added then removed, so the user intention was the final state should be that x is not in the set, whereas in the second scenario, the user only added, the user didn't remove anything so the user intention is that x is present in the set. so the user intention is actually different in these two, but from the point of view of the replicas, these outcomes look the same.
+
+we have to distinguish these two outcomes, and the way we can do that is by adding timestamp to things.
+we're going to have the client generate a logical timestamp when it makes the request to the two replicas
 ==============================
 Timestamps and tombstones
 ==============================
-we have to distinguish these two outcomes, and the way we can do that is by adding timestamp to things.
-we're going to have the client generate a logical timestamp when it makes the request to the two replicas
-
-and I'm also going to associate here x with a value true, and true here just means that x is present in the set.
-
-"remove x" doesn't actually remove x: it labels x with false to indicate it is invisible (a tombstone)
+### todo: tombstone 是不是只能支持一轮, 如果(add x, remove x)连续来两次的话, 结果是不是就无法区分了
+and so the client generates this timestamp t1 and it attaches t1 to the add request that is sent to both A and B, and now A and B both store this timestamp t1, and I'm also going to associate here x with a value true, and true here just means that x is present in the set, and we will see in a moment why we need this. because what happens next is now that the client makes a remove request, and because this is a new request, it makes a new logical timestamp t2, attaches t2 to the request, the request is sent to both a and b now. because this is a logical timestamp, and the remove happened after the add this means that t1 will be less than t2, t2 will be greater than t1. and so here we have replicas A receives the request to remove x, and so instead of actually removing x from the database, A leaves x in the database, and says actually we're just going to attach this value false here to x, and false means I'll treat the element x, as if it were not present in the set, because user asked that we remove it, but we're not actually going to remove it, because otherwise we wouldn't know whether the user added or removed it, so we're going to leave this marker in the database marked as false, saying x is not actually in the set, and the deletion happened with a timestamp of t2, so here now we can distinguish on B that x is present because it has a value of true, with a timestamp of t1. On replica A, x is absent because it has a value of false and a timestamp of t2.
 
 this construction where we don't actually delete something but just mark something as deleted it's called a tombstone, and this appears in various different distributed algorithms, when we have to deal with deletion.
 tombstone just means something was supposed to be deleted but for internal reasons we have to actually keep it. maybe tombstone can get garbage collected at some later point in time, that's separate question. but for now we just need to keep remembering this item even though it has been deleted.
 
-Every record has logical timestamp of last write.
+and of course we attached this logical timestamp, so every time some object in database is written, we attach the timestamp of the last operation that wrote it, and this allows us to tell which values are newer and which are older.
 
+------------------------------------------------------------
+"remove x" doesn't actually remove x: it labels x with "false" to indicate it is invisible (a tombstone)
+
+Every record has logical timestamp of last write.
+------------------------------------------------------------
 ==================
 Reconciling replicas
 ==================
 Replicas periodically communicate among themselves to check for any inconsistencies.
 
-we attached this logical timestamp, so everytime some object in the database is written, we attach the timestamp of the last operation that wrote it, and this allows us to tell which value are newer and which are older.
 
-so this means now that after this has happened, a and b are no longer in the same state, because a received the request to delete x with timestamp of t2, whereas b did not receive that request because it got lost in the network. and so according to b, x is still present in the set, and it has a last modification timestamp of t1.
+--------------------------------------------------
+so this means now that after this has happened, A and B are no longer in the same state, because A received the request to delete x with timestamp of t2, whereas B did not receive that request because it got lost in the network. and so according to B, x is still present in the set, and it has a last modification timestamp of t1.
 and now the two replicas can run a protocol in which they compare what they have, they compare their data and this protocol is called an anti-entropy protocol because it's supposed to clear the entropy and the confusion and the uncertainty in the system, and bring all of the replicas back into the same state.
-and so as a and b reconcile their state and perform this anti-entropy protocol, they will compare their timestamps, and since we have these logical timestamps attached to every data item. they realize that t1 is less then t2. therefore, this value that b has must be older, the value that a has must be newer, and therefore, the record on b is going to get replaced with the one from a. so the one from a is the more recent one so that gets propagated to b. and so here, the timestamps have helped us because they tell us about the recency and the relative ordering of these updates, so timestamps have been very useful.
+
+and so as a and b reconcile their state and perform this anti-entropy protocol, they will compare their timestamps, and since we have these logical timestamps attached to every data item. they realize that t1 is less then t2. therefore, this value that B has must be older, the value that A has must be newer, and therefore, the record on B is going to get replaced with the one from A. so the one from A is the more recent one so that gets propagated to B. and so here, the timestamps have helped us because they tell us about the recency and the relative ordering of these updates, so timestamps have been very useful.
 and so typically we will probably have one timestamp for every given key or every object in database, because that's the granularity at which we're going to do that reconciliation
+
+
+--------------------------------------------------------------------------
+
+      ┌────────┐                            ┌────────┐
+      │database│                            │database│
+      │   A    │                            │   B    │
+      └────────┘                            └────────┘
+                      reconcile state
+    {x->(t2,false)}◄────────────────────►{x->(t1,true)}
+           │          (anti-entropy)            │
+           │                                    │
+           │                                    │
+           │                                    │
+           ▼                                    ▼
+    {x->(t2,false)}       t1 < t2        {x->(t2,false)}
 
 Propagate the record with the latest timestamp,
 discard the records with earlier timestamps(for a given key).
+--------------------------------------------------------------------------
 
 
-what kind of logical timestamps do we use here?
+what kind of logical timestamps do we use here? in fact, we can use both of lamport clock and vector clock in the databases and we get slightly different behavior, so it really depends on what behavior we want.
+And this becomes apparent if we consider two clients that are making rights to this replicated database concurrently.
 ========================================
 Concurrent writes by different clients
 ========================================
