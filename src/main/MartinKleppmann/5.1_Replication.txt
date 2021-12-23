@@ -140,6 +140,15 @@ and so as a and b reconcile their state and perform this anti-entropy protocol, 
 and so typically we will probably have one timestamp for every given key or every object in database, because that's the granularity at which we're going to do that reconciliation
 
 
+###################
+todo:
+A: {t1, true}          B:
+A: {t1, false}         B:
+A: {t1, true}          B: {t1, true}
+A: {t1, false}         B: {t1, false}
+the result is the same, so the tombstone can be used for only once?
+###################
+
 --------------------------------------------------------------------------
 
       ┌────────┐                            ┌────────┐
@@ -161,26 +170,35 @@ discard the records with earlier timestamps(for a given key).
 
 
 what kind of logical timestamps do we use here? in fact, we can use both of lamport clock and vector clock in the databases and we get slightly different behavior, so it really depends on what behavior we want.
-And this becomes apparent if we consider two clients that are making rights to this replicated database concurrently.
+And this becomes apparent if we consider two clients that are making writes to this replicated database concurrently.
 ========================================
 Concurrent writes by different clients
 ========================================
 timestamps provide a relative ordering of these two operations
 
-the replica can't just use the order in which they see the requests, inorder to determine whether v1 or v2 is the final value for x. because if they did just use the other in which the request arrive, then they would end up in different states, they would end up inconsistent at the end, and so what we want in a replicated system is that all of the replicas end up being in the same state, otherwise, it's not a replication
+client1 want to update the value that is associated with some key x, so x is the key, v1 is the value that client1 wants to attach to x, and this operation is going to have a logical timestamp of t1,
+concurrently while this is happening, client2 also wants to set the value of x, and it wants to set it to a different value v2, so client1 also generates a logical timestamp t2, sends an operation over the network, attaches t2 to this operation, the operation is I want to set the key x to the value v2.
 
-the timestamps provide relative ordering of these two operations
+now notice that replica A first receives the request from client2, second receives the request from client one, whereas replica B receives them in the opposite order. replica B first receives the request from client1, then the request from client2.
 
+so this means the replica can't just use the order in which they see the requests in order to determine whether v1 or v2 is the final value for x. because if they did just use the other in which the request arrive, then they would end up in different states, they would end up inconsistent at the end, and so what we want in a replicated system is that all of the replicas end up being in the same state, otherwise, it's not a replication.
+
+that's why we need to use the timestamps here, because the timestamps provide a relative ordering of these two operations.
 -------------------------------------------------
 Two common approaches:
 Last writer wins (LWW):
     Use timestamps with total order (e.g. Lamport clock)
     Keep v2 and discard v1 if t2 > t1. Note: data loss!
 
+one option is that we use lamport clocks.
 what we have with lamport clock is they give use a total ordering, total ordering means that for any two timestamps, that exist in the system we can always compare them, and it will always be the case that one is less than the other.(eg: t1 < t2)
 but it might just as well be the other way around, because in this case the two operations are concurrent, and the ordering that the lamport timestamps provide us is arbitrary essentially.
 and what we can do here for example is that we compare t1 and t2. and we just keep the value with the higher timestamp. and this will work because then as the value gets overwritten we know that the overwritten happens after a previous operation, and therefore it will always have a greater timestamp. therefore, overwriting a smaller timestamp with a greater timestamp is a fine thing you can do that.
 and this behavior called last writer wins, because we assume that the last one last writer is the one with the highest timestamp, and so the highest timestamp wins if there are several concurrent updates with different timestamps.
+
+####
+todo: 如果不是简单的赋值操作呢? 如果是函数操作, 比如 update x = x + 1 where xx = xx, update x = x * 2 where xx = xx; 混合在一起
+####
 note however, that this means that if say t2 is greater than t1, this means that if say t2 is greater than t1, this means we keep v2 which was written by client2, and we simply discard v1, value v1 is simply gone. so we're not even store that value anywhere, it simply gets overwritten and forgotten.
 and this might be okay depending on the application, there might be applications in which actually if they're too concurrent writes, it's fine to just keep one and throw away the others. if there are five concurrent writes, we're going to keep one and throw away four of them.
 
@@ -193,7 +211,7 @@ Use timestamps with partial order (e.g. vector clock)
 v2 replaces v1 if t2 > t1; preserve both {v1, v2} if t1 || t2.
 
 
-if we use a vector clock, then if we generate two different timestamps t1 and t2, and these two operations are concurrent, then the vector will also be incomparable we will end up with t1 and t2 being incomparable, and this allows us to detect the fact that these two operations are concurrent. and so in this case now, we will only overwrite one value with another value if there are later ones strictly greater than the earlier one under the strictly greater than relation that we've defined previously. but if we have two concurrent updates, then we will keep both of them. and so in this case, now there's not a single value attached to the key x, but there could be multiple values in this case v1 and v2, and so in this case we can give those two values back to the application, and the application can then resolve this. so this is called a conflict, and the application can have explicit logic for conflict resolution. so that if these two updates happen concurrently, and we have two different values written by different clients, then we can avoid throwing away data, we can combine the information from these two values that were written concurrently into a single value write it back to the database again, and that ensures then everyone is happy and no data was lost.
+if we use a vector clock, then if we generate two different timestamps t1 and t2, and these two operations are concurrent, then the vector will also be incomparable we will end up with t1 and t2 being incomparable, and this allows us to detect the fact that these two operations are concurrent. and so in this case now, we will only overwrite one value with another value if there are vector timestamps, are the later ones strictly greater than the earlier one under the strictly greater than relation that we've defined previously. but if we have two concurrent updates, then we will keep both of them. and so in this case, now there's not a single value attached to the key x, but there could be multiple values in this case v1 and v2, and so in this case we can give those two values back to the application, and the application can then resolve this. so this is called a conflict, and the application can have explicit logic for conflict resolution. so that if these two updates happen concurrently, and we have two different values written by different clients, then we can avoid throwing away data, we can combine the information from these two values that were written concurrently into a single value write it back to the database again, and that ensures then everyone is happy and no data was lost.
 
 
 
