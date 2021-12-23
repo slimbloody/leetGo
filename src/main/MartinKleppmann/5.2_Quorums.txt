@@ -5,10 +5,13 @@ the reason we want replication is typically to make systems more reliable.
 Probability of faults
 ==========================
 
-A replica may be unavailable due to network partition or node fault (e.g. crash, hardware problem, routine reboot).
+A replica may be unavailable due to network partition or node fault (e.g. crash, hardware problem, reboot due to routine maintenance).
 
 Assume each replica has probability p of being faulty or unavailable at any one time, and that faults are independent. (Not actually true! But okay approximation for now)
-let's assume that whether one node is unavailable is independent from whether another node is unavailable. so we're going to assume that faults are not correlated(this is not actually true there have been studies that have shown that actually faults do tend to be correlated in practice, but just for the purpose of some rough estimation, it's okay for now to assume that they are actually independent)
+let's assume that there's some probability P that a node is unavailable at any given time.
+let's assume that whether one node is unavailable is independent from whether another node is unavailable.
+so we're going to assume that faults are not correlated(this is not actually true there have been studies that have shown that actually faults do tend to be correlated in practice, but just for the purpose of some rough estimation, it's okay for now to assume that they are actually independent)
+
 
 
 Probability of all n replicas being faulty: p^n
@@ -16,36 +19,48 @@ Probability of >= 1 out of n replicas being faulty: 1 - (1 - p)^n
 
 
 
-at least on node being faulty, as you increase the number of replicas, it becomes almost certain that at least one of them is faulty at any given time. so in that sense the as you add replicas, the system becomes less reliable, because given anyone has a chance of failing, there's as you have loads of replicas, there'll always be one that has failed at any moment.
+at least on node being faulty, as you increase the number of replicas, it becomes almost certain that at least one of them is faulty at any given time.
+so in that sense the as you add replicas, the system becomes less reliable, because given anyone has a chance of failing, there's as you have loads of replicas, there'll always be one that has failed at any moment.
+
 however, if we take the probability of all of them being faulty, this probability decrease exponentially as you increase the number of replicas.
 and even if you consider not the probability of all of them failing, but the probability of half of the nodes, half of the replicas failing, this probability also decrease exponentially with the number of replicas(P( >= (n + 1) / 2 faulty))
 todo: 计算(P( >= (n + 1) / 2 faulty)) 出错的概率公式
 
+so this is why we can achieve fault tolerance, because as long as it's okay, if some of the nodes or replicas are unavailable, we just have to make sure that given at least most of replicas are available then the system continues working, and then we can actually achieve very high reliability.
+
+
+sol let's look at one particular property that we might want in a fault tolerant replicated system,
+and that is called Read-after-write consistency.
 ================================
 Read-after-write consistency
 ================================
+Writing to one replica, reading from another: client does not read back the value it has read
+Require writing to/ reading from both replicas ==> cannot write/read if one replica is unavailable
+
+
+
 what happens here is that a client first writes some data, and then it reads the same data back again, and you would naturally expect that client to just to then see the data that it has just written.
 so here client wants to set the key x to the value v1, and we attach a timestamp of t1 to that operation, it sends that update to both replicas of the database a and b, the replica b receives that update and process it whereas replica a is unavailable. and so the update is not processed by a. then subsequently the client goes and wants to read x again.
 
 but for some reasons, now the things have flipped around, a is available and b is not available, and so now the response that client gets back from a does not reflect that v1 has been written, so the response is going to be some earlier value v0 that the replicas had before this scenario here started. so in this case, we have violated read after write consistency, which is kind of unfortunate because you know it's very confusing if you write some data and then data disappears, and then sometime later, the data reappears again.(写主库读从库, 从库没读到)
 
+
+### dilemma ###
 now what we could do here in this case is that read and write have to go both replicas, and so that way we could ensure that we don't get this crossover problem where only one of the replicas has seen the update and we read from the other one.
 
 but now if we require a read or write go to both replicas then the system is not fault tolerant, because if just one of the two replicas become unavailable, then we can't process read or write any more.
-
-Writing to one replica, reading from another: client does not read back the value it has read
-Require writing to/ reading from both replicas ==> cannot write/read if one replica is unavailable
-
+### dilemma ###
 
 so we can solve this problem using something called quorum
 ======================
 Quorum (2 out of 3)
 ======================
 two out of three(三局两胜, 三者取二)
-what we do here is i've got an example quorum of two out of three, and so when we want to make a write the client sends its request to all three replicas we're going to assume here there are three replicas, and for some reason the request reaches two out of three of these two replicas, so the request reaches b and c but not a, then b and c are going to respond to the client saying okay, yes, i got your request to update your particular key x, and once the client has collected two positive response then it's happy. so the fact that the request didn't get through to A is okay, so maybe a is unavailable as long as b and c respond that's still fine.
+what we do here is I've got an example quorum of two out of three, and so when we want to make a write the client sends its request to all three replicas we're going to assume here there are three replicas, and for some reason the request reaches two out of three of these two replicas, so the request reaches b and c but not a, then b and c are going to respond to the client saying okay, yes, i got your request to update your particular key x, and once the client has collected two positive response then it's happy. so the fact that the request didn't get through to A is okay, so maybe A is unavailable as long as B and C still respond that's still fine.
 
-now second, the client goes to read and it sends its read again to three replicas ,as before only two of them get it, and so in this case for some reason the read to c doesn't go through, but the read to a and b do go through, and in this case now, the client will receive responses from a and b, it will get the correct response that i was expecting from b because b has seen the right, it will get an outdated response from a because a didn't get the right, but at least one of the response that the client got back has the update value. and so now the client can use the timestamps t0 and t1 to figure out which is the more recent update, and this now allows the client to know what the correct response should be that it returns to the application, and the application is happy because it has read after right consistency.
+now second, the client goes to read, and it sends its read again to three replicas, as before only two of them get it, and so in this case for some reason the read to C doesn't go through, but the read to A and B do go through, and in this case now, the client will receive responses from A and B, it will get the correct response that I was expecting from B, because B has seen the right, it will get an outdated response from A, because A didn't get the right, but at least one of the response that the client got back has the update value. and so now the client can use the timestamps t0 and t1 to figure out which is the more recent update, and this now allows the client to know what the correct response should be that it returns to the application, and the application is happy because it has read after right consistency.
 
+### todo: quorum 是不是只能用于set值的操作, 不能用于函数操作 ###
 
 ================================
 Read and write quorums
@@ -62,13 +77,23 @@ In a system with n replicas:
     Typical: r = w = (n + 1) / 2 for n= 3,5,7... (it is called majority quorums)
     Reads can tolerate n - r unavailable replicas, writes n - w
 
-whenever you want to make a right to some number of replicas, the right will be considered successful as long as it has been acknowledged by at least w replicas. so this is our write quorum. and then when you read if you get a response back from at least our replicas, so now we have w and r as our two parameters of this algorithm, and we require that the sum of w and r is strictly greater than the number of replicas in the system.
-and so int this case we can guarantee that the read will see the previously written value or maybe it was concurrently overwritten by another client, but it will see an up-to-date value whereas if we have if this r plus w is less than or equal to n, it could happen that we don't get the value back that we were expecting. so the idea here is that the read the write goes to some subset of nodes, the read goes to some subset of nodes, and we want those two subsets to overlap. and we can guarantee that they will overlap in at least one replica if we have this R replica plus w greater than n this quorum condition.
+whenever you want to make a right to some number of replicas, the right will be considered successful as long as it has been acknowledged by at least w replicas. so this is our write quorum.
+and then when you read, if you get a response back from at least our replicas, so now we have w and r as our two parameters of this algorithm, and we require that the sum of w and r is strictly greater than the number of replicas in the system.
+
+so in our example here, w was 2, r was 2, and n was 3, so 2 plus 2 is greater than 3.
+
+and so in this case we can guarantee that the read will see the previously written value or maybe it was concurrently overwritten by another client, but it will see an up-to-date value whereas if we have if this r plus w is less than or equal to n, it could happen that we don't get the value back that we were expecting. so the idea here is that the read the write goes to some subset of nodes, the read goes to some subset of nodes, and we want those two subsets to overlap. and we can guarantee that they will overlap in at least one replica if we have this R replica plus w greater than n this quorum condition.
 another way of putting this is that we have these two subsets, and subsets of nodes have to have a non-empty intersection, so for example if we have five nodes, we could require a write quorum of three and a read quorum of three that would satisfy this condition. and in this case those two subsets of nodes are always guaranteed to have at least one element in common. so they will have a non-empty intersection.
+
+one common way of constructing these quorum is what are called majority quorums, where we say that we're going to assume that we have an odd number of nodes, and as long as the read quorum and the write quorum are strictly more than half of the number of nodes, then it's fine.
+so that means we require two out of three, we require three out of five, four out of seven and so on.
+and this means that in a two out of three case, we can tolerate one node being unavailable, as long as the other two respond.
+in a three out of five case, we can tolerate two replicas being unavailable, as long as the three remaining respond, and so on.
+so this is all the quorums are about really.
+
 
 
 now that we've done these quorum reads and writes, one thing that we can do is for the client can help get those different replicas back in sync with each other again.
-
 ================================
 Read repair
 ================================
@@ -78,38 +103,7 @@ so in this case here, the client received an outdated value from a, and it recei
 so c might not need it because it might be that c actually has the up to date value, but it just didn't respond. there's no harm in sending it again. and certainly we want to send the update to a, so that now a and b both have the updated value v1. so notice that we use the original timestamp here, because this is effectively just a retrieve, this is not a new set operation, and therefore, it's correct to use the right timestamp. and the client can thus help propagate the values between the replicas.
 so we have the anti-entropy that we discussed earlier as one mechanism for replicas to get back in sync, and this process read repair is anther way that helps the replicas get back in sync with each other.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+### todo: 如果c的实际上更新怎么办?
 
 
 
