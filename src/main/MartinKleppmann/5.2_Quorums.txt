@@ -103,7 +103,7 @@ so in this case here, the client received an outdated value from a, and it recei
 so c might not need it because it might be that c actually has the up to date value, but it just didn't respond. there's no harm in sending it again. and certainly we want to send the update to a, so that now a and b both have the updated value v1. so notice that we use the original timestamp here, because this is effectively just a retrieve, this is not a new set operation, and therefore, it's correct to use the right timestamp. and the client can thus help propagate the values between the replicas.
 so we have the anti-entropy that we discussed earlier as one mechanism for replicas to get back in sync, and this process read repair is anther way that helps the replicas get back in sync with each other.
 
-### todo: 如果c的实际上更新怎么办?
+### todo: 如果c的实际上最新怎么办?
 
 
 
