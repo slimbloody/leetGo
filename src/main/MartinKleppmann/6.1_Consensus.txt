@@ -1,5 +1,8 @@
-last lecture, we talked about state machine replication which is a great way of replicating some data from one node to another. and in order to do state machine replication, we need to ensure that all of the replicas see the same updates in the same order, which we can do with total order broadcast, this now raises the question of how do we implementing total order broadcast?
-we saw one way of doing this is to send all of the messages via a particular dedicated node that we call the leader, and this node is going to order all of the messages and make sure that they get delivered in the same order on all of the nodes. unfortunately, if that leader crashes, or it becomes unavailable due to a network problem, or it has a hardware failure or whatever anything goes wrong, then this approach to total order broadcast stops working, now the question is now really how can we deal with the problem of a leader becoming unavailable.
+the concept context to this(consensus) is last lecture, we talked about state machine replication which is a great way of replicating some data from one node/replica to another. and in order to do state machine replication, we need to ensure that all of the replicas see the same updates in the same order, which we can do with total order broadcast, this now raises the question of how do we implementing total order broadcast?
+we saw one way of doing this is to send all of the messages via a particular dedicated node that we call the leader, and this node is going to order all of the messages and make sure that they get delivered in the same order on all of the nodes. unfortunately, if that leader crashes, or it becomes unavailable due to a network problem, or it has a hardware failure or whatever anything goes wrong, then this approach to total order broadcast stops working.
+########################################################################
+now the question is now really how can we deal with the problem of a leader becoming unavailable.
+########################################################################
 
 
 ============================================
@@ -11,18 +14,20 @@ Can implement total order broadcast by sending all messages via a single leader.
 
 Problem: what if leader crashes/ becomes unavailable?
     1. Manual failover:
-        a human operator chooses a new leader, and reconfigures each node to use new leader
-        Used in many databases! Fine for planned maintenance.
+        1) a human operator chooses a new leader, and reconfigures each node to use new leader
 
 
-a human operator who gets notified if the leader fails, and this human is then going to choose a new node as the new leader, and it's really going to reconfigure the system, so change all of the followers to accepting and this new node as their new leader, telling this new node that now has to be the leader and act in this capacity to implement total order broadcast, and this works fine if you know in advance if the leader is going to go down, which could happen, for example, if the leader is going down due to planned maintenance, so if you know advance in advance that you want to reboot the leader tonight in order to install some software updates, then you just move the leader role to a different node before you install the software updates, and then you can take it down in peace and quite and no problems at all.
+one approach is to manually switch over to a new leader, and this process is called failover.
+so manually means there's a human operator who gets notified if the leader fails, and this human is then going to choose a new node as the new leader, and it's going to reconfigure the system, so change all of the followers to accepting and this new node as their new leader, telling this new node that now has to be the leader and act in this capacity to implement total order broadcast.
+
+        2) Used in many databases! Fine for planned maintenance.
+and this works fine if you know in advance if the leader is going to go down, which could happen, for example, if the leader is going down due to planned maintenance. so if you know advance in advance that you want to reboot the leader tonight in order to install some software updates, then you just move the leader role to a different node before you install the software updates, and then you can take it down in peace and quite and no problems at all.
 --------------------------------------------------------
-        Unplanned outage? Humans are slow, may take a long time until system recovers.
+        3) Unplanned outage? Humans are slow, may take a long time until system recovers.
 
-Unfortunately, this doesn't really help you in the case where the leader crashes unexpectedly, or if the leader suddenly develops a hardware fault, and suddenly just stop working, and you know computers do that sometimes they do sometimes just stop working. in that case, it'll probably stop working at the most inconvenient time, so like three int the morning.
-
-can we do this leader transition automatically? this transition of to a new leader is exactly what consensus algorithms are about
-
+Unfortunately, this doesn't really help you in the case where the leader crashes unexpectedly, or if the leader suddenly develops a hardware fault, and suddenly just stop working, and you know computers do that sometimes they do sometimes just stop working. in that case, it'll probably stop working at the most inconvenient time, so like three in the morning, and so somebody then has to get phoned and they have to get out of the bed and log into their computer, and reconfigure the system to use a new leader and so on.
+and so this is possible and some database systems do implement replication in this way, but it does beg the question "can we do this leader transition automatically?". so we don't have to wake people up at three o'clock in the morning.
+this transition of to a new leader is exactly what consensus algorithms are about.
 
 ====================================================
 Consensus and total order broadcast
@@ -33,7 +38,10 @@ In context of total order broadcast: this value is the next message to deliver
 Once one node decides on a certain message order, all nodes will decide the same order
 Consensus and total order broadcast are formally equivalent
 
-Consensus and total order broadcast are two different problems, but they're actually quite closely related as I'll explain now, so the traditional way in which consensus is formulated in distributed systems is that you've got multiple nodes, each node may propose a value and you want all of the nodes to decide on the same value.(by some kind of process, one of those proposals is going to get picked) we want the nodes to agree on one of the values that was proposed. you can think of this as being equivalent to total order broadcast, because in total order broadcast what happens if we want all of the nodes to deliver the same messages in the same order. and so this agreement that the nodes need to come to, is the agreement on what is the next message to deliver in this total order. and so you can keep doing consensus once for each message that needs to be delivered, and the consensus will guarantee that all of the nodes will make the same decision. and so at some point a node decides that on a certain value which means in total order broadcast terms, it delivers that message. and consensus guarantees that once the value has been decided, it's not going to change its mind about it, and so for total-order broadcast, this means now once a message has been delivered, it has been delivered at a certain point in this total order.
+-----------------------------------------------------------------------
+Consensus and total order broadcast are two different problems, but they're actually quite closely related as I'll explain now, so the traditional way in which consensus is formulated in distributed systems is that you've got multiple nodes, each node may propose a value, and you want all of the nodes to decide on the same value.
+so think of it as like several friends deciding where to go for lunch today, and like they propose different restaurants or shops to go to, and then by some kind of process, one of those proposals is going to get picked, and then everybody is going to go to the same shop or restaurant for lunch, and so this is the consensus problem.
+(by some kind of process, one of those proposals is going to get picked) we want the nodes to agree on one of the values that was proposed. you can think of this as being equivalent to total order broadcast, because in total order broadcast what happens if we want all of the nodes to deliver the same messages in the same order. and so this agreement that the nodes need to come to, is the agreement on what is the next message to deliver in this total order. and so you can keep doing consensus once for each message that needs to be delivered, and the consensus will guarantee that all of the nodes will make the same decision. and so at some point a node decides that on a certain value which means in total order broadcast terms, it delivers that message. and consensus guarantees that once the value has been decided, it's not going to change its mind about it, and so for total-order broadcast, this means now once a message has been delivered, it has been delivered at a certain point in this total order.
 for this reason, the consensus problem and total-order broadcast are formally equivalent to each other, which means that if you have an algorithm for one, then you can convert it into an algorithm for the other and vice versa.
 
 ----------------------------------------------------
