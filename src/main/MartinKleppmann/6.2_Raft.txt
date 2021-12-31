@@ -1,5 +1,10 @@
 I'm going to walk you through the entire raft consensus algorithm for performing total order broadcast
-the core of the raft algorithm is a state machine where every node can be in what in one of three states either a follower, a candidate, or a leader. and the state is always in a certain term, so there's always a certain term number, and a node can be deleted in a particular term.
+what I would like you to do through is to carefully understood and understand exactly how and why the algorithm works, because I find that principle of how the raft algorithm works are really instructive for thinking about state in a distributed system more generally.
+=======================================================
+Node state transitions in Raft
+=======================================================
+the core of the raft algorithm is a state machine where every node can be in what in one of three states either a follower, a candidate, or a leader.
+and the state is always in a certain term, so there's always a certain term number, and a node can be deleted in a particular term.
 
 when a node starts off starts up for the first time, it always goes into the follow-up state, and also if a node crashes and recovers and then when the nodes restarts and recover from the crash, it always goes back into the follower state regardless of which state it was in before the crash.
 however all of the nodes start as followers eventually we need some node become the leader, and the way how a node becomes the leader is by first becoming a candidate. and so when a node detects that there has been no message from a leader for some amount of time a timeout elapses, and then a node will decide that okay it is going to stand as candidate in a particular term number, and it's within that term number, it's going to get votes from the other nodes. and it manages to get positive votes from a quorum of nodes in the system from majority, then it is able to transition into the leader state
