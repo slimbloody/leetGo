@@ -1,0 +1,140 @@
+@startuml
+
+class "tomcat" {
+  [design pattern]
+  [how tomcat works 深入剖析Tomcat 1week]
+  [tomcat doc 1week]
+}
+
+class "os" {
+  [bio nio aio]
+}
+
+class "spring" {
+  [design pattern]
+  [子路 spring 2week]
+  [子路 nacos 1week]
+}
+
+class "database" {
+  https://www.zhihu.com/question/62464757
+
+  [bird]
+  [child]
+  [innodb]
+  [数据库系统实现（英文版）（第2版） [Database System Implementation,Second Edition]]
+  论文地址:
+  https://link.zhihu.com/?target=https%3A//github.com/rxin/db-readings
+
+  1. 从存储系统入手，Google 的老三篇入门，最好能顺手把 6.824 做了，不难，智商正常的本科生都能做完，另外推荐一本书 Distributed systems for fun and profit
+  2. 做完 6.824 后就可以从复制协议开始入手, Paxos 的几篇，Lamport 那篇有空膜拜一下好了，真正有价值的是 Paxos made live / Paxos made simple 那几篇，然后可以深入看看 Raft, 这个在 6.824 里面会用到
+  3. 然后开始开非 Google 系的存储系统比如 Dynamo ，Haystack 啊什么的还有一些最终一致性的系统，比如 FB 在一些系统上的设计虽然没有 Google 那么 fancy，但是看看还是不错的，至少知道在 FB 的数量级下会遇到那些问题，如何用糙快猛的办法 workaround。。。 和一些分布式计算系统和流计算系统，比如  MR 就不说了，比如 Dremel 啊，Spark 啊，MillWheel 啊，Sawzall 啊4. 把 SQL 优化器的一些基础知识学会咯，然后尽量用分布式系统的思想去思考。然后有点感觉了以后，可以看 F1 和 2017 的 Spanner 那两篇论文找找感觉，毕竟比较简单。然后就可以去找一些 OLAP 系统的论文看看了，HyPer 有一堆论文，Impala / Presto / Kudu 啊， AsterixDB 啊什么的，这个领域就多了去了。
+
+  这个练手项目可以学习体会如下分布式系统和数据库的基本概念和组件：0. server-client1. RPC & multi-thread2. IO & fs & persistency3. consistency4. replication5. recovery & fault-tolerance6. master-slave7. job scheduler8. data shuffle9. SQL10. parser11. execution plan…以及最重要的，设计API的艺术。——
+  作者：杨志丰
+  链接：https://www.zhihu.com/question/62464757/answer/200930831
+  来源：知乎
+  著作权归作者所有。商业转载请联系作者获得授权，非商业转载请注明出处。
+
+
+  动手实践的话，我强烈推荐，Redis、MongoDB、TiDB 这三个的分布式架构按顺序学习，
+  是一个由浅入深的过程，因为三者都使用广泛相应的资料很多，了解他们的具体实现期间，
+  会涉及到 replication，partition，consistency，transaction，balancing 等一系列基础概念和技术。
+}
+
+class "algorithms" {
+  [cabbage]
+}
+
+class "paper" {
+  raft
+  zookeeper
+  bigtable
+  mapreduce
+  gfs
+  dapper
+  kafka
+}
+
+class "component" {
+  [es]
+  [hbase]
+  [kafka]
+  [rocketmq]
+  类图 箭头怎么画的
+  荣光es hbase冷热数据
+  荣光 缓存一致性
+  荣光 rehash数据库表
+}
+
+
+class "basic" {
+  6s081(23 * 2) -> 6.828 操作系统
+}
+
+
+cs106a:(object-oriented design, decomposition, encapsulation, abstraction)
+https://see.stanford.edu/Course/CS106A
+https://web.stanford.edu/class/cs106a/schedule.html
+
+cs106b(datastructure)
+https://see.stanford.edu/Course/CS106B
+https://web.stanford.edu/class/archive/cs/cs106b/cs106b.1218/schedule.html
+
+cs107
+https://web.stanford.edu/class/cs107/syllabus.html
+Topics covered include: the C programming language, data representation, machine-level code, computer arithmetic, elements of code compilation, optimization of memory and runtime performance, and memory organization and management.
+
+CS 110: Principles of Computer Systems
+https://web.stanford.edu/class/cs110/summer-2021/
+https://web.stanford.edu/class/cs110/summer-2021/handouts/course-information/
+
+CS 144
+https://cs144.github.io/
+
+CS50's Introduction to Computer Science
+
+cs61a
+cs61b
+cs61c
+
+
+A Denial-of-Service (DoS)attack
+is an attack meant to shut down a machine or network, making it inaccessible to its intended users. DoS attacks accomplish this by flooding the target with traffic, or sending it information that triggers a crash. In both instances, the DoS attack deprives legitimate users (i.e. employees, members, or account holders) of the service or resource they expected.
+
+
+jvm -> 多线程 -> tomcat -> nginx
+tomcat -> nginx 区别
+
+6.824 先听课做实验 论文稍微读一读, 留下疑问
+(第一周) (第二周) (第三周)
+jvm -> 多线程 -> tomcat
+class "JVM" {
+  [JVM specification 2week]
+  [JMV deer 2week]
+}
+
+  [图解并发编程 1week]
+  [并发编程的艺术 方腾飞 0.5week]
+  [Java Concurrency in Practice 0.5week]
+  [Concurrent Programming in Java: Design Principles and Patterns]
+
+nacos最后两节课
+第四周 ddia
+
+二月:
+6.824
+
+class "tomcat" {
+  [design pattern]
+  [how tomcat works 深入剖析Tomcat 1week]
+  [tomcat doc 1week]
+}
+
+https://www.zhihu.com/question/32212996
+
+永嘉 2^5, 分表避免碰撞, hash因子
+@enduml
+
+
+

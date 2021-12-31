@@ -100,14 +100,15 @@ best effort broadcast:
 and we could go even weaker, so we could even go to best effort broadcast in which case we're not even guaranteed any particular number of deliveries for a certain message. so a message might be lost or it might be delivered multiple times. so in this case the state update function will have to tolerate message loss, and it will have to tolerate messages being delivered multiple times through idempotence.
 
 --------------------------------------------------------------------------------------------
-
 but you can see, that actually all these different models of broadcast we can use in order to build replication systems.
 
-so that's all for this lecture, in next lecture, we're going to drill into some more detail on how actually we implement this total order broadcast in a way that is reliable.
+so that's all for this lecture, in next lecture, we're going to drill into some more detail on how actually we implement this total order broadcast in a way that is reliable
+.
 
 --------------------------------------------------------------------
 broadcast   |   assumptions about state update function
 --------------------------------------------------------------------
 total order |   deterministic (SMR)
 causal      |   deterministic, concurrent updates commute
-best-effort |   deterministic, commutative, idempotent, tolerates message loss --------------------------------------------------------------------
+best-effort |   deterministic, commutative, idempotent, tolerates message loss
+--------------------------------------------------------------------
