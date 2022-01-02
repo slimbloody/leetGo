@@ -111,7 +111,7 @@ tomcat -> nginx 区别
 jvm -> 多线程 -> tomcat
 class "JVM" {
   [JVM specification 2week]
-  [JMV deer 2week]
+  [JVM deer 2week]
 }
 
   [图解并发编程 1week]
@@ -119,21 +119,37 @@ class "JVM" {
   [Java Concurrency in Practice 0.5week]
   [Concurrent Programming in Java: Design Principles and Patterns]
 
-nacos最后两节课
-第四周 ddia
 
-二月:
-6.824
-
+fast cgi
 class "tomcat" {
   [design pattern]
   [how tomcat works 深入剖析Tomcat 1week]
   [tomcat doc 1week]
 }
 
+nacos最后两节课
+
+二月:
+第一周: ddia
+6.824
+
 https://www.zhihu.com/question/32212996
 
 永嘉 2^5, 分表避免碰撞, hash因子
+
+
+单纯看视频: 一天2h
+操作系统: 22 * 2
+计算机组成原理: 33 * 2
+计算机网络: 38 * 2
+
+(22 + 33 + 38) * 2 / 2 * 1.5 / 30 =
+
+分布式系统概念与设计
+
+QQ: 353479460
+WX: deathearth/15858249942
+EMAIL: 353479460@qq.com
 @enduml
 
 
