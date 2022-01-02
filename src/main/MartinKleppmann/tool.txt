@@ -42,3 +42,7 @@ iff: if and only if
 https://www.runoob.com/charsets/ref-utf-greek.html
 Δ: 希腊大写字母 DELTA
 δ: 希腊小写字母 DELTA
+
+非p
+记作 ┐p
+或者 ~P

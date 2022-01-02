@@ -624,3 +624,7 @@ n. 节奏；韵律；抑扬顿挫；终止式
 vt. 使有节奏
 n. （Cadence）（法）卡当斯（人名）
 
+unanimity
+英 [ˌjuːnəˈnɪməti]  美 [ˌjuːnəˈnɪməti]
+n. 同意，全体一致
+

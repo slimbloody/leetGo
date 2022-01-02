@@ -181,7 +181,7 @@ and now rather than sending this vote back to the coordinator, we use total orde
 
 the question is just what if one of these replicas has crashed, and so if that replica has crashed then it is not able to broadcast its vote, so all of the others would be stuck waiting forever until this vote never turns up.
 so what we have in addition is a failure detector.
-and this failure detector can be running on any node for example on some of the other database replicas or even on the client, and it just checks whether it suspects any of the replicas to have failed.
+and this failure detector can be running on any node, for example on some of the other database replicas or even on the client, and it just checks whether it suspects any of the replicas to have failed.
 ------------------------------------------------------------------
 on a node suspects node replicaId to have crashed do
     for each transaction T in which replicaId participated do
@@ -192,7 +192,6 @@ end on
 and so if it has sent the prepare request to some replica and the replica has not broadcast its vote yet, after some amount of time, some timeout, then this other node is just going to broadcast a vote on behalf of the replica that it has suspected to have failed, and it just votes false, so it votes to abort on behalf of this replica.
 
 now what could happen as you can see here is that actually it could be that the replica here that is suspected to have crashed, hasn't actually crashed, it might be fine, it might just be a bit slow, and so it could be that just around about the same time, we get two conflicting votes for the same replica that is one genuine vote from the replica that the replica itself is sending, and one vote or maybe even several votes from other replicas who think this particular node has failed.
-#### todo:检验一个节点是否是存活的和消息的顺序有什么关系 # we get two conflicting votes for the same replica that is one genuine vote from the replica that the replica itself is sending, and one vote or maybe even several votes from other replicas who think this particular node has failed.###
 
 and so now we are relying on the property of total order broadcast, which is all of the participants, all of the nodes in the system will deliver the same messages in the same order, and because of that, this race between the different votes for the same replica is no longer a problem, because we can ensure that the first vote that we see from a given replica will be the same for all of the nodes.
 
@@ -202,7 +201,7 @@ and so this means here whenever the we deliver one of votes here by total order 
 Fault-tolerant two-phase commit (2/2)
 ===============================================
 on delivering (Vote, T, replicaId, ok) by total order broadcast do
-    if replicaId ∉ commitVotes[T] ^ replicaId ∈ replicas[T] ^ -decided[IT] then
+    if replicaId ∉ commitVotes[T] ^ replicaId ∈ replicas[T] ^ ~decided[T] then
         if ok = true then
             commit Votes[T] := commit Votes[T] U {replicaId}
             if commit Votes[T] = replicas[T] then
@@ -218,9 +217,20 @@ end on
 
 
 ------------------------------------------------------------------
-so first of all here if the replica that is voting is not already one of the votes that has committed, and if the replica is one of the replicas in the transaction t, and we have not already made a decision for transaction t,
-then well okay it depends whether we voted in favor or not, so if we voted true which means vote in favor of committing, then we add the replica id to the set of replicas that have voted in favor of committing this particular transaction,
-and if this set of replicas that have voted in favor equals the set of all replicas participating in the transaction, that means now we have the unanimity that we require that we can decide to commit the transaction and do the actual commit at this node,
+(if)
+so first of all here,
+(replicaId ∉ commitVotes[T]):
+if the replica that is voting is not already one of the votes that has committed,
+(replicaId ∈ replicas[T])
+and if the replica is one of the replicas in the transaction t,
+(~decided[T])
+and we have not already made a decision for transaction t,
+
+    then well okay it depends whether we voted in favor or not, so if we voted true which means vote in favor of committing,
+        then we add the replica id to the set of replicas that have voted in favor of committing this particular transaction,
+        and if this set of replicas that have voted in favor equals the set of all replicas participating in the transaction, that means now we have the unanimity that we require that we can decide to commit the transaction and do the actual commit at this node,
+
+(else)
 on the other hand, if the vote was false, it was in against committing, that means we can immediately abort, because one single vote against is already enough to discover the whole transaction, we can set our flag to be decided to be true,
 and then we're going to abort the transaction at this node
 
@@ -229,7 +239,13 @@ and if you think about this the logic that we have ensures that we only count th
 it's that nice, we have this total order broadcast algorithm, and we can use it to solve this quite different problem in a reasonably simple way.
 
 
+reasonably [ 'ri:znəbli ]
+adv.
+1. to a moderately sufficient extent or degree
+"the shoes are priced reasonably"
 
+2. with good sense or in a reasonable or intelligent manner
+"acted quite reasonably"
 
 
 
