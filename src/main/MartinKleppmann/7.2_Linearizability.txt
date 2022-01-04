@@ -18,22 +18,24 @@ Note: linearizability != serializability
 
 so it's one particular definition of consistency for concurrent systems, and it is the strongest such model that is in widespread use.
 and the idea behind linearizability is that the system as a whole behaves as if it was not replicated or distributed at all, so it behaves as if there was actually only a single copy of the data, and all of the operations happen atomically on that single copy of the data.
-so when you issue a read or write operation that operation will take an effect atomically at some point in time, and even though there might be multiple replicas in the system, from the point of view of the clients it looks as though there was only a single copy of the data, and so this is very nice because it's easy to program against, because it kind of reduces the all of the distributed systems complexity down to something which is very nice and manageable, and small like a single copy of the data.
+so when you issue a read or write operation that operation will take an effect atomically at some point in time, and even though there might be multiple replicas in the system, from the point of view of the clients it looks as though there was only a single copy of the data, and so this is very nice because it's easy to program against, because it kind of reduces the all of the distributed systems complexity down to something which is very nice and manageable, and small, like a single copy of the data.
 a consequence of this definition of linearizability is that whenever you read some data, you're guaranteed to get an up-to-date value for some definition of up-to-date that we will see in a moment, and this is sometimes also called strong consistency, but the term strong consistency is a bit poorly defined it's a bit vague and hand-wavy, so we're going to stick with linearizablity which is formally defined, we will not go into exact formal definition in this course, i'm just going to give you the intuition behind linearizability through some examples.
 ### todo: hand-wavy
 
-interestingly linearlizability is not only important in distributed systems, but it actually is used also in the context of shared memory concurrency on a single computer, and the reason there is that if you have multiple cpu cores, then actually each cpu core has its own memory caches, if you have threads running on two different cpu cores, you might have one thread writing a value to memory which actually goes to its cache, and then a different thread reading that same location in memory, and it might not see the value that was written by the first thread, because its caches hasn't yet been updated with that value.
+interestingly linearlizability is not only important in distributed systems, but it actually is used also in the context of shared memory concurrency on a single computer, and the reason there is that if you have multiple cpu cores, then actually each cpu core has its own memory caches. and if you have threads running on two different cpu cores, you might have one thread writing a value to memory which actually goes to its cache, and then a different thread reading that same location in memory, and it might not see the value that was written by the first thread, because its caches hasn't yet been updated with that value.
 and so you get actually within the scope of a single computer, you get this similar kind of behavior as in a replicated system, because these different levels of caches gives you something quite like replication, I think this is interesting because we're taking now this idea from distributed systems, and a single computer starts actually behaving a little bit like a distributed system too.
 
 another piece of terminology just to be careful of is linearizability and serializability are not the same thing, even though the words look kind of similar, but they mean total different things, so serializability is a form of isolation between transactions, it's about transactions having the same effect as if they were executed in some serial of order.
 
 linearizability is around multiple replicas behaving as if there was a single replica, so they're very different things
 
-so in to give you a sense of what linearizability means, I'm going to go back to something we saw in a previous lecture, which is read-after-write consistency
+so in order to give you a sense of what linearizability means, I'm going to go back to something we saw in a previous lecture, which is read-after-write consistency
 =========================================================
 Read-after-write consistency revisited
 =========================================================
-so if you remember what we discussed back then, this was in the context of read and write quorums, so if you have a client that wants to write some value v1 to some object x, it can make this write request to a quorum of replicas if a quorum responds okay, then this set request is successful, and then subsequently that same client might make a requests and send that get request to a quorum of replicas, get some responses back, use the timestamps to figure out which is the more recent value in the responses and return that value from get request.
+so if you remember what we discussed back then, this was in the context of read and write quorums, so if you have a client that wants to write some value v1 to some object x, it can make this write request to a quorum of replicas if a quorum responds okay, then this set request is successful.
+and then subsequently that same client might make a requests, and send that get request to a quorum of replicas, get some responses back, use the timestamps to figure out which is the more recent value in the responses and return that value from get request.
+
 so what new here in this, notations, now I've got these boxes which indicate the execution time of this particular operation, so when the operation begins, we start by sending out these requests, and then after a quorum of responses have been received, we declare the operation to be finished, so the box here, this rectangle shows the duration of the operation from the client point of view.
 
 
@@ -41,15 +43,166 @@ so what new here in this, notations, now I've got these boxes which indicate the
 =========================================================
 From the client's point of view
 =========================================================
+Focus on client-observable behaviour: when and what an operation returns
+
+Ignore how the replication system is implemented internally
+
+Did operation A finish before operation B started?
+
+-------------------------------------------------------------
+
 now we can actually abstract away all of the internals and this message communication and all of the replicas, and we can define a consistency model purely in terms of what the client sees, so looking at things only from the client's point of view. and this is useful because it means our consistency model is now not tied to one particular implementation of a system or one particular distributed algorithm. we can define the behavior only from the client's point of view regardless of how the internals of this system are implemented.
 
-and so within the execution of each operation, there might be multiple messages sent and received, and we don't care particularly what those messages are exactly, what we do care about here is that this get operation here started after the set operation finished, so there's this time dependence here that the get operation happened later intime than the set operation and therefore we would expect the get operation to see a value of x, that is at least as recent as the value that was written by the previous set operation.
+and so within the execution of each operation, there might be multiple messages sent and received, and we don't care particularly what those messages are exactly, what we do care about here is that "this get operation here" started after "the set operation" finished, so there's this time dependence here that the get operation happened later in time than the set operation and therefore we would expect the get operation to see a value of x, that is at least as recent as the value that was written by the previous set operation.
+-------------------------------------------------------------
 
+
+
+
+Even if the operations are on different nodes?
+-------------------------------------------------------------
 and we can generalize this timing dependency to be not just on a single node but actually across multiple nodes, so we could have the client2 here which starts a get operation, sometime later in time after the set operation by a different client has completed, and again we have this real time dependency here, so under linearizability we expect that this client2 will also see the up-to-date value v1, because that's the behavior we would get if we have a single copy of the data on which all of the operations are atomic.
 
+
+
+-------------------------------------------------------------
+
+
+
+This is not happens-before: we want client 2 to read value written by client 1, even if the clients have not communicated!
+-------------------------------------------------------------
 now this timing dependency here, it looks like the happens before relationship, but it is not the same as happens before as we discussed in previous lectures. so if you remember the way happens before is defined, is it's defined in terms of sending and receiving messages, so if there is some path through our message send and receive graph, so that you can get from one event to the other event, then we have that one event happens before the other event.
 
-so happens before is not defined in terms of real-time, it's defined in terms of message sending and receiving, whereas linearizability is defined in terms of real time so
+so happens before is not defined in terms of real-time, it's defined in terms of message sending and receiving, whereas linearizability is defined in terms of real-time.
+so we're assuming if there is some hypothetical observer, who can see exactly when which operation finished and when which operation started, this observer can tell us whether a certain operation started after another operation finished. and therefore it should be able to observe its operations, it's up to date state. and we have that dependency even if those nodes did not communicate.
+so even here, client 1 might not send a message to client 2 at all, but nevertheless, we have this real-time timing dependency between the two operations, because this operation by client 2 definitely happened later in time than client 1's operation.
+
+
+=========================================================
+Operations overlapping in time
+=========================================================
+Client 2's get operation overlaps in time with client 1's set operation
+
+Maybe the set operation takes effect first?
+
+Just as likely, the get operation may be executed first
+
+
+Either outcome is fine in this case
+-------------------------------------------------
+on the other hand, if the two operations overlap in real time, then they can take effect in either order.
+
+so in this case here for example, we might have the set operation taking effect first, and then get the operation taking effect second in which case the get operation will return the value v1.
+but it could just as well be the other way round, so it could be that the get operation takes effect first, then the set operation second, and both of these two behaviors are absolutely fine under linearizability.
+
+because linearizability says that the time when an operation takes effect must be some time after it started and before the operation finished. so sometime somewhere with this rectangle has to be the moment in time when the operation takes effect atomically, but we don't know where exactly within this rectangle, because we don't know what the exact network latency is going to be.
+and so in this particular case where two operations overlap in time, they can be ordered either way. but if they do not overlap in time, so one operation finished before the other started, then we have this timing dependency under linearizability that tells us what value we must read.
+
+
+### todo: linearizability 到底有没有要求所有的操作都有时间先后顺序?目测没有, 不然也不会考虑overlapping的问题
+
+
+=========================================================
+Not linearizable, despite quorum reads/writes(1)
+=========================================================
+so we talked about read after write consistency, and that is ensured using quorum writes and quorum reads.
+and you might wonder if those quorum reads and writes are sufficient in order to ensure linearizability. and the answser is no, interestingly, it's not sufficient to ensure a linearizability just to have these quorum reads and writes.
+and I'm going to show you with an example why that is the case.
+
+so in this example here, we have first of all a set operation by client 1.
+so as before, client 1 wants to set the value of x to be v1, and so it sends this set request to all three of replicas, and let's just assume for now that for some reason the request to replica A goes through very quickly. but there's a network delay in communicating that request to B and C, so eventually B and C will get updated with the value v1, but right now only replica A can see the value v1, just because of the way the network happened to time things.
+
+now client 2 starts and makes a get request, and it requests the value of x from a quorum, it gets a response from a quorum consisting of replicas A and B, and it's going to compare the timestamps as usual, and it's going to see that v1 is the more up-to-date value and so it's going to return value v1 from this get request.
+
+next, client 3 comes along, and client 3 also wants to read the value of x. it sends a get request to the nodes, it receives a quorum of responses. in this case, it happens to get response from nodes b and c, now this is also a valid quorum, so this is fine, but it happens that b and c, neither of them has seen that up to date value v1 yet. because so far, a value v1 is only on replica A but not on B and C.
+so client 3 is going to only see the value v0, it is not aware of v1, now after this has happened, now client 1's set operation reaches replicas B and C, so now replicas B and C get updated, and they respond okay. so all of these requests here satisfy the quorum condition, so all of them have acknowledgement from a quorum of nodes, and you know there are no errors happening here.
+
+
+=========================================================
+Not linearizable, despite quorum reads/writes(2)
+=========================================================
+
+Client 2's operation finishes before client 3's operation starts
+
+Linearizability therefore requires client 3's operation to observe a state no older than client 2's operation
+
+This example violates linearizability because Vo is older than V1
+---------------------------------------------------------
+
+
+but nevertheless you can see that we have these two get requests from client 2 and client 3, and we have a real time dependency between these two requests, because client 3's requests started later than client 2's requests finished, so as before, we have this real-time dependency between these two operations, and linerizability is not only about this dependency between set and get operations, but also from one get operation to another get operation.
+and so as before, we would expect here under linearizability, we would expect client 3 to read a value that is no older than the value read by client 2, so we expect this to return v1, when in fact it returned v0 and so this is a violation of linearizability.
+
+
+
+now you might wondering can we fix this, can we fix this quorum read and write algorithm in order to make it linearizable under all circumstances, and the answer is yes, we can do that, and it works like this.
+=========================================================
+Not linearizable, despite quorum reads/writes(3)
+=========================================================
+so first of all, the set operation from client 1 that's exactly the same as it was before, so it gets sent immediately to A, and it's delayed on it's way to B and C, that's fine.
+and next, client 2. so client 2 as before, sends a get request gets back responses from q quorum consisting of a and b, it decides that v1 is the newer value based on the timestamp, but now we don't just return v1 immediately, but client 2 now knows that replica b has an outdated value, and client 2 doesn't know what the value on replica c is, and it might be outdated as well, so what client 2 is going to do is now it's going to resend the set request to any replicas that did not have the latest value, so in this case, it's going to send the value v1 along with original timestamp t1, it's going to send that two replicas B and C, and it's going to wait for at least one of them to respond, in this case it's waiting for both of them to respond, but one of them is enough, so if one of the two responds, now client two knows that the value v1 is present on a quorum of replicas at the time when this get request finishes. and because client 2 now knows that the value v1 is present on the quorum, therefore any subsequent get request that gets values from a quorum will also see that up to date value, so here what we have to do this is what I call read repair in a previous lecture, so that is the clients taking a role in distributing the updated value to the other replicas, and here as long as the client 2 does not immediately return from the get request, but it has to wait until it is sure that the new value has reached a quorum of replicas, then it's allowed to return, and if we do that additional round of read repair as part of a get request, then the algorithm becomes linearizable.
+so in this case now, finally we have the response going to client one, and in this case everyone is happy, in this case client 3 is going to see the value v1, it's assured to see that, so this gives us linearizability for get and set requests.
+
+
+
+
+
+
+=========================================================
+Linearizability for different types of operation
+=========================================================
+This ensures linearizability of get (quorum read) and set (blind write to quorum)
+
+    When an operation finishes, the value read/written is stored on a quorum of replicas
+    Every subsequent quorum operation will see that value
+---------------------------------------------------------
+
+in this case we do the get by doing a quorum read with read repair. and a set request is what we might call a blind write, so the set request just overwrites whatever the value of this object is, it doesn't like conditionally overwrite, it's just an unconditional overwrite its value with whatever it's with whatever the current value is just overwrite it with a new value. and this algorithm here it's called abd algorithm is enough to ensure linearizability of these requests. however what might happen is if multiple clients are concurrently writing to the same object, then those might overwrite each other, so there's no coordination between the writes. we will be sure that they all end up with the same value across all of the replicas, but you might have a conflict due to two concurrent rights.
+so one other thing you might want is a compare and swap operation, so remember this again from the first half of this course on concurrent systems, a compare and swap operation is often built into cpus as an atomic instruction, which allows you to set the value of some memory location to some new value only if its old value is some particular value, and it does this atomically so even if multiple threads are concurrently executing these compare and swap operations, only one of them is going to succeed, so it's not going to allow concurrent context switches between like the checking of the old value and the setting of the new value.
+and you might wonder, can we do the same thing, can we do a linearizable compare and swap operation in a distributed system, and the answer is actually "yes, we can", but we have to use a different algorithm from the quorum reads and writes that we just did. we can instead use total order broadcast again, so once again total order broadcast comes to the rescue
+
+
+
+and this algorithm fits on just one slide, it's quite simple.
+the way we can implement a linearizable compare and swap operation, and a linearizable get operation using total-order broadcast.
+=========================================================
+Linearizable compare-and-swap (CAS)
+=========================================================
+on request to perform get(x) do
+    total order broadcast (get, x) and wait for delivery
+end on
+------------------------------------------------------
+if we want to do a get operation, we're going to make a message saying get x, and we're going to total all the broadcast stack to all of the nodes, and we're not going to respond immediately, we're going to wait for that message to be delivered by total order broadcast.
+
+------------------------------------------------------
+on request to perform CAS(x, old, new) do
+    total order broadcast (CAS, x, old, new) and wait for delivery
+end on
+------------------------------------------------------
+likewise, if we want to do an atomic compare and swap operation, we're just going to package that operation up as a message, distributed via total order broadcast, and wait for that message to be delivered.
+
+
+------------------------------------------------------
+on delivering (get, x) by total order broadcast do
+    return localState[x] as result of operation get(x)
+end on
+------------------------------------------------------
+now when one of the get messages is delivered by total order broadcast, well, remember what total order broadcast, does it just ensures delivery of the same messages in the same order, so therefore all replicas are going to receive the requests and receive these messages in the same order, so therefore, here now when that message is delivered, we can just read the local state, read the value of x, and return that current value as the result of this get operation.
+
+------------------------------------------------------
+on delivering (CAS, x, old, new) by total order broadcast do
+    success := false
+    if localState[x] = old then
+        localState[x] := new; success := true
+    end if
+    return success as result of operation CAS(x, old, new)
+end on
+------------------------------------------------------
+and likewise if we receive a cas message for compare and swap from total-order broadcast, then we just do the straightforward compare and swap algorithm so if the existing state is the old value that we want, then we set it to the new value, and we return success being true, otherwise we don't change anything and we return success being false. and we return this as the result of the compare and swap operation.
+
+
+
+and you know this is very simple, but because total-order broadcast essentially gives us this kind of single threaded view that all of the operations are delivered in the same total order on all of the nodes. what we have here is essentially the same as state machine replication, we're going to ensure that the get operations get the same result on each replica, the compare and swap operations have the same effect on every replica. and so here we get linearizability, we get these linearizable operations by building on total order broadcast, which i think is a very neat construction.
 
 
 
