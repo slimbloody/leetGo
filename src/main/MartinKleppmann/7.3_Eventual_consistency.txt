@@ -1,0 +1,45 @@
+so we've talked about linearizability as one possible consistency model for distributed systems, which is a very strong consistency model, and we said it has the very appealing property that is actually makes a replicated system look as if it were not replicated, it looks as if there was only a single copy of the data and all of the operations on it are atomic, which makes linearizablity a very easy to use consistency model. you basically don't have to think about the fact that your system is distributed, and it just kind of works in the way you might expect.
+unfortunately, it comes at a price as well, so linearizability is not actually suitable in all possible circumstances for several reasons.
+one possible reason is that it's actually quite expensive to implement.
+if you look at the protocols that we discussed there are lots of messages going back and forth, lots of waiting for responses probably something like around two-round trips for most requests. so you know it's just going to be a bit slow basically.
+
+another limitation is the scalability potentially depends a bit on the exact algorithm you're using but if you're using a consensus algorithm like raft for example, all of the updates have to be sequenced through the leader, so there's a single node that all of the updates have to flow through, and so you are limited by the capacity of that one node in this kind of system that one leader node can become a bottleneck.
+
+and what is perhaps the deepest problem with linearizability, and such strong consistency models is problems with availability, and that is every operation that you do needs to contact a quorum of nodes, and that means if you can't contact a quorum of nodes for whatever reason, maybe you're disconnected on the network, or so you can't process any operations, neither reading or writing is possible, if you can't contact a quorum of nodes. and that's why alternative consistency models have been developed which have different trade-offs, which are better in some regards and worse in other regards. and the one that we will look at in this section is called eventually consistency
+
+============================================
+Eventual consistency
+============================================
+Linearizability advantages:
+    Makes a distributed system behave as if it were non-distributed
+    Simple for applications to use
+
+Downsides:
+    Performance cost: lots of messages and waiting for responses
+    Scalability limits: leader can be a bottleneck
+    Availability problems: if you can't contact a quorum of nodes, you can t process any operations
+
+Eventual consistency: a weaker model than linearizability.
+Different trade-off choices.
+
+============================================
+Calendar app example
+============================================
+as an example, let's consider a calendar app.
+so here I have on the left hand side, the calendar app running on my computer, and on the right hand side the calendar app running on my phone. and you all know how this works, I can add an event on the left hand side say "distributed systems lecture", and this will sync within a couple of seconds over to the phone on the right hand side. so then, the same event should appear there, here we go.
+and similarly, I can add an event on the phone, and this should sync over to the computer, now what we've got here if you think about it is a replicated system, we've got a copy of the calendar on my computer, and another copy of calendar on my phone, and these two replicas are independent from each other in the sense that I can put my phone into airplane mode, and now I have prevented any communication from the between these two devices from happening, and so I could, for example, on my computer now change the time of the distributed systems lecture to 10.a.m, and this won't sync over to my phone because my phone is unable to communicate, and let's say on my phone I change the title, to say "distributed system lecture one"
+3:36
+
+
+
+
+
+
+
+
+
+
+
+
+
+
