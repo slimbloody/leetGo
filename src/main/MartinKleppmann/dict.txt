@@ -628,3 +628,18 @@ unanimity
 英 [ˌjuːnəˈnɪməti]  美 [ˌjuːnəˈnɪməti]
 n. 同意，全体一致
 
+premise
+英/ ˈpremɪs / 美/ ˈpremɪs /
+n.
+前提，假设；（企业或机构使用的）房屋及土地（premises）；上述各项
+v.
+以……为基础，以……为前提；预先提出，事先提到；<古>声明，说明
+
+convergence
+英/ kənˈvɜːdʒəns / 美/ kənˈvɜːrdʒəns /
+简明柯林斯
+n. 趋同；汇集，相交；会聚区；收敛（性）
+
+reducible
+英 / rɪˈdjuːsəbl / 美 / rɪˈduːsəbl /
+adj.[数] 可约的，可化简的；可还原的；可缩小的
