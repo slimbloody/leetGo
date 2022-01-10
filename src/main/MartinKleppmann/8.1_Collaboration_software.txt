@@ -1,3 +1,4 @@
+this lecture we are going to look at some case studies of example applications, real world software, that uses the distributed systems concepts that we've seen in this course, and in particular that has interesting problems to deal with around concurrency.
 ========================================
 Lecture 8: Concurrency control in applications
 ==========================
@@ -19,32 +20,58 @@ Families of algorithms:
         State-based
     2. Operational Transformation (OT)
 ((CRDTs) they come in two flavors further operation based. on state base)
+-------------------------------------------------
+So I'd like to start with collaboration software, so this is a fairly broad category of collaborations of software, but you've probably used things like this before, what I have in mind are things like google docs where you can have several people editing a document at the same time, or the calendar sync example in the last lecture where I can update some events on one device and have those synchronized over to another device, and many other applications that have this kind of similar collaboration built in nowadays, because it's just so useful to be able to work on something with your colleagues without having to email files back and forth for example.
+so what these applications have in common is that there are several users, each user using some device to access some shared file or document or database, each of these devices has its own local copy of the data that it's working on, this might just be an in-memory, but we can still call it a replica of this shared data, and each user is able to update the replica of their own copy of this document, be it in their web browser or in a mobile app or something like that, the user can update this data anytime whenever they like. even if they're  disconnected from the internet ideally, and then sometime later when they have an internet connection again, then they will sync back with the server and with any other clients that have a copy of this document.
+now the challenge in this is we can have several people concurrently updating the same document, and we have to somehow reconcile those concurrent updates and make sure that everyone ends up in a consistent state, and so that the software continues working as we might expect.
+and there are two main families that are of algorithms that are used in order to implement this type of software, one is conflict-free replicated data types(or CRDTs for short), adn they come in two flavors further operation, based on state, base as I will explain shortly.
+and a second family of algorithms is called operational transformation and you will see an example of that as well.
 
 
 
+==================================================
+Conflicts due to concurrent updates
+==================================================
+so let's start with the example from the last lecture where I showed the calendar sync example, so I had my phone and my laptop, I had an event in my calendar saying a lecture on a certain date at a certain time, and these two devices were disconnected from each other because I put my phone into aeroplane mode.
+now let's say that on the computer, I update the title from "lecture" to "lecture 1", and while these two devices are disconnected concurrently, I update the time of the lecture on my phone to be 10 o'clock, and now we have these two concurrent updates.
+and sometime later the network is restored and these two device want to sync, and we want to ensure that at the end we have the same information on both devices that these devices converge, and ideally we would also like to not lose any data in the process. and so in this example, we have kept the update of the title saying "lecture 1" and we have kept the update of the time to say 10 a.m., and those two things have been merged together into a single update.
 
+
+so let's look at some algorithms that can achieve this
 ===========================================
 Operation-based map CRDT
 ===========================================
+conflict-free replicated data types(or CRDTs) are one of the types of algorithms you can use here, and this is an example of what is called an operation based CRDT, the data model of this is a map, so it's just like a map object that you might have in java also, you have this object oriented interface that you're using in order to represent your data, and in this case, the data type that we have is a map from keys to values.
+so keys and values are not further interpreted, they can be strings or they could be numbers or whatever we like, and the only property that we want to hear ensure is that for a given key is exactly one value, and we can achieve this using the last writer wins approach that we saw in a previous lecture, and so the way you might do this is as follows:
 -------------------------------------------------
 on initialisation do
     values := {} .
 end on
 -------------------------------------------------
+so let's say, when a replica initializes, it just sets up its own state to be this variable values, which is just an empty set, and this set here is going to contain mappings from keys to values, and each mapping from a key to a value is also got an associated timestamp, we can use a logical timestamp here, like a lamport timestamp, and this will help us figure out if there's several concurrent updates, which one is the more recent value.
 
 -------------------------------------------------
 on request to read value for key k do
-    if ∃t,v. (t,k,v) ∈ values then return U else return null
+    if ∃ t,v. (t,k,v) ∈ values then return U else return null
 end on
 -------------------------------------------------
+when we want to read the value for a given key, we just look for any entries in this set values, the entries are these triples of timestamp, key and value. so we look for any entry here for the given key, with any timestamp at any value.
+and if it exists, we return that value v; and if it does not exist, we just return null saying there is no entry for that key in the map.
+this here works on the assumption for a given key there is at most one element in this map which the rest of the algorithm does ensure that particular invariant.
 
 -------------------------------------------------
-on request to set key k to value U do
+on request to set key k to value v do
     t := newTimestamp()      => globally unique, e.g. Lamport timestamp
     broadcast (set, t, k, v) by reliable broadcast (including to self)
 end on
 -------------------------------------------------
+so now if we want to update the map, the way we can do that is as follows, so let's say we want to set the key k to the value v.
+first of all, we make a new timestamp, and we can use a lamport timestamp for example, for that, what we do require is that this timestamp is globally unique, so any two nodes generating timestamps will not generate an identical timestamp, and if you remember the way we can do that with lamport timestamps is by including the node id of the node that generated a particular timestamp, and that will make it globally unique.
+so we're assuming this is just t, the timestamp, and now we're going to take the key and the value that we wanted to set and that timestamp that we just generated packed this all together into a message, and sent that by a reliable broadcast, so remember that reliable broadcast means as long as any two nodes are not crashed, then they will delivery eventually the same set of messages, but we're not making any guarantees about the order in which those messages get delivered.
 
+
+
+and in particular this broadcast will also be delivered to the node that sent it itself, and that's what happens here.
 -------------------------------------------------
 on delivering (set, t, k, v) by reliable broadcast do
     previous := {(t',k',o') ∈ values | k' = k}
@@ -53,10 +80,80 @@ on delivering (set, t, k, v) by reliable broadcast do
     end if
 end on
 -------------------------------------------------
+so when we deliver one of these messages here via reliable broadcast, first of all we figure out are there any existing values in our set of values for the same key k. so we find any entries in this where the key of the entry equals the key of the update that we're making, and we set that to previous.
+
+and so now this could be an empty set, if there is no existing value for the key k, in which case we go ahead.
+also we look at the timestamp of any previous value, so there is a previous value, for this particular k with a timestamp t', and if that timestamp t' is less then the timestamp t of the incoming update, then we overwrite it, so if this is the case that either there is no previous value, or the previous value has a lower timestamp, then we're going to remove the previous value from the set of values, and we're going to add the new mapping from k to v with timestamp t to the set of values, now this ensures that there is exact up to one entry in the set of values for a given key, and so therefore, this for all here, actually just means it's matching one particular item in the set if it exists.
 
 
 
 
+=================================================
+Operation-based CRDTs
+=================================================
+Reliable broadcast may deliver updates in any order:
+    broadcast (set, t1,“title" , "Lecture 1")
+    broadcast (set, t2,“time" ,“10:00”)
+
+-------------------------------------------------
+and you know this is enough to ensure a strong eventual consistency. so the way that this algorithm works as I said by broadcasting just these messages, and the messages describe what key is that's being updated, and what is the new value being associated with that key, and so in our calendar example, the key might be the field name, so title or name or date, and the value were associated with that particular field.
+-------------------------------------------------
+
+-------------------------------------------------
+Recall strong eventual consistency:
+    Eventual delivery: every update made to one non-faulty replica is eventually processed by every non-faulty replica.
+    Convergence: any two replicas that have processed the same set of updates are in the same state
+-------------------------------------------------
+
+now remember what we talked about the concept of strong eventual consistency, this is exactly the consistency model that we want to ensure in an application like this. and strong eventual consistency consists of two properties.
+first of all, we want that every update is eventually delivered by every replica as long as that replica is not crashed.
+and secondly, any two replicas that have processed the same updates must be in the same state
+
+-------------------------------------------------
+CRDT algorithm implements this:
+    Reliable broadcast ensures every operation is eventually delivered to every (non-crashed) replica
+-------------------------------------------------
+now the way we achieve the eventual delivery in this CRDT algorithm that I just showed you, is by using reliable broadcasts, and this is exactly what reliable broadcast ensures, it ensures that any two non-crashed nodes will eventually deliver the same set of messages.
+furthermore, the process for updating a replica state when it delivers one of these messages by reliable broadcast, this process is commutative, and which means that we can apply these various operations here in any order, and the final outcome will be the same, so this might require a little bit of thinking, and there's an exercise in the lecture notes, asking you to actually prove for this particular algorithm, that the process of applying an operation really is commutative.
+now, this is called an operation-based CRDT, it's an example of an operation based CRDT, because the things that we're broadcasting are operations, so it's one operation at a time in each broadcast, so this does require the broadcast to be reliable, because otherwise you know, if you're missing a message then you will never end up in a consistent state with the other nodes necessarily.
+
+
+
+
+there's an alternative construction for CRDTs
+=====================================================
+State-based map CRDT
+=====================================================
+The operator U merges two states 81 and 82 as follows:
+s1 ∪ s2= {(t,k,v) ∈ (s1 ∪ s2) | (t', K', v') ∄ (s1 ∪ s2). k'= k ∧ t' > t}
+
+---------------------------------------------
+on initialisation do
+    values := {}
+end on
+---------------------------------------------
+
+---------------------------------------------
+on request to read value for key k do
+    if ∃t,v. (t,k,v) ∈ values then return v else return null
+end on
+---------------------------------------------
+
+---------------------------------------------
+on request to set key k to value U do
+    t := newTimestamp()     => globally unique, e.g. Lamport timestamp
+    values:= {(t',k',v') ∈ values | k' ≠ k} U {(t,k,v)}
+    broadcast `values` by best-effort broadcast
+end on
+
+---------------------------------------------
+
+
+---------------------------------------------
+on delivering V by best effort broadcast do
+    values := values U V
+end on
+---------------------------------------------
 
 
 
