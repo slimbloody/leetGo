@@ -107,6 +107,7 @@ Recall strong eventual consistency:
 
 now remember what we talked about the concept of strong eventual consistency, this is exactly the consistency model that we want to ensure in an application like this. and strong eventual consistency consists of two properties.
 first of all, we want that every update is eventually delivered by every replica as long as that replica is not crashed.
+
 and secondly, any two replicas that have processed the same updates must be in the same state
 
 -------------------------------------------------
@@ -120,42 +121,100 @@ now, this is called an operation-based CRDT, it's an example of an operation bas
 
 
 
-there's an alternative construction for CRDTs
+there's an alternative construction for CRDTs that we can use, which is called a state-based construction, and here's an example of exactly the same map data type, but implemented in a state-based way rather than in an operation based way.
 =====================================================
 State-based map CRDT
 =====================================================
 The operator U merges two states 81 and 82 as follows:
-s1 ∪ s2= {(t,k,v) ∈ (s1 ∪ s2) | (t', K', v') ∄ (s1 ∪ s2). k'= k ∧ t' > t}
+s1 ∪ s2 = {(t,k,v) ∈ (s1 ∪ s2) | (t', K', v') ∄ (s1 ∪ s2). k'= k ∧ t' > t}
+---------------------------------------------
+And so with a state-based CRDT, you always have a merge operator or this merge function which is usually written like a set union operator, but square rather than round.
+this merge operator here must satisfy several properties that I will explain on the next slide, and in this particular algorithm, we will define the merge operator like this. so the merge operator is going to take two sets of values in this case s1 and s2, these are sets of values of exactly the same form as we had in the operation based version that is their triples of timestamp key and value.
+and in order to merge these two sets of values, we're going to take the set union of s1 and s2, take all of the triples in there, and then for every given key, we're going to keep only the value with the highest timestamp, and we're going to throw away any older timestamps for that particular key, and that's implemented by this logic here, so for every given triple, we keep only those where there does not exist another triple in the same set that has the same key but a higher timestamp, and the effect of this is that we keep only the highest timestamp for every given key.
 
+
+so given this merge operator here, now the rest of the algorithm this looks kind of familiar.
 ---------------------------------------------
 on initialisation do
     values := {}
 end on
 ---------------------------------------------
+so the initialization is exactly the same, we initialize values to be the empty set
 
 ---------------------------------------------
 on request to read value for key k do
     if ∃t,v. (t,k,v) ∈ values then return v else return null
 end on
 ---------------------------------------------
+the process of reading a key is exactly the same as previously, so that is given a key we try and find any triple with that key in the set values, and we return the value from that triple if it exists
 
 ---------------------------------------------
 on request to set key k to value U do
     t := newTimestamp()     => globally unique, e.g. Lamport timestamp
-    values:= {(t',k',v') ∈ values | k' ≠ k} U {(t,k,v)}
+    values:= {(t',k',v') ∈ values | k' ≠ k} ∪ {(t,k,v)}
     broadcast `values` by best-effort broadcast
 end on
-
 ---------------------------------------------
-
+now the process for updating the value for a given key, this is different, and so here, as before, we generate a new timestamp can be a lamport timestamp as before.
+and now, rather than broadcasting this operation, we're just going to update the set of values directly, and so we're going to update it in such a way that given the set of values we remove any existing entries with the same key k, which may be none if there is no previous entry. but whatever current entry with key k exists, we're going to remove it, and then we're going to add this new triple with the new timestamp, the new key and the new value, we're going to add that to a set of values.
+and now, we're going to broadcast this entire set of values to any other replicas, so rather than broadcasting the operation, we're broadcasting the entire state of the replica, which is here this value `values`.
+and this is why it's called state-based CRDT because the thing we're broadcasting are these values.
 
 ---------------------------------------------
 on delivering V by best effort broadcast do
-    values := values U V
+    values := values ∪ V
 end on
 ---------------------------------------------
+and now when this set of values capital v(V) here is delivered, we use the merge function in order to merge that with the recipient's set of values, and so this means you know you've got these sets of values flying around, which may be delivered in arbitrary orders, and the end result is just we keep each replica when it receives one of these set of values, it just merges it into its own local state, and as a result, it keeps just maintaining the state that is the latest version of whatever has been flying around.
+
+so the interesting thing to note here, is that I said that we can broadcast by ###best effort broadcast### rather than by reliable broadcast, and this is indeed a distinction between the state-based approach and operation based approach as we will see in a moment.
 
 
+====================================================
+State-based CRDTs
+====================================================
+Merge operator ∪ must satisfy: ∀ s1, S2, s3...
+    Commutative: s1 ∪ S2= s2 ∪ s1
+    Associative: (S1 ∪ S2) ∪ S3= s1 ∪ (S2 ∪ s3)
+    Idempotent: s1 ∪ s1 = s1
+
+---------------------------------------------
+
+so first of all about this merge operator, so this merge operator, for it to work correctly, it must satisfy several conditions:
+it must be commutative, which means we can swap around the order;
+must be associative, which means you can swap around the brackets;
+and it must be idempotent which is the behavior that as we saw before, you can merge a state with itself, and that does not change anything.
+
+and if we have a merge operator that satisfies these constructions, then we can build a state-based CRDT out of it, simply by broadcasting the states, and merging them whenever we receive the state from another replica
+
+
+
+---------------------------------------------
+State-based versus operation- based:
+    Op-based CRDT typically has smaller messages
+    State-based CRDT can tolerate message loss/duplication
+---------------------------------------------
+now there's a trade-off here between operation based and state-based CRDTs.
+so as we saw with the operation based CRDTs, the broadcast message contain just a single operation, so those messages containing just one operation are usually quite small, so they're quite efficient in terms of network traffic, because compared to the state-based approach, where a replica needs to broadcast its entire state that might be a much bigger amount of data imagine a key value mapping that has lots of keys in it. you're going to be sending all of the keys and all of the values associated with them in every single message, so here the advantage of the operation based approach is that it has smaller messages typically.
+state-based approach has larger messages, but it can tolerate messages being lost, and this is quite interesting here, it can also tolerate duplication, duplication is easy because we have idempotent in the merge function, therefore, if you receive duplicates, you'll just do nothing. but even with message loss, it can tolerate this, because the entire state is encoded in every single message. so if you miss a message somewhere along the way, as long as you receive some later messages, that later message will supersede any previous messages anyway. and this actually ensures then that you will get convergence of the replicas, even if you've missed some of the messages in the middle. and so this is quite nice now, because with state-based CRDTs, you don't need to involve the costs of a reliable broadcast protocol, because the CRDT itself can deal with unreliability. of course if no messages are ever delivered, then it won't converge, but as long as eventually messages, some of the messages get through, then you can still get convergence properties.
+
+
+
+-----------------------------------------------------------------------------
+Not necessarily uses broadcast:
+    Can also merge concurrent updates to replicas e.g. in quorum replication, anti-entropy,
+-----------------------------------------------------------------------------
+another nice thing about state-based with CRDTs is here, I wrote it with a based on a replication protocol based on broadcast, but you can actually use it in other forms of replication as well, where it's not actually a broadcast protocol, but if you remember back lecture 5, I think it was on replication. we had these ideas of quorum replication where a client sends an update to a quorum of replicas, and then maybe the replica have an anti-entropy protocol amongst themselves, in order to try and resolve any differences in the updates that they've seen, and state-based CRDTs work very well in this particular setting as well, where you've got these replicas that want to exchange their updates through some kind of anti-entropy protocol.
+
+so this has been an example of a map CRDT, so our data type was a map from keys to values, we can construct this kind of concurrency control, for other types of applications and other data types as well.
+
+=============================
+collaborative text editor
+=============================
+and so one interesting one to consider are collaborative text editor like google docs.
+
+so let me give you an actual demo of this, I think this makes a bit more interesting, so I have here two windows of google docs, and you can see if I type in one of them disappears in the other window, and you can see if I type in one of them disappears in the other window, I can go down here and I can add a smiley(:-)) and this will appear in the top window as well. you know so far this is probably familiar you're probably used this kind of software before. now the interesting thing is what happens if these devices get disconnected from each other for a little while. so let's set things up like this, so I write the word to here, and I'm going to go into my network settings, I'm going to fiddle with the network to drop all of the network packets. and so now these two apps will still work, and at the top I can type "one two", and at the bottom I can type "two three", and google docs hasn't realized yet that my network is disconnected, so it's just happily letting me type here, but you can see that the two copies of the document have diverged, so they are ended up being temporarily inconsistent with each other.
+and as the network connection is repaired, we will want those to end up back in a consistent state,
 
 
 
