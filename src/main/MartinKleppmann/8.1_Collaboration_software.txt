@@ -214,11 +214,19 @@ collaborative text editor
 and so one interesting one to consider are collaborative text editor like google docs.
 
 so let me give you an actual demo of this, I think this makes a bit more interesting, so I have here two windows of google docs, and you can see if I type in one of them disappears in the other window, and you can see if I type in one of them disappears in the other window, I can go down here and I can add a smiley(:-)) and this will appear in the top window as well. you know so far this is probably familiar you're probably used this kind of software before. now the interesting thing is what happens if these devices get disconnected from each other for a little while. so let's set things up like this, so I write the word to here, and I'm going to go into my network settings, I'm going to fiddle with the network to drop all of the network packets. and so now these two apps will still work, and at the top I can type "one two", and at the bottom I can type "two three", and google docs hasn't realized yet that my network is disconnected, so it's just happily letting me type here, but you can see that the two copies of the document have diverged, so they are ended up being temporarily inconsistent with each other.
-and as the network connection is repaired, we will want those to end up back in a consistent state,
+and as the network connection is repaired, we will want those to end up back in a consistent state, so let's say I repair the network, and you can see exactly what has happens, so google doc has been able to merge these updates, so the addition of one has gone down and been added to the lower document and the addition of three has been added to the top document, so we ended up with "one two three" as the merged result automatically, you know we didn't have to do any conflict resolution here, or do anything particular, google docs just figured out by itself what we wanted, and just gave us the merged document automatically, so let's look at some algorithms that can achieve this kind of collaborative editing,
 
 
 
+and let me show you by an example, the problem that arises when we try to build this kind of collaborative editing software.
+==========================================================
+Collaborative text editing: the problem
+==========================================================
+so let's say we here have got a document consisting of two characters B and C, and we're going to allow users to edit this document by inserting and deleting characters, and we're just going to deal with the document one character at a time, just like google docs, you know every single keystroke adds or deletes oen character in the document typically, and so we've got user a and b, they start off with this in the same state with a document containing b at index 0, and c at index 1.
 
+now let's say on user A wants to insert letter A at index 0 at this document. and result then of course is that b ends up at index 1, and c index ends up at index 2, so the indexes get moved along by 1.
+
+let's say concurrently while this is happening, the user B wants to insert the letter D at the end of the document. so this is just like the example I just showed you with google docs with the one two three, except with individual letters, and so here, letter D gets inserted at index two as we expect, now
 
 
 

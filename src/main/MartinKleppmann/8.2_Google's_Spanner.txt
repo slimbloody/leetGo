@@ -1,25 +1,47 @@
-so we've talked about these eventually consistent systems, for the last section, let's switch back to very strongly consistent systems,
+
+so we've talked about these eventually consistent systems, for the last section, let's switch back to very strongly consistent systems.
 
 =====================================
 Google's Spanner
 =====================================
 A database system with millions of nodes, petabytes of data, distributed across datacenters worldwide(spread all around the globe) (despite this huge scale, we want to achieve very strong consistency properties in this database)
+------------------------------------------------------------------
+and what I'd like to tell you about is a very interesting database system developed by google called Spanner. This is a very large-scale database systems, it's intended to be used with huge amounts of data with millions of nodes, spread all around the globe, despite this huge scale, we want to achieve very strong consistency properties in this database.
+in particular, the classic that we've seen, we want serializable transaction isolation, the strongest isolation we can get. we want linearizability for reads and writes that means we're always going to see an up-to-date value from any value written.
 
 
+------------------------------------------------------------------
 Consistency properties:
     1. Serializable: transaction isolation(strongest isolation we can get)
     2. Linearizable: reads and writes(we're always going to see an up-to-date value from any value written)
     3. Many shards, each holding a subset of the data; atomic commit of transactions across shards
+------------------------------------------------------------------
+moreover, we need to support sharding which means that this huge amount of data which is far too much to store on a single node, we have to split into subsets of data, each node has a replica of a subset of the data.
+so that now you can distribute the data across all of these different nodes, but this now means that you might have a transaction needs to read and write data on multiple nodes. and if this happens, distribute a transaction like this, we need atomic commit, so that any changes made by a transaction will either be committed on all of the nodes or aborted on all of nodes.
 
-we need to support sharding which means that this huge amount of data which is far too much to store on a single node, we have to split into subsets of data of each node has a replica of a subset of the data, so that now you can distribute the data across all of these different nodes, but this now means that you might have a transaction needs to read and write on multiple nodes, and if this happens, distribute a transaction like this, we need atomic commit so that any changes made by a transaction will either be committed on all of the nodes or aborted on all of nodes. so all of these classic properties we want and a lot of the techniques that Spanner uses to implement these properties are equally classic standard algorithms.
-in order to replicate the nodes within a shard it uses state machine replication, it uses the Paxos consensus algorithm rather than raft, but they are reasonably similar and the principle are very much the same.
+------------------------------------------------------------------
+Many standard techniques:
+    State machine replication (Paxos) within a shard
+    Two-phase locking for serializability
+    Two-phase commit for cross shard atomicity
+------------------------------------------------------------------
+so all of these classic properties we want and a lot of the techniques that Spanner uses to implement these properties are equally classic standard algorithms.
+
+in order to replicate the nodes within a shard, it uses state machine replication, it uses the Paxos consensus algorithm rather than raft, but they are reasonably similar and the principle are very much the same.
+
 in order to achieve serializable transaction isolation, we use the classic two-phase locking that means for any reads we take a shared lock on any data we want to read, and for any writes, we'd need to take an exclusive lock on any data that we write and we need to hold those locks until the transaction commits.
+
 Finally in order to achieve atomicity across multiple shards, we do the classic, we do two-phase commit exactly like we saw in the last lecture.
 
-
+------------------------------------------------------------------
 The interesting bit: read-only transactions require no locks!
-two-phase locking means that if you want to read any data you first have to take a shared lock on that data under shared lock is going to prevent any other transactions from updating that data, but now in real systems, you often get very large read-only transactions, so for example taking a database backup is a very large read-only transaction, that needs to read essentially the entire database, that's what a backup i8s, it's a copy of the entire database. and so this backup may take a long time, and if you have to take a shared lock on the entire database for a long time while you're doing a database backup, then users are not going to like that very much because it means that no rights can be made to the database for the entire duration of this backup.
+------------------------------------------------------------------
+so far, implementing all of these things is still a significant engineering challenge but there's nothing conceptually very new here, where spanner gets interesting is that it has support for read-only transactions that take no locks.
+now this is special, because if you remember what two-phase locking means, it means that if you want to read any data you first have to take a shared lock on that data, under shared lock is going to prevent any other transactions from updating that data.
+but now in real systems, you often get very large read-only transactions, so for example taking a database backup is a very large read-only transaction, that needs to read essentially the entire database, that's what a backup is, it's a copy of the entire database. and so this backup may take a long time, and if you have to take a shared lock on the entire database for a long time while you're doing a database backup, then users are not going to like that very much, because it means that no writes can be made to the database for the entire duration of this backup.
 so that would simply not fly in practice, we have to have some way of doing read-only transaction that does not require any locks, and the interesting of spanner is how it enables those kind of read-only transactions
+
+
 
 so the way it works is those kind of read-only transactions can read from what is called a consistent snapshot.
 =========================================
@@ -31,22 +53,26 @@ If T1 -> T2 (e.g. T2 reads data written by T1)...
     Snapshot that does not reflect writes by T1 does not reflect writes by T2 either
     In other words, snapshot is consistent with causality
     Even if read-only transaction runs for a long time
+------------------------------------------------------------------
+consistent snapshot is a way of essentially looking at the entire database at one point in time, and the way it does this is using timestamp.
+now important thing for this consistent snapshot, the consistent aspect is that it means we're consistent with causality, and so what I mean with this is if we have two transactions t1 and t2, and if t1 happened before t2, then if we have a snapshot that contains the writes that were made by t2, then that snapshot must also reflect the writes by t1, that means that we don't end up with some of the causal dependencies missing from the snapshot. likewise, if transaction does not contain the writes by t1, then it will not contain the writes by t2 either. so this goes both ways.
+now this is what we mean with a snapshot being consistent with causality. it just means that we don't have bits of the database snapshot that don't make sense causally. so if the snapshot contains the effect then will also contain the cause of that effect. and so we want to ensure this consistent snapshot even if the read-only transaction runs for a long time, and without taking any locks.
 
+
+
+------------------------------------------------------------------
 Approach: multi-version concurrency control (MVCC)
     1. Each read-write transaction Tw has commit timestamp tw
     2. Every value is tagged with timestamp tw of transaction that wrote it (not overwriting previous value)
     3. Read-only transaction Tr has snapshot timestamp tr
     4. Tr ignores values with tw > tr; observes most recent value with tw < tp
-
-consistent snapshot is a way of essentially looking at the entire database at one point in time, and the way it does this is using timestamp. now important thing for this consistent snapshot, the consistent aspect is that it means we're consistent with causality, and so what I mean with this is if we have two transactions t1 and t2, and if t1 happened before t2, then if we have a snapshot that contains the writes that were made by t2, then that snapshot must also reflect the writes by t1. that means that we don't end up with some of the causal dependencies missing from the snapshot. likewise, if transaction does not contain the writes by t1, then it will not contain the writes by t2 either. so this goes both ways.
-now this is what we mean with a snapshot being consistent with causality. it just means that we don't have bits of the database snapshot that don't make sense causally. so if the snapshot contains the effect then will also contain the cause of that effect. and so we want to ensure this consistent snapshot even if the read-only transaction runs for a long time, and without taking any locks.
-
+------------------------------------------------------------------
 and the way this is done is through approach called multi-version concurrency control(MVCC)
-now MVCC is actually a very common technique it's used in lots of databases.
-the way it works is it attaches a timestamp to every transaction, and let's say that a read/write transaction has a timestamp tw and that timestamp is assigned at the time when that transaction commits. and then that any data that is written by this transaction tw is that any data is associated. it's a tagged with the transaction timestamp with the commit timestamp of the transaction that wrote it.
-and now if we have an object that is being updated by a transaction, we won't simply overwrite that transaction in place, but we will make a new copy of that object, and that new version of the object will be tagged with timestamps tw of the transaction that wrote that version, but we will keep the old version of the object in place, in case there's a read-only transaction that actually needs to read the old version. and now, we associate each read-only transaction, also with a timestamp and that timestamp identifies the snapshot which is the point in time at which that snapshot is observing the database.
+now MVCC is actually a very common technique it's used in lots of databases, including PostGres in mysql for example, the way it works is it attaches a timestamp to every transaction, and let's say that a read-write transaction has a timestamp tw and that timestamp is assigned at the time when that transaction commits. and then  any data that is written by this transaction tw is that any data is associated, it's a tagged with the transaction timestamp with the commit timestamp of the transaction that wrote it.
+and now if we have an object that is being updated by a transaction, we won't simply overwrite that transaction in place, but we will make a new copy of that object, and that new version of the object will be tagged with timestamps tw of the transaction that wrote that version, but we will keep the old version of the object in place, in case there's a read-only transaction that actually needs to read the old version. and now, we associate each read-only transaction also with a timestamp, and that timestamp identifies the snapshot at which is the point in time at which that snapshot is observing the database.
 and now, if the read-only transaction wants to read a particular object, it looks at the different versions of that object, each version tagged with a timestamp, it ignores any versions that have a timestamp greater than the snapshot timestamp, then those versions that have a timestamp less than or equal to the snapshot timestamp, it picks the highest, that is the version of the object that transaction is going to see. and so this now allows the read-only transaction to simply ignore any writes made concurrently. so the read-only transaction is going to see the entire database as of this particular time tr regardless whatever writes happen otherwise and without taking any locks.
 
+now this works, this is very standard MVCC.
 
 what is interesting about the way spanner implements this is the way these timestamps are generated.
 ===================================================
@@ -56,7 +82,7 @@ Must ensure that wheneverT1 -> T2 we have t1 < t2.
     Physical clocks may be ###inconsistent with causality###
     Can we use Lamport clocks instead?
     Problem: linearizability depends on ###real-time order###, and logical clocks may not reflect this!
-
+------------------------------------------------------------------
 in order to ensure that our snapshot is causally consistent, what we require is that if transaction t1 happened before t2, then the timestamp of t1 has to be less then the timestamp of t2. but physical clocks do not guarantee this, so with physical clocks you could end up in a situation where transaction t1 happened before transaction t2, but t2 had a lower timestamp than t1, and we don't want this.
 so we have to take some other measure to ensure that our timestamps are consistent with causality, the obvious answer is why don't we use logical clocks. because that's exactly what logical clocks were designed to do. unfortunately, logical clocks like lamport clock are not sufficient in this case either, and the reason for this is by this particular example.
 let's say we have two replicas a and b, and the user executes some transaction t1 on replica a and then views the results of transaction, so the user has the results on the screen, then the user choose to perform some action, and that action results in some transaction t2 being executed on replica b.
