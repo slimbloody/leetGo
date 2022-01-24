@@ -1,21 +1,25 @@
-I'm going to walk you through the entire raft consensus algorithm for performing total order broadcast
-what I would like you to do through is to carefully understood and understand exactly how and why the algorithm works, because I find that principle of how the raft algorithm works are really instructive for thinking about state in a distributed system more generally.
+In this section, I'm going to walk you through the entire raft consensus algorithm for performing total order broadcast
+what I would like you to do through is to carefully understand exactly how and why the algorithm works, because I find that principle of how the raft algorithm works are really instructive for thinking about state in a distributed system more generally.
 =======================================================
 Node state transitions in Raft
 =======================================================
 the core of the raft algorithm is a state machine where every node can be in what in one of three states either a follower, a candidate, or a leader.
 and the state is always in a certain term, so there's always a certain term number, and a node can be deleted in a particular term.
 
-when a node starts off starts up for the first time, it always goes into the follow-up state, and also if a node crashes and recovers and then when the nodes restarts and recover from the crash, it always goes back into the follower state regardless of which state it was in before the crash.
-however all of the nodes start as followers eventually we need some node become the leader, and the way how a node becomes the leader is by first becoming a candidate. and so when a node detects that there has been no message from a leader for some amount of time a timeout elapses, and then a node will decide that okay it is going to stand as candidate in a particular term number, and it's within that term number, it's going to get votes from the other nodes. and it manages to get positive votes from a quorum of nodes in the system from majority, then it is able to transition into the leader state
+when a node starts up for the first time, it always goes into the follow-up state, and also if a node crashes and recovers and then when the nodes restarts and recovers from the crash, it always goes back into the follower state regardless of which state it was in before the crash.
+
+however all of the nodes start as followers eventually we need some node become the leader, and the way how a node becomes the leader is by first becoming a candidate. and so when a node detects that there has been no message from a leader for some amount of time, a timeout elapses, and then a node will decide that okay it is going to stand as candidate in a particular term number, and it's within that term number, it's going to get votes from the other nodes. and it manages to get positive votes from a quorum of nodes in the system from majority, then it is able to transition into the leader state
+
 however it could also happen that in the process of this election, the candidate discovers that there's a different node with a higher term number, and if it does so, then the candidate immediately steps back becomes follower again, and works with the node that has the higher term number, so a higher term number always take precedence.
+
 it could also happen while a node in candidate state, it's doing the election, but maybe it's not able to communicate with a quorum of replicas right now, or quorum of nodes, and so it's timeout, so it simply doesn't receive a quorum of positive votes within the required time, and if so it will restart its election again with a higher term number, so it remains candidate and starts again with a higher term number.
+
 likewise it could happen if the leader is just doing its leadering job, it might discover that there's a node with a higher term number, perhaps the system has been partitioned, so that some subset of nodes have elected with a new leader with a a higher term number in the meantime, and if so the leader will always step back and become a follower again immediately upon discovering some other node with a higher term number. so we always have a peaceful transition of power in the raft algorithm from the lower term number to the higher term number.
 
+### todo: 如果这个时候step back, 那么之前这个节点走过的路径是不是要回退?重新走新节点走过的路径
 
 
-
-here we start off with usual initialization of variables
+so let's run through the actual code
 ========================================
 Raft (1/9): initialisation
 ========================================
@@ -26,6 +30,11 @@ on initialisation do
     votesReceived := {}; sentLength := <); ack:edLength := <>
 end on
 -------------------------------------------------
+so here we start off with usual initialization of variables, I'm not going to explain every single variable right now, but i will explain the variables as we use them as part of the algorithm, but I will just point out here the first four variables,
+
+currentTerm, votedFor, log and commitLength
+
+these four variables have to be stored in stable storage that is on disk, whereas the remaining five variables they can be in transient storage that they can be lost in the case of a crash. but the first four variable have to be preserved in the case of a crash, and you can see the crash recovery here, so the five remaining variables simply get reset to new fresh state if we recover from a crash,
 
 -------------------------------------------------
 on recovery from crash do
@@ -48,7 +57,6 @@ end on
 
 
 -----------------------------------------------------
-these four variables currentTerm, votedFor, log and commitLength have to be stored in stable storage that is on disk, whereas the remaining five variables they can be in transient storage that they can be lost in the case of a crash. but the first four variable have to be preserved in the case of a crash, and you can see the crash recovery here, so the five remaining variables simply get reset to new fresh state if we recover from a crash,
 
 when a node suspects that the leader has failed, it will become a candidate and it will start an election, that's what happens here, by the way, typically this timeout that the node uses before it suspects a leader to have failed randomized, and the purpose for that is to avoid having lots of nodes all trying to become candidate at the same time which is what would happen if all the nodes start up at the same time, and then have the same timeout before they start an election, so randomizing the timeout reduces the probability of having several elections at the same time.
 so whenever that happens now so the node decides it's time to start an election, it increments the current term, it sets its current role to be the candidates state, and like in every good election everyone votes for themselves in an election, also in raft, the node that has just become a candidate votes for itself by setting this voted for variable to its own node id, and it has this set of node ids in which records the set of votes that it has received in favor of itself as a candidate, and it puts its own node id as the first member of that set of votes received, this variable lastTerm is initially zero, but you can see if the length of the log is greater than zero, then we set this last term variable, so let me explain first what the log is.
