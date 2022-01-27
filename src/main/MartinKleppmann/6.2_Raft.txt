@@ -1,5 +1,5 @@
 In this section, I'm going to walk you through the entire raft consensus algorithm for performing total order broadcast
-what I would like you to do through is to carefully understand exactly how and why the algorithm works, because I find that principle of how the raft algorithm works are really instructive for thinking about state in a distributed system more generally.
+what I would like you to do though, is to carefully understand exactly how and why the algorithm works, because I find that principle of how the raft algorithm works are really instructive for thinking about state in a distributed system more generally.
 =======================================================
 Node state transitions in Raft
 =======================================================
@@ -12,7 +12,7 @@ however all of the nodes start as followers eventually we need some node become 
 
 however it could also happen that in the process of this election, the candidate discovers that there's a different node with a higher term number, and if it does so, then the candidate immediately steps back becomes follower again, and works with the node that has the higher term number, so a higher term number always take precedence.
 
-it could also happen while a node in candidate state, it's doing the election, but maybe it's not able to communicate with a quorum of replicas right now, or quorum of nodes, and so it's timeout, so it simply doesn't receive a quorum of positive votes within the required time, and if so it will restart its election again with a higher term number, so it remains candidate and starts again with a higher term number.
+it could also happen while a node in candidate state, it's doing the election, but maybe it's not able to communicate with a quorum of replicas right now, or quorum of nodes, and so it times out, so it simply doesn't receive a quorum of positive votes within the required time, and if so it will restart its election again with a higher term number, so it remains candidate and starts again with a higher term number.
 
 likewise it could happen if the leader is just doing its leadering job, it might discover that there's a node with a higher term number, perhaps the system has been partitioned, so that some subset of nodes have elected with a new leader with a a higher term number in the meantime, and if so the leader will always step back and become a follower again immediately upon discovering some other node with a higher term number. so we always have a peaceful transition of power in the raft algorithm from the lower term number to the higher term number.
 
@@ -23,6 +23,8 @@ so let's run through the actual code
 ========================================
 Raft (1/9): initialisation
 ========================================
+so here we start off with usual initialization of variables, I'm not going to explain every single variable right now, but i will explain the variables as we use them as part of the algorithm.
+--------------------------------------------------------------
 on initialisation do
     currentTerm := 0; votedFor := null
     log := <>; commitLength := 0
@@ -30,11 +32,6 @@ on initialisation do
     votesReceived := {}; sentLength := <); ack:edLength := <>
 end on
 -------------------------------------------------
-so here we start off with usual initialization of variables, I'm not going to explain every single variable right now, but i will explain the variables as we use them as part of the algorithm, but I will just point out here the first four variables,
-
-currentTerm, votedFor, log and commitLength
-
-these four variables have to be stored in stable storage that is on disk, whereas the remaining five variables they can be in transient storage that they can be lost in the case of a crash. but the first four variable have to be preserved in the case of a crash, and you can see the crash recovery here, so the five remaining variables simply get reset to new fresh state if we recover from a crash,
 
 -------------------------------------------------
 on recovery from crash do
@@ -42,32 +39,94 @@ on recovery from crash do
     votesReceived := {}; sentLength := <>; ackedLength := <>
 end on
 -----------------------------------------------------
+but I will just point out here the first four variables,
+
+currentTerm, votedFor, log and commitLength
+
+these four variables have to be stored in stable storage that is on disk, whereas the remaining five variables they can be in transient storage that they can be lost in the case of a crash. but the first four variable have to be preserved in the case of a crash, and you can see the crash recovery here, so the five remaining variables simply get reset to new fresh state if we recover from a crash
 
 -----------------------------------------------------
 on node nodeId suspects leader has failed, or on election timeout do
     currentTerm := currentTerm + 1; currentRole := candidate
-    votedFor := nodeId; votesReceived := { nodeId}; lastTerm := 0
+    votedFor := nodeId; votesReceived := {nodeId}; lastTerm := 0
     if log.length > 0 then lastTerm := log[log.length - 1].term; end if
-    msg := (VoteRequest, nodeId, current Term, log.length, last Term)
+    msg := (VoteRequest, nodeId, currentTerm, log.length, lastTerm)
     for each node∈nodes: send msg to node
     start election timer
 end on
 -----------------------------------------------------
+when a node suspects that the leader has failed, it will become a candidate and it will start an election, that's what happens here, by the way, typically this timeout that the node uses before it suspects a leader to have failed is ###randomized###, and the purpose for that is to avoid having lots of nodes all trying to become candidate at the same time which is what would happen if all the nodes start up at the same time, and then have the same timeout before they start an election, so randomizing the timeout reduces the probability of having several elections at the same time.
 
-
+so whenever that happens now so the node decides it's time to start an election,
 
 -----------------------------------------------------
+    currentTerm := currentTerm + 1; currentRole := candidate
+-----------------------------------------------------
+it increments the current term, it sets its current role to be the candidates state,
 
-when a node suspects that the leader has failed, it will become a candidate and it will start an election, that's what happens here, by the way, typically this timeout that the node uses before it suspects a leader to have failed randomized, and the purpose for that is to avoid having lots of nodes all trying to become candidate at the same time which is what would happen if all the nodes start up at the same time, and then have the same timeout before they start an election, so randomizing the timeout reduces the probability of having several elections at the same time.
-so whenever that happens now so the node decides it's time to start an election, it increments the current term, it sets its current role to be the candidates state, and like in every good election everyone votes for themselves in an election, also in raft, the node that has just become a candidate votes for itself by setting this voted for variable to its own node id, and it has this set of node ids in which records the set of votes that it has received in favor of itself as a candidate, and it puts its own node id as the first member of that set of votes received, this variable lastTerm is initially zero, but you can see if the length of the log is greater than zero, then we set this last term variable, so let me explain first what the log is.
+-----------------------------------------------------
+    votedFor := nodeId;
+-----------------------------------------------------
+and like in every good election everyone votes for themselves in an election, also in raft, so the node that has just become a candidate votes for itself by setting this "votedFor" variable to its own node id,
 
-so the log you can see illustrated up here is an array, or a list, it's a sequence of log entries, each log entry consists of two parts, firstly a message, so this is the message that we want to deliver via total order broadcast, that's the whole thing that the purpose of the algorithm, and secondly a term number on every log entry, so this term number is the term number of the leader at the time when that leader added that particular entry to the log, it's in there in zero indexed array where log0 is the first log entry.
-and log.length is the number of log entries in the log, and if the log is non-empty here, if the log.length greater than zero, than we're going to say that the last term is the term field of the last log entry, so log.length minus one is the index of the last entry in the log,
-and so we take the term field of that last log entry, and set that to be the value of this variable.
-and we then construct a message that will be sent to all of the nodes, and so the candidate sends the same message to all of the nodes. it's a message tagged with the message type vote request, saying "please vote for me", and the message contains the several fields it contains the node id of the candidate, it contains the current term after that term number has been incremented, it contains the length of the log on candidate, and it contains this lastTerm variable which as I just said is the term field of the last log entry in the candidates log.
+-----------------------------------------------------
+    votesReceived := {nodeId};
+-----------------------------------------------------
+and it has this set of node ids in which records the set of votes that it has received in favor of itself as a candidate, and it puts its own node id as the first member of that set of votes received.
+
+-----------------------------------------------------
+    lastTerm := 0
+    if log.length > 0 then lastTerm := log[log.length - 1].term; end if
+-----------------------------------------------------
+this variable "lastTerm" is initially zero, but you can see if the length of the log is greater than zero, then we set this last term variable, so let me explain first what the log is.
+
+
+
+============================================================
+        ┌──┐   ┌──┐   ┌──┐
+        │m1│   │m1│   │m1│◄────msg
+  log = ├──┤   ├──┤   ├──┤
+        │1 │   │1 │   │1 │◄────term
+        └──┘   └──┘   └──┘
+         ▲      ▲      ▲
+         │      │      │
+     log[0] log[1] log[2]
+============================================================
+so the log you can see illustrated up here is an array, or a list, it's a sequence of log entries, each log entry consists of two parts.
+firstly a message, so this is the message that we want to deliver via total order broadcast, that's the whole thing that the purpose of the algorithm.
+and secondly a term number on every log entry, so this term number is the term number of the leader at the time when that leader added that particular entry to the log, we'll see later why that term number is important, but for now just accept that log is this structure here. it's in there in zero indexed array where log0 is the first log entry.
+
+-------------------------------
+    if log.length > 0 then lastTerm := log[log.length - 1].term; end if
+-------------------------------
+and log.length is the number of log entries in the log, and if the log is non-empty here, if the log.length greater than zero, than we're going to say that the last term is the term field of the last log entry, so log.length minus one is the index of the last entry in the log, and so we take the term field of that last log entry, and set that to be the value of this variable "lastTerm".
+
+-------------------------------
+    msg := (VoteRequest, nodeId, currentTerm, log.length, lastTerm)
+-------------------------------
+and we then construct a message that will be sent to all of the nodes, and so the candidate sends the same message to all of the nodes.
+
+VoteRequest:
+it's a message tagged with the message type "VoteRequest", saying "please vote for me"
+and the message contains the several fields,
+
+nodeId:
+it contains the node id of the candidate,
+
+currentTerm:
+it contains the current term after that term number has been incremented,
+
+log.length:
+it contains the length of the log on candidate
+
+lastTerm:
+and it contains this lastTerm variable which as I just said is the term field of the last log entry in the candidates log.
+
+-------------------------------
+    for each node∈nodes: send msg to node
+    start election timer
+-------------------------------
 it sends this same message to all of the nodes, and it starts the timer that might eventually timeout if it doesn't manage to do the election successfully
-
-
 
 
 
@@ -75,10 +134,10 @@ so that's the candidate, let's see what happens on the other nodes that receive 
 ==============================
 Raft (2/9): voting on a new leader
 ==============================
-c for candidate
+note: c for candidate
 
 on receiving (VoteRequest, cId, cTerm, cLogLength, cLog Term) at node nodeId do
-    if cTerm > current Term then
+    if cTerm > currentTerm then
         currentTerm := cTerm; currentRole := follower
         votedFor := null
     end if
@@ -96,52 +155,384 @@ on receiving (VoteRequest, cId, cTerm, cLogLength, cLog Term) at node nodeId do
 end on
 ---------------------------------------------------------------------------------------
 so now we're one of the other nodes that has received a message from the candidate, and we have the id of the candidate(cId), we have the term number of the candidate(cTerm), the length of the candidate's log(cLogLength), and the term number in candidates last log entry(cLogTerm),
+
+
+-------------------------------------------
+    if cTerm > currentTerm then
+-------------------------------------------
 and first thing we're going to do when receiving a vote request message is to compare the candidate term to the current term of the recipient of this message, and if the candidate's term is greater than the current term of the recipient,
 
+-------------------------------------------
+        currentTerm := cTerm; currentRole := follower
+-------------------------------------------
 then we move forward and join then term of the candidate, so we do that by setting the recipient's current term to be the candidates term to transition into the follower state regardless of what the node's previous state was,
+
+-------------------------------------------
+        votedFor := null
+-------------------------------------------
 and this voted for variable gets set to null which mean that we have not yet voted for any candidate in the current term because we just change the current term. however, we might vote for that candidate in a minute.
 
- so next, we set up this variable lastTerm, very similar to the way we did on the candidate, and that is we look at the last log entry on the recipient of this vote request message, we get the term number in that last log entry, and we set that to be this lastTerm variable, now what we need to do is to check if the candidates log is up to date with our own log, the reason for that is that we don't want a candidate with an outdated log become the leader, and exactly what outdated means will become apparent later, but it's crucial that we want the candidates log to reflect all the updates that at least the quorum of the other nodes have seen, so you don't end up with a leader whose log is really outdated, because that might lead to the loss of some messages, we have this log ok variable here which will contain a boolean which tell us whether the current node thinks the candidate's log is okay to vote in favor of, and so there are two criteria here, first of all, if the logTerm of the candidate, so the term number that appears in the last log entry of the candidate if that term number is greater than the term number of the log entry on the recipient of this vote request message, then we consider the log to be okay. secondly anther way for the log to be okay is for the log terms in the last log entry to be the same, but for the candidates to have a log that is at least as long as the log of the recipient of this vote request message, so one of those things needs to be true either or, and if so then the log is okay, so we will now vote for this candidate if three criteria will hold firstly if the candidate's term equals the current term, that is it's not in some outdated term, we haven't seen any other node with a higher term number, secondly if the candidates' log is okay ,and thirdly if we have not yet voted for any other candidate in the current term , so this voted for variable would be null if we have not yet voted at all for any candidate in the current term, or it could be cid if we've already voted for the same candidate it's okay to vote several times for the same candidate in a single term, but we must not vote for two different candidates within the same term, so if all those three criteria are true, then we can vote in favor of this candidate, we weill do that by first setting our voted four variable to cid to remember the fact that we have voted for the candidate, and then we send a vote response message back to the candidate and this is going to contain node id of the node doing the vote. it's going to contain the current term number so we know which term this election is for and the value true to indicate that it's a vote approval in favor of this candidate,
+
+-------------------------------------------
+    lastTerm := 0
+    if log.length > 0 then lastTerm := log log.[length - 1].term; end if
+-------------------------------------------
+so next, we set up this variable lastTerm, very similar to the way we did on the candidate, and that is we look at the last log entry on the recipient of this vote request message, we get the term number in that last log entry, and we set that to be this lastTerm variable.
+
+
+
+
+now what we need to do is to check if the candidates log is up to date with our own log, the reason for that is that we don't want a candidate with an outdated log become the leader, and exactly what outdated means will become apparent later, but it's crucial that we want the candidates log to reflect all the updates that at least the quorum of the other nodes have seen, so you don't end up with a leader whose log is really outdated, because that might lead to the loss of some messages.
+### todo: 既然已经有cTerm了, 为什么需要cLogTerm来确认, 大家看到的Message(xxx)都是一样的
+
+-------------------------------------------
+    logOk := (cLogTerm > lastTerm) V
+             (cLogTerm = lastTerm ∧ cLogLength >= log.length)
+-------------------------------------------
+so we have this "logOk" variable here which will contain a boolean which tell us whether the current node thinks the candidate's log is okay to vote in favor of, and so there are two criteria here,
+
+-------------------------------------------
+    logOk := (cLogTerm > lastTerm) V
+-------------------------------------------
+first of all, if the logTerm of the candidate, so the term number that appears in the last log entry of the candidate, if that term number is greater than the term number of the log entry on the recipient of this vote request message, then we consider the log to be okay.
+
+ V: for or
+-------------------------------------------
+             (cLogTerm == lastTerm ∧ cLogLength >= log.length)
+-------------------------------------------
+secondly anther way for the log to be okay is for the log terms in the last log entry to be the same, but for the candidates to have a log that is at least as long as the log of the recipient of this vote request message.
+### todo: 为什么任期相同的candidate的log要大于等于现有的长度?
+
+
+
+so one of those things needs to be true either or, and if so then the log is okay.
+
+
+
+-------------------------------------------
+    іf сТеrm = сurrеntТеrm ∧ lоgОk ∧ vоtеdFоr ∈ [сІd, null] thеn
+        votedFor := cId
+        send(VoteResponse, nodeId, currentTerm, true) to node cId
+    else
+        send(VoteResponse, nodeId, currentTerm, false) to node cId
+    end if
+-------------------------------------------
+so we will now vote for this candidate if three criteria will hold.
+
+-------------------------------------------
+сТеrm = сurrеntТеrm:
+-------------------------------------------
+firstly if the candidate's term equals the current term, that is it's not in some outdated term, we haven't seen any other node with a higher term number,
+
+-------------------------------------------
+lоgОk
+-------------------------------------------
+secondly if the candidates' log is okay,
+
+-------------------------------------------
+vоtеdFоr ∈ [сІd, null]
+-------------------------------------------
+and thirdly if we have not yet voted for any other candidate in the current term , so this voted for variable would be null if we have not yet voted at all for any candidate in the current term, or it could be cid if we've already voted for the same candidate, it's okay to vote several times for the same candidate in a single term, but we must not vote for two different candidates within the same term.
+
+-------------------------------------------
+        votedFor := cId
+-------------------------------------------
+so if all those three criteria are true, then we can vote in favor of this candidate, we will do that by first setting our voted four variable to cid to remember the fact that we have voted for the candidate.
+
+
+-------------------------------------------
+        send(VoteResponse, nodeId, currentTerm, true) to node cId
+-------------------------------------------
+ and then we send a vote response message back to the candidate and this is going to contain node id of the node doing the vote. it's going to contain the current term number so we know which term this election is for, and the value true to indicate that it's a vote approval in favor of this candidate,
+
 on the other hand if any of those things are not true, then we send a vote response with a false field back to the candidate, telling it that we are not voting in favor of this candidate.
 
 
 
+now we move back to the candidates, and we aggregate we collect the votes that we receive.
+so any time we receive a vote response message, this is what happens.
 ==========================================
 Raft (3/9): collecting votes
 ==========================================
 on receiving (VoteResponse, voterId, term, granted) at nodeId do
-    if currentRole = candidate A term = current Term A granted then
-        votesReceived := votesReceived ∪{ voterId}
+    if currentRole == candidate ∧ term == currentTerm ∧ granted then
+        votesReceived := votesReceived ∪ {voterId}
         if votesReceived| ≥「(|nodes|+ 1)/2] then
             currentRole := leader; currentLeader := nodeId
             cancel election timer
-            for each follower∈nodes \ { nodeId} do
+            for each follower∈nodes \ {nodeId} do
                 sentLength[follower] := log.length
                 ackedLength[follower] := 0
                 REPLICATELOG( nodeId, follower)
             end for
         end if
-    else if term > current Term then
+    else if term > currentTerm then
         currentTerm := term
         currentRole := follower
         votedFor := null
         cancel election timer
     end if
 end on
+------------------------------------------------------------------------
+
+------------------------------------------------------------------------
+on receiving (VoteResponse, voterId, term, granted) at nodeId do
+------------------------------------------------------------------------
+so we have a VoteResponse("VoteResponse") with the id of the node("voterId") that is voting, with the term number("term") in which the vote is happening, and with the boolean("granted") telling us whether that vote is granted or not.
+
+and the first thing we do is to check the term number
+------------------------------------------------------------------------
+    else if term > currentTerm then
+------------------------------------------------------------------------
+so if the term number in the VoteResponse message is greater than our "currentTerm", we do the usual thing,
+
+------------------------------------------------------------------------
+        currentTerm := term
+------------------------------------------------------------------------
+we accept that term number as our own
+
+------------------------------------------------------------------------
+        currentRole := follower
+------------------------------------------------------------------------
+we transition into follower state
+
+------------------------------------------------------------------------
+        votedFor := null
+------------------------------------------------------------------------
+we forget which node we voted for in some previous term
+
+------------------------------------------------------------------------
+        cancel election timer
+------------------------------------------------------------------------
+and we cancel any election timer.
+
+
+###
+todo: 执行完这波操作以后, 又回到头部开始重新做判断了? 这里是不是要 把 else 改成 if 放到前面好一点?
+todo: 刚开始那段if往下移动
+###
+so just moves us back into the follow state in the state machine.
+
+------------------------------------------------------------------------
+    if currentRole == candidate ∧ term = currentTerm ∧ granted then
+------------------------------------------------------------------------
+however, if we are still in the candidate state, and the if the message that we just received is for the correct term that in which we're performing the election, and the "granted" field is true. then we have a vote in favor of us as the candidate
+
+------------------------------------------------------------------------
+        votesReceived := votesReceived ∪ {voterId}
+------------------------------------------------------------------------
+so we're going to maintain this set of "votesReceived" here, and we're going to add the id of the voter("voterId") to the set of votes we received, notice that this update here is idempotent, so even if this vote response message gets duplicated in the network somewhere, that's not a problem, we're not going to count the same vote more than once, we still require votes from a quorum of different nodes.
+
+
+------------------------------------------------------------------------
+        if |votesReceived| ≥「(|nodes|+ 1)/2] then
+------------------------------------------------------------------------
+so then to determine whether we have a quorum yet, we can check the cardinality of this set "votesReceived", and if the number of votes we received("|votesReceived|") is greater than or equal to a majority that is the number of nodes("(|nodes|+ 1)/2") in the system plus one divided by two round upwards, then we have a majority quorum of nodes and at that point we can become the leader.
+
+------------------------------------------------------------------------
+            currentRole := leader; currentLeader := nodeId
+            cancel election timer
+------------------------------------------------------------------------
+so we transition into leader state, the currentLeader well that's ourselves.
+now we can cancel the election timer as well.
 
 
 
+------------------------------------------------------------------------
+            for each follower∈nodes \ { nodeId} do
+                sentLength[follower] := log.length
+                ackedLength[follower] := 0
+                REPLICATELOG(nodeId, follower)
+            end for
+------------------------------------------------------------------------
+------------------------------------------------------------------------
+            for each follower∈nodes \ { nodeId} do
+------------------------------------------------------------------------
+now we need to send a message to all of the nodes which are now the followers to tell them, "hey, I'm your new leader", and give it a bit of information.
+
+------------------------------------------------------------------------
+                REPLICATELOG(nodeId, follower)
+------------------------------------------------------------------------
+so this replicate log function here is going to do the actual sending of that message, and we will see that function in a minute,
+
+------------------------------------------------------------------------
+                sentLength[follower] := log.length
+                ackedLength[follower] := 0
+------------------------------------------------------------------------
+we also need to set up for all of the followers some variables, these variables here "sentLength" and "ackedLength" are maps from nodeId to an Integer.
+and so for each of the follower nodes, we're going to initialize these variables here. the sentLength is going to be initialized with the length of the log on the leader, and the meaning of sentLength is the number of log records that we have already sent to a particular node. so here we are assuming that the follower has already received all of the log entries from us. if that is not the case, we will correct that later through a process that we will see later.
+secondly actLength is the number of log entries counted from the beginning, that this particular followers acknowledged as having received. and we initialized that to be zero, and later as we receive acknowledgements, we will increase that number.
+
+okay so that's all we have to do to become a leader.
 
 
 
+==========================================
+Raft (4/9): broadcasting messages
+==========================================
+now that we have a leader, we can actually start talking about the total order broadcast.
+
+------------------------------------------
+on request to broadcast msg at node nodeId do
+    if currentRole = leader then
+        append the record (msg : msg, term : currentTerm) to log
+        ackedLength[nodeId] := log.length
+        for each follower ∈nodes \ {nodeId} do
+            REPLICATELOG( nodeId, follower)
+        end for
+    else
+        forward the request to currentLeader via a FIFO link
+    end if
+end on
+------------------------------------------
+
+------------------------------------------
+on request to broadcast msg at node nodeId do
+------------------------------------------
+so what we have here is now a function that can be called by a client for example, to say okay we want to broadcast a message, and we want to do that via total order broadcast ensuring that all nodes delivered that the messages in the same order.
+now the order in which those messages are going to be delivered is in fact exactly the log, that's the whole purpose of the log, and the only node that can add entries to the log is the leader.
+
+
+------------------------------------------
+    else
+        forward the request to currentLeader via a FIFO link
+    end if
+------------------------------------------
+and so first of all, the first thing we have to do is if the request to broadcast a message happens not on the leader, then it has to be forwarded to the current leader via a FIFO link, using a FIFO link here just ensures that in total, we actually get FIFO total order broadcast, not just total order broadcast, and that's the only thing we need to do in order to ensure the FIFO aspect.
+
+------------------------------------------
+    if
+        currentRole = leader then
+------------------------------------------
+if the current node is the leader, and we may have just received one of those forwarded requests to broadcast a message.
+
+------------------------------------------
+        append the record (msg : msg, term : currentTerm) to log
+------------------------------------------
+well the first thing we do is we append a record to the log, containing the message that we want to broadcast, and containing the "currentTerm" number of the leader.
+
+------------------------------------------
+        ackedLength[nodeId] := log.length
+------------------------------------------
+we also note that the leader itself has acknowledged the delivery of this message, and that's just another instance of voting for ourselves, so node id here is the id of the leader, and so we're just updating this "ackedLength" variable, to include the newly appended record.
+
+
+------------------------------------------
+        for each follower ∈nodes \ {nodeId} do
+            REPLICATELOG( nodeId, follower)
+        end for
+------------------------------------------
+and now we call again this replicate log function that we already had on the last slide, for each of the followers so all of the nodes in the system apart from the leader.
 
 
 
+------------------------------------------
+periodically at node nodeId do
+    if currentRole = leader then
+        for each follower ∈nodes \ {nodeId} do
+            REPLICATELOG( nodeId, follower)
+        end for
+    end if
+end do
+------------------------------------------
+moreover, we also call this replicated log function periodically, so the leader even if it doesn't have any new messages appended to the log lately, it's still called replicate log for each of the followers periodically.
+and that has several purposes,
+one is to act as a kind of heartbeat, so it's calling replicate log sends a message to the followers just telling them that the leader is still alive, so they don't need to start a new leader election, everything is fine.
+this calling replicate log also ensures that if any messages got lost for example, they will get redelivered, and it ensures that if the leader has committed any log entries, then they will also be committed on the followers, process for committing we will see later.
 
 
 
+so let's have a look at this replicate log function that we've just seen called three times
+==========================================
+Raft (5/9): replicating from leader to followers
+==========================================
+
+Called on the leader whenever there is a new message in the log, and also periodically. If there are no new messages, suffix is the empty list. LogRequest messages with suffix = <> serve as heartbeats, letting followers know that the leader is still alive.
+------------------------------------------
+function REPLICATELOG(leaderId, followerId)
+    prefixLen := sentLength[followerId]
+    suffix := <log[prefixLen], log[prefixLen + 1],..., log[log.length - 1]>
+    prefixTerm := 0
+    if prefixLen > 0 then
+        prefixTerm := log[prefixLen - 1].term
+    end if
+
+    send (LogRequest, leaderId, current Term, prefixLen,
+          prefixTerm, commitLength, suffix) to followerId
+end function
+------------------------------------------
+
+------------------------------------------
+function REPLICATELOG(leaderId, followerId)
+------------------------------------------
+so this replicate log function gets called first of all with the node id of the leader("leaderId") and node id of the follower("followerId"), and we have access to all of the variables from before.
+
+------------------------------------------
+    prefixLen := sentLength[followerId]
+------------------------------------------
+so first of all, we are going to now split the log on the leader into a prefix and a suffix, the prefix will contain all of the log entries that we think we have already sent to the follower.
+
+------------------------------------------
+    suffix := <log[prefixLen], log[prefixLen + 1], ..., log[log.length - 1]>
+------------------------------------------
+and the suffix will contain all of the new log entries that we think we have not yet sent to this particular follower, and so we have this variable sent length here which records for every node id, the number of log entries, that we think we have already sent there, and so this prefix length is just an integer now,
+and I'm going to take the suffix of the log which is starting at the index prefix length and going all the way up to the end of the log, so all of the remaining log entries after prefix length, it could happen that prefix length is indeed the length of the entire log in which case the suffix would just be an empty array.
+
+next we set up this variable term, the prefix term and that is now going to be looking at the log entries, we're going to look at the last log entry within the prefix, and look at the term number of that log entry, so this is a bit similar to what we had previously in the vote request message, in this case, what we're looking at is not the last entry in the log all together but the last log entry in the prefix, and getting the term number of that, and we're now going to send a log request with all of these various variables to the follower, so in this message, we're going to include the id of the leader, the term number in which it's the leader, the length of the prefix that we are not sending, the term number of the last log entry in the prefix, the commitLength which is a variable that we will see later that's just another integer, and then suffix which is this array of new log entries that we want to add to the log.
 
 
+okay, so that was how we send the log request.
+
+now we're on the followers, and we will see how to receive one of these log request messages.
+
+==========================================
+Raft (6/9): followers receiving messages
+==========================================
+on receiving (LogRequest, leaderId, term, prefixLen, prefixTerm,
+              leaderCommit, suffix) at node nodeId do
+    if term > currentTerm then
+        currentTerm := term; votedFor := null
+        cancel election timer
+    end if
+
+    if terrm = currentTerm then
+        currentRole := follower; currentLeader := leaderId
+    end if
+
+    logOk := (log.length≥prefixLen) ^
+             (prefixLen = 0 V log[prefixLen一1].term = prefix Term)
+
+    if term = currentTerm A logOk then
+        APPENDENTRIES(prefixLen, leaderCommit, sufx)
+        ack := prefixLen + suffix .length
+    send
+        (LogResponse, nodeId, current Term, ack, true) to leaderId
+    else
+        send (LogResponse, nodeId, current Term, 0, false) to leaderId
+    end if
+end on
+------------------------------------------
+
+------------------------------------------
+on receiving (LogRequest, leaderId, term, prefixLen, prefixTerm,
+              leaderCommit, suffix) at node nodeId do
+------------------------------------------
+so we've got all of the variables that i just mentioned
+
+------------------------------------------
+    if term > currentTerm then
+------------------------------------------
+and first thing we need to do as always is to check the "term" number, and so if the term number in the message is greater than the term number on the follower,
+
+------------------------------------------
+        currentTerm := term; votedFor := null
+        cancel election timer
+------------------------------------------
+then we're going to do the usual state machine thing, we're going to accept the currentTerm, we're going to forget what candidate we voted for.
+in the previous term going to cancel election timer.
+
+and we will also fall through to this second if condition where we set the current role to be follower. and we accept the current leader as being the sender of this log request message.
+we fall through to this second case because
 
 
 
