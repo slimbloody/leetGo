@@ -1,3 +1,6 @@
+https://github.com/ept/ddia-references
+ddia-references
+
 https://asciiflow.com/#/
 
 https://www.okayhq.com/blog/status-quo-is-so-hard-to-change-in-engineering-teams
