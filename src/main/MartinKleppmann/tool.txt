@@ -37,6 +37,9 @@ https://www.twle.cn/l/yufei/charset/charset-basic-math.html
 ∩	8745	2229	&cap;	INTERSECTION
 ∪	8746	222A	&cup;	UNION
 
+∧	8743	2227	&and;	LOGICAL AND
+∨	8744	2228	&or;	LOGICAL OR
+
 iff: if and only if
 
 https://www.runoob.com/charsets/ref-utf-greek.html

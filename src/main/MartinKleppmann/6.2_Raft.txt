@@ -143,7 +143,7 @@ on receiving (VoteRequest, cId, cTerm, cLogLength, cLog Term) at node nodeId do
     end if
     lastTerm := 0
     if log.length > 0 then lastTerm := log log.[length - 1].term; end if
-    logOk := (cLogTerm > lastTerm) V
+    logOk := (cLogTerm > lastTerm) ∨
              (cLogTerm = lastTerm ∧ cLogLength >= log.length)
 
     іf сТеrm = сurrеntТеrm ∧ lоgОk ∧ vоtеdFоr ∈ [ сІd, null] thеn
@@ -186,13 +186,13 @@ now what we need to do is to check if the candidates log is up to date with our 
 ### todo: 既然已经有cTerm了, 为什么需要cLogTerm来确认, 大家看到的Message(xxx)都是一样的
 
 -------------------------------------------
-    logOk := (cLogTerm > lastTerm) V
+    logOk := (cLogTerm > lastTerm) ∨
              (cLogTerm = lastTerm ∧ cLogLength >= log.length)
 -------------------------------------------
 so we have this "logOk" variable here which will contain a boolean which tell us whether the current node thinks the candidate's log is okay to vote in favor of, and so there are two criteria here,
 
 -------------------------------------------
-    logOk := (cLogTerm > lastTerm) V
+    logOk := (cLogTerm > lastTerm) ∨
 -------------------------------------------
 first of all, if the logTerm of the candidate, so the term number that appears in the last log entry of the candidate, if that term number is greater than the term number of the log entry on the recipient of this vote request message, then we consider the log to be okay.
 
@@ -263,7 +263,7 @@ on receiving (VoteResponse, voterId, term, granted) at nodeId do
             for each follower∈nodes \ {nodeId} do
                 sentLength[follower] := log.length
                 ackedLength[follower] := 0
-                REPLICATELOG( nodeId, follower)
+                REPLICATELOG(nodeId, follower)
             end for
         end if
     else if term > currentTerm then
@@ -378,7 +378,7 @@ on request to broadcast msg at node nodeId do
         append the record (msg : msg, term : currentTerm) to log
         ackedLength[nodeId] := log.length
         for each follower ∈nodes \ {nodeId} do
-            REPLICATELOG( nodeId, follower)
+            REPLICATELOG(nodeId, follower)
         end for
     else
         forward the request to currentLeader via a FIFO link
@@ -419,7 +419,7 @@ we also note that the leader itself has acknowledged the delivery of this messag
 
 ------------------------------------------
         for each follower ∈nodes \ {nodeId} do
-            REPLICATELOG( nodeId, follower)
+            REPLICATELOG(nodeId, follower)
         end for
 ------------------------------------------
 and now we call again this replicate log function that we already had on the last slide, for each of the followers so all of the nodes in the system apart from the leader.
@@ -451,7 +451,7 @@ Called on the leader whenever there is a new message in the log, and also period
 ------------------------------------------
 function REPLICATELOG(leaderId, followerId)
     prefixLen := sentLength[followerId]
-    suffix := <log[prefixLen], log[prefixLen + 1],..., log[log.length - 1]>
+    suffix := <log[prefixLen], log[prefixLen + 1], ..., log[log.length - 1]>
     prefixTerm := 0
     if prefixLen > 0 then
         prefixTerm := log[prefixLen - 1].term
@@ -484,7 +484,6 @@ next we set up this variable term, the prefix term and that is now going to be l
 okay, so that was how we send the log request.
 
 now we're on the followers, and we will see how to receive one of these log request messages.
-
 ==========================================
 Raft (6/9): followers receiving messages
 ==========================================
@@ -495,20 +494,19 @@ on receiving (LogRequest, leaderId, term, prefixLen, prefixTerm,
         cancel election timer
     end if
 
-    if terrm = currentTerm then
+    if term == currentTerm then
         currentRole := follower; currentLeader := leaderId
     end if
 
-    logOk := (log.length≥prefixLen) ^
-             (prefixLen = 0 V log[prefixLen一1].term = prefix Term)
+    logOk := (log.length ≥ prefixLen) ∧
+             (prefixLen == 0 ∨ log[prefixLen - 1].term = prefixTerm)
 
-    if term = currentTerm A logOk then
-        APPENDENTRIES(prefixLen, leaderCommit, sufx)
-        ack := prefixLen + suffix .length
-    send
-        (LogResponse, nodeId, current Term, ack, true) to leaderId
+    if term = currentTerm ∧ logOk then
+        APPENDENTRIES(prefixLen, leaderCommit, suffix)
+        ack := prefixLen + suffix.length
+        send (LogResponse, nodeId, currentTerm, ack, true) to leaderId
     else
-        send (LogResponse, nodeId, current Term, 0, false) to leaderId
+        send (LogResponse, nodeId, currentTerm, 0, false) to leaderId
     end if
 end on
 ------------------------------------------
@@ -522,17 +520,85 @@ so we've got all of the variables that i just mentioned
 ------------------------------------------
     if term > currentTerm then
 ------------------------------------------
-and first thing we need to do as always is to check the "term" number, and so if the term number in the message is greater than the term number on the follower,
+and first thing we need to do as always is to check the "term" number, and so if the term("term") number in the message is greater than the term number on the follower(currentTerm),
 
 ------------------------------------------
         currentTerm := term; votedFor := null
         cancel election timer
 ------------------------------------------
 then we're going to do the usual state machine thing, we're going to accept the currentTerm, we're going to forget what candidate we voted for.
-in the previous term going to cancel election timer.
+in the previous term I'm going to cancel election timer.
 
+------------------------------------------
+    if term == currentTerm then
+        currentRole := follower; currentLeader := leaderId
+    end if
+------------------------------------------
 and we will also fall through to this second if condition where we set the current role to be follower. and we accept the current leader as being the sender of this log request message.
-we fall through to this second case because
+
+so we fall through to this second case, because here(第三段) we update currentTerm to equals term, and so it still equals currentTerm here, in the second condition. the second condition also here because it could happen that the node receiving the log request is actually a candidate in the same term number as the leader. and in that case, we also want to move into follower state, even though we're not changing the term number, but we still want to accept the leader as at the center of this log request message as the leader.
+
+------------------------------------------
+    logOk := (log.length ≥ prefixLen) ∧
+             (prefixLen == 0 ∨ log[prefixLen - 1].term == prefixTerm)
+------------------------------------------
+okay, next thing we need to do is do another check if the log is okay, this is a bit similar to what happened earlier during the leader election, but the condition is a little different.
+
+so here what we first of all want to ensure is remember we said on previous slide, we split the log into a prefix that we are not sending which we assume the recipient already has, and suffix which contains the new log entries.
+well first of all, we have to check that prefix we actually do have as the sender of the message thought we might do.
+
+------------------------------------------
+    logOk := (log.length ≥ prefixLen) ∧
+------------------------------------------
+so first of all, we have to check that the followers length of the log("log.length"), is at least as long as ("prefixLen")the prefix that we left out on the sender, so if this is not the case that means there would be a gap in the log, where there's some log entries that the leader didn't send us but we also don't have a follower, and so in that case the log would not be okay we have to fill in that gap first.
+
+------------------------------------------
+             (prefixLen == 0 ∨ log[prefixLen - 1].term == prefixTerm)
+------------------------------------------
+the second requirement is either the length of the prefix is zero, or, if the prefix is not zero then we have to look at the last log entry in the prefix on the follower, look at its term number, and we want that term number to be equal to the corresponding log entries term number on the leader, this prefix term is just a variable that was sent as part of the message.
+so the purpose for this is raft has a certain invariant that it guarantees, and that is if there are two nodes in the system that have a certain log and that's at a certain index of the log they have the same log entry, in particular they have the same term number in that log entry, then raft will guarantee that the entire log up to and including that index will be identical, so the term number in the log entries actually allows us to tell efficiently whether two nodes have the same log or not because the only way that two nodes could end up with different logs is by having different term numbers on a certain log entry, so what this here now guarantees is that if this log okay condition is true, that means that the prefix of the log as it was on the leader is identical to the prefix of the log of the same length as it is on the follower.
+
+so this log okay condition checks that actually the up to that point the logs are identical this is absolutely crucial for ensuring that actually all of the nodes end pu with the same messages delivered.
+
+
+------------------------------------------------------------------------------
+    if term = currentTerm ∧ logOk then
+------------------------------------------------------------------------------
+now if this log is okay, and if the message was for the correct term, then we can go ahead and process the new log entries that were in this log request message,
+
+------------------------------------------------------------------------------
+        APPENDENTRIES(prefixLen, leaderCommit, suffix)
+------------------------------------------------------------------------------
+ and the way we're going to do this is we're going to call the append entries function that I will show you in a minute, and we are going to pass it the suffix, the new log entries, and a few other variables,
+
+------------------------------------------------------------------------------
+        ack := prefixLen + suffix.length
+------------------------------------------------------------------------------
+and we're going to also send an acknowledgement back to the leader, saying hey we received your log entries, it's all fine, and this acknowledgement is going to be just another integer, and it's going to be the integers telling how many log entries from the start of the log that we have successfully received from the leader. and that is going to be the length of the prefix that was not sent plus the ("suffix.length")number of log entries in the suffix that was sent, so that's the total number of log entries that we have from the leader after processing this message. this "ack" integer, we're just going to pack into a message, so we're going to make a log response message that we sent back to the leader, it's going to contain the id of the sender of the log message, the current term number as always, the act that I just explained and true to indicate that this was successful so the follow was successfully able to process this log request message.
+
+
+------------------------------------------------------------------------------
+        send (LogResponse, nodeId, currentTerm, ack, true) to leaderId
+------------------------------------------------------------------------------
+
+
+------------------------------------------------------------------------------
+    else
+        send (LogResponse, nodeId, currentTerm, 0, false) to leaderId
+    end if
+------------------------------------------------------------------------------
+on the other hand, if something is not okay, so if the term number is wrong, or if the log okay is false, then we send back a log response message in which the last element is false. and that tells the leader that we were not able to process that log request message correctly.
+
+
+
+
+
+
+
+
+
+
+
 
 
 
