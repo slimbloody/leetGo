@@ -573,13 +573,9 @@ now if this log is okay, and if the message was for the correct term, then we ca
 
 ------------------------------------------------------------------------------
         ack := prefixLen + suffix.length
-------------------------------------------------------------------------------
-and we're going to also send an acknowledgement back to the leader, saying hey we received your log entries, it's all fine, and this acknowledgement is going to be just another integer, and it's going to be the integers telling how many log entries from the start of the log that we have successfully received from the leader. and that is going to be the length of the prefix that was not sent plus the ("suffix.length")number of log entries in the suffix that was sent, so that's the total number of log entries that we have from the leader after processing this message. this "ack" integer, we're just going to pack into a message, so we're going to make a log response message that we sent back to the leader, it's going to contain the id of the sender of the log message, the current term number as always, the act that I just explained and true to indicate that this was successful so the follow was successfully able to process this log request message.
-
-
-------------------------------------------------------------------------------
         send (LogResponse, nodeId, currentTerm, ack, true) to leaderId
 ------------------------------------------------------------------------------
+and we're going to also send an acknowledgement back to the leader, saying hey we received your log entries, it's all fine, and this acknowledgement is going to be just another integer, and it's going to be the integers telling how many log entries from the start of the log that we have successfully received from the leader. and that is going to be the length of the prefix that was not sent plus ("suffix.length"){the number of log entries in the suffix} that was sent, so that's the total number of log entries that we have from the leader after processing this message. this "ack" integer, we're just going to pack into a message, so we're going to make a log response message that we sent back to the leader, it's going to contain the id of the sender of the log message, the current term number as always, the act that I just explained and true to indicate that this was successful so the follow was successfully able to process this log request message.
 
 
 ------------------------------------------------------------------------------
@@ -594,17 +590,170 @@ on the other hand, if something is not okay, so if the term number is wrong, or 
 
 
 
+=============================================
+Raft (7/9): updating followers' logs
+=============================================
+let's look at this append entries function that I just mentioned.
+
+------------------------------------------------------------------------------
+function APPENDENTRIES(pefixLen, leaderCommit, suffix)
+    if suffix.length> 0 ∧ log.length > prefixLen then
+        index := min(log.length, prefixLen + suffix.length) - 1
+        if log[index].term ≠ suffix[index - prefixLen].term then
+            log := <iog[0], log[1], ... log[prefixLen- 1]>
+        end if
+    end if
+    if prefixLen + suffix.length > log.length then
+        for i := log.length - prefixLen to suffix.length- 1 do
+            append sufix[i] to log
+        end for
+    end if
+
+    if leaderCommit > commitLength then
+        for i := commitLength to leaderCommit - 1 do
+            deliver log[i].msg to the application
+        end for
+        commitLength := leaderCommit
+    end if
+end function
+------------------------------------------------------------------------------
+so append entries here is called, if we have checked that log is okay, and we want to append the new entries from the log request message to the follower's log.
+and so the first thing we now need to check is it could be that the follower already has some of the log entries that contained within this message, and if so we need to check whether those are the same.
+
+
+------------------------------------------------------------------------------
+    if suffix.length> 0 ∧ log.length > prefixLen then
+------------------------------------------------------------------------------
+so first of all if the suffix is non-empty, so that means the log request message did contain new log entries.
+
+and if the length of the followers log is longer than the prefix length, that is the follower already has some log entries go beyond the prefix.
+
+so at this point, we have the suffix, the new log entries overlapping with the log entries that the follower already has.
+in that case we're going to find the last log entry that we can compare between the follower state and the leader state.
+------------------------------------------------------------------------------
+        index := min(log.length, prefixLen + suffix.length) - 1
+------------------------------------------------------------------------------
+and the last that's going to be either the length of the follower's log minus 1, or it's going to be the length of the prefix plus the length of the suffix minus 1, whichever of those two is smaller. and that is going to be the index of the log entry that we're going to compare.
+
+
+------------------------------------------------------------------------------
+        if log[index].term ≠ suffix[index - prefixLen].term then
+            log := <iog[0], log[1], ... log[prefixLen- 1]>
+        end if
+------------------------------------------------------------------------------
+and for that particular index, we're going to compare the term number in the followers log to the term number in the corresponding entry in the suffix, in the new log entries that we received from the leader. and if those are not the same term number, that means we have an inconsistency in the log, and we have to truncate the log.
+and so what we're going to do then is to actually keep only the length up only the followers log up to prefix length, and everything beyond prefix length we're going to throw away.
+that is the correct thing to do here, because those previous log entries might have come from a previous leader, and they will not yet be committed, so a key property that raft ensures is that if a log entry is committed then it will never change and it won't be discarded, and it won't be removed by this truncate process here.
+but a log entry that is not yet committed, it could happen that log entry gets removed as part of this truncation.
+
+so if these term numbers are the same, then as i explained earlier, raft guarantees that then the logs are identical up to that point including that particular index, and in that case we don't need to truncate the logs because we know that the leaders log and the followers log are consistent with each other.
 
 
 
+------------------------------------------------------------------------------
+    if prefixLen + suffix.length > log.length then
+        for i := log.length - prefixLen to suffix.length- 1 do
+            append sufix[i] to log
+        end for
+    end if
+------------------------------------------------------------------------------
+either way, regardless of whether we need it to truncate or not, we can now append any new log entries to the log.
+it could be now here that the suffix contains some log entries that the follower already has in which case we don't need to append them again, and we're just going to start off with the first entry in the suffix that the follower does not already have, and we go up to the last entry in the suffix, and we append each of them to the follower's log,
+
+------------------------------------------------------------------------------
+
+    if leaderCommit > commitLength then
+        for i := commitLength to leaderCommit - 1 do
+            deliver log[i].msg to the application
+        end for
+        commitLength := leaderCommit
+    end if
+------------------------------------------------------------------------------
+now comes a variable called leader commits, I've not talked about this very much yet, but this will become important now when we talk about committing log entries, the leader commit is just an integer, and it tells us this leader commit variable this came as part of the log request message from the leader, commitLength is a variable that is stored under follower, and it keeps track of how many log entries counted from the start of the log have we committed so far.
+and if the number of log entries that the leader has committed is greater than the log number of log entries that the follower has committed, that means more log entries are ready to be committed, so it's the leader that decides when a log entry can be committed by increasing this leader commits variable, and so if this leader commit is greater that means we can now take the log indexes starting from commit length, and all the way up to leader commit minus one, and those are ready to be committed, and to commit means here first of all we set the commit length to include those indexes, and also we deliver those messages to the application, so this is now the total order broadcast delivery as it happens on the followers, and total order broadcast delivery on the leader happens separately on the next slide
+
+so that is actually all that happens on the followers
 
 
+so let's completed the story from the point of view of the followers, we just need to finish the story from the point of view of the leader
 
 
+=====================================================
+Raft (8/9): leader receiving log acknowledgements
+=====================================================
+on receiving (LogResponse, follower, term, ack, success) at nodeId do
+    if term = currentTerm A currentRole = leader then
+        if success = true ^ ack: ≥ackedLength[follower] then
+            sentLength[follower] := ack:
+            ackedLength[ollower] := ack
+            COMMITLOG ENTRIES()
+        else if sentLength[follower] > 0 then
+            sentLengthfollower] := sentLength[follower] - 1
+            REPLICATELOG(nodeId, follower)
+        end if
+    else if term > currentTerm then
+        currentTerrm := term
+        currentRole := follower
+        votedFor := null
+        cancel election timer
+    end if
+end on
 
 
+and so if you remember here the followers sent a log response message back to the leader. telling it whether it was, whether the follower was able to accept the new log entries and append them to the log.
+==========================================
+Raft (6/9): followers receiving messages
+==========================================
+part:
+---------------------------------------------
+    if term = currentTerm ∧ logOk then
+        APPENDENTRIES(prefixLen, leaderCommit, suffix)
+        ack := prefixLen + suffix.length
+        send (LogResponse, nodeId, currentTerm, ack, true) to leaderId
+    else
+        send (LogResponse, nodeId, currentTerm, 0, false) to leaderId
+    end if
+---------------------------------------------
+and this is now when the leader receives those log response messages from the follower, and now the leader needs to decide which log entries are ready to be committed.
+so a log entry is ready to be committed if it's been acknowledged by a quorum of nodes in the system, when the leader receives one of these log response messages, as always when receiving a message the first thing it has to do is to check the term number.
+
+so if the term number and the log response message is greater than the leader's term that means, "oh there's a new node with a higher term number as always we have to accept that term number, and transition to follower state, forget whoever we voted for in a previous term, and cancel the election timer, however in the case where the term number is correct, so the term number matches the leader's term number, and the leader in fact still the leader, then it can go ahead.
+now first it has to check was the success field true, so this is the success field in the log response message that it received from the follower, and if this success field is true, and if the acknowledgement that was contained in that message is at least the number that was previously acknowledged by the same follower, that means the followers acknowledging new messages now.
+you know if the messages get delivered out of order, it could happened that a message with a higher act is delivered first, and then a message with a lower act later. so this ensures that no matter which order the messages are delivered, everything ends up being fine.
+so in the expected case, where the acknowledgement is greater then whatever the previous acknowledgement was, the leader can now record the fact that it has received an acknowledgement from this particular follower, and it does this by updating both the sent length variable and the act length variable to be that integer that is the number of acknowledged log entries from that particular follower.
+and it then calls the commit log entries function which will be on the next slide to actually decide which log entries are ready to be committed.
+
+on the other hand if this log response was not successful, then we have to check the sent length, and so if it was not successful, it could be that there was a gap in the log, so remember we split the log into a prefix and a suffix, the prefix we assumed to follow already has, but what if the follower lost part of its log, and there's actually a gap and it doesn't have the entire prefix, that's the case that we handle here, so in this case if the success was not true, then the sent length variable for the follower, we're just going to decrement that, so we're going to reduce it by one, and that means now we're going to shrink the length of the prefix by one, and we're going to send one more log entry to the follower on our next attempt, now if there's a large gap between what the log that the follower has, and the log that the leader has, this could take quite a few iterations where we just reduce the length of the prefix by one every single time, so you could imagine more efficient ways of doing this, but for now, we're just going to keep it not it's complicated enough as it is, we're not going to over complicate it, and we're just going to reduce this sent length by one, and call the replicate log function again. remember we saw replicate log earlier, and this is going to send all of the log entries that go beyond this sent length, and so this will ensure that eventually we will fill in any gap in the log, and eventually the follower will be able to apply the new log entries, because we've sent all of the missing log entries from the leader to the follower.
 
 
+okay, and that is the leader side except for the commit log entries function, so that's the last one that we need to look at.
+and this one here, it's now looks at this actedLength variable, remember in the actedlength variable we recorded for every follower, the number of log entries that follower has confirmed as having received.
+==============================================
+Raft (9/9): leader committing log entries
+==============================================
+Any log entries that have been acknowledged by a quorum of nodes are ready to be committed by the leader. When a log entry is committed, its message is delivered to the application.
+
+function COMMITLOGENTRIES
+    while commitLength < log.length do
+        acks := 0
+        for each node ∈ nodes do
+            if ackedLength[node] > commitLength then
+                acks := acks + 1
+            end if
+        end for
+
+        if acks ≥ ⌈(|nodes| + 1)/2⌉ then
+            deliver log[commitLength].msg to the application
+            commitLength := commitLength + 1
+        else
+            break
+        end if
+    end while
+end function
+----------------------------------------------
+and so here, we are now going to start off with the variable commit length, so that is commit length is the number of log entries counted from the start of the log that we have already committed, and now we want to see if there are any additional log entries that are also ready to be committed, and so as long as commit length is less than the length of the log, we initialize x to zero and then this x variable will count from how many followers including one and also the leader we have an acknowledgement, and so we're going to go through all of the nodes in the system, the leader and all of the followers, and we're going to check the act length variable for each of those nodes, and if its value is greater than the commitLength, then that means from the point of view of that particular node, it's okay to move the commitLength forward, so it has already acknowledged more log entries beyond the existing commitLength, and we're going to count that as an acknowledgement, and now we're going to see if the number of acknowledgements that we've received for the log entry at index commitLength, if that is greater than a majority, then it's ready for that log entry to be committed, and so in this case, we're now going to the do the total order broadcast delivery of the log end of the message at the log entry with index commitLength, that's going to be delivered to the application, this is on the leader.
+and we're going to increment the value of the commitLength variable, and this new variable will then be sent out to all of the followers, the next time we call the replicate log function.
+and so we keep going around this loop here, and committing log entries as long as we can reach this majority quorum, if at some point then we reach the point where we don't have a majority quorum of acknowledgements yet, then we just break out of the loop, because we have to wait for more log response messages before we can do further commits.
 
 
-
+I know it's a huge amount of detail, it's really interesting to see that interplay between the leaders and the followers, always having to check the term number and so on, but you can see how by very carefully sequencing all of the things it is possible to actually achieve something like total order broadcast.

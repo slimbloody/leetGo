@@ -239,14 +239,6 @@ and if you think about this the logic that we have ensures that we only count th
 it's that nice, we have this total order broadcast algorithm, and we can use it to solve this quite different problem in a reasonably simple way.
 
 
-reasonably [ 'ri:znəbli ]
-adv.
-1. to a moderately sufficient extent or degree
-"the shoes are priced reasonably"
-
-2. with good sense or in a reasonable or intelligent manner
-"acted quite reasonably"
-
 
 
 

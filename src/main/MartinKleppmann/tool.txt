@@ -52,3 +52,5 @@ https://www.runoob.com/charsets/ref-utf-greek.html
 非p
 记作 ┐p
 或者 ~P
+向下取整的运算称为Floor，用数学符号⌊⌋表示
+向上取整的运算称为Ceiling，用数学符号⌈⌉表示

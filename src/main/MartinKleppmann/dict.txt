@@ -643,3 +643,12 @@ n. 趋同；汇集，相交；会聚区；收敛（性）
 reducible
 英 / rɪˈdjuːsəbl / 美 / rɪˈduːsəbl /
 adj.[数] 可约的，可化简的；可还原的；可缩小的
+
+
+reasonably [ 'ri:znəbli ]
+adv.
+1. to a moderately sufficient extent or degree
+"the shoes are priced reasonably"
+
+2. with good sense or in a reasonable or intelligent manner
+"acted quite reasonably"
