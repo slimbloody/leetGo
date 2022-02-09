@@ -1,9 +1,11 @@
 this lecture we are going to look at some case studies of example applications, real world software, that uses the distributed systems concepts that we've seen in this course, and in particular that has interesting problems to deal with around concurrency.
 ========================================
 Lecture 8: Concurrency control in applications
-==========================
+========================================
+
+========================================
 Collaboration and conflict resolution
-==========================
+========================================
 Nowadays we use a lot of collaboration software:
     Examples: calendar sync (last lecture), Google Docs, ...
 ((collaboration software) it's just so useful to be able to work on something with your colleagues without having to email files back and forth.)
@@ -22,9 +24,11 @@ Families of algorithms:
 ((CRDTs) they come in two flavors further operation based. on state base)
 -------------------------------------------------
 So I'd like to start with collaboration software, so this is a fairly broad category of collaborations of software, but you've probably used things like this before, what I have in mind are things like google docs where you can have several people editing a document at the same time, or the calendar sync example in the last lecture where I can update some events on one device and have those synchronized over to another device, and many other applications that have this kind of similar collaboration built in nowadays, because it's just so useful to be able to work on something with your colleagues without having to email files back and forth for example.
+
 so what these applications have in common is that there are several users, each user using some device to access some shared file or document or database, each of these devices has its own local copy of the data that it's working on, this might just be an in-memory, but we can still call it a replica of this shared data, and each user is able to update the replica of their own copy of this document, be it in their web browser or in a mobile app or something like that, the user can update this data anytime whenever they like. even if they're  disconnected from the internet ideally, and then sometime later when they have an internet connection again, then they will sync back with the server and with any other clients that have a copy of this document.
 now the challenge in this is we can have several people concurrently updating the same document, and we have to somehow reconcile those concurrent updates and make sure that everyone ends up in a consistent state, and so that the software continues working as we might expect.
-and there are two main families that are of algorithms that are used in order to implement this type of software, one is conflict-free replicated data types(or CRDTs for short), adn they come in two flavors further operation, based on state, base as I will explain shortly.
+
+and there are two main families that are of algorithms that are used in order to implement this type of software, one is conflict-free replicated data types(or CRDTs for short), and they come in two flavors further operation, based on state, base as I will explain shortly.
 and a second family of algorithms is called operational transformation and you will see an example of that as well.
 
 
@@ -38,11 +42,15 @@ and sometime later the network is restored and these two device want to sync, an
 
 
 so let's look at some algorithms that can achieve this
+
 ===========================================
 Operation-based map CRDT
 ===========================================
-conflict-free replicated data types(or CRDTs) are one of the types of algorithms you can use here, and this is an example of what is called an operation based CRDT, the data model of this is a map, so it's just like a map object that you might have in java also, you have this object oriented interface that you're using in order to represent your data, and in this case, the data type that we have is a map from keys to values.
-so keys and values are not further interpreted, they can be strings or they could be numbers or whatever we like, and the only property that we want to hear ensure is that for a given key is exactly one value, and we can achieve this using the last writer wins approach that we saw in a previous lecture, and so the way you might do this is as follows:
+conflict-free replicated data types(or CRDTs) are one of the types of algorithms you can use here, and this is an example of what is called an operation based CRDT.
+
+the data model of this is a map, so it's just like a map object that you might have in java also, you have this object oriented interface that you're using in order to represent your data, and in this case, the data type that we have is a map from keys to values.
+so keys and values are not further interpreted, they can be strings or they could be numbers or whatever we like, and the only property that we want to hear ensure is that for a given key is exactly one value, and we can achieve this using the "last-writer-wins" approach that we saw in a previous lecture, and so the way you might do this is as follows:
+
 -------------------------------------------------
 on initialisation do
     values := {} .
@@ -57,7 +65,7 @@ end on
 -------------------------------------------------
 when we want to read the value for a given key, we just look for any entries in this set values, the entries are these triples of timestamp, key and value. so we look for any entry here for the given key, with any timestamp at any value.
 and if it exists, we return that value v; and if it does not exist, we just return null saying there is no entry for that key in the map.
-this here works on the assumption for a given key there is at most one element in this map which the rest of the algorithm does ensure that particular invariant.
+this here works on the assumption for a given key there is at most one element in this map, which the rest of the algorithm does ensure that particular invariant.
 
 -------------------------------------------------
 on request to set key k to value v do
@@ -66,8 +74,9 @@ on request to set key k to value v do
 end on
 -------------------------------------------------
 so now if we want to update the map, the way we can do that is as follows, so let's say we want to set the key k to the value v.
-first of all, we make a new timestamp, and we can use a lamport timestamp for example, for that, what we do require is that this timestamp is globally unique, so any two nodes generating timestamps will not generate an identical timestamp, and if you remember the way we can do that with lamport timestamps is by including the node id of the node that generated a particular timestamp, and that will make it globally unique.
-so we're assuming this is just t, the timestamp, and now we're going to take the key and the value that we wanted to set and that timestamp that we just generated packed this all together into a message, and sent that by a reliable broadcast, so remember that reliable broadcast means as long as any two nodes are not crashed, then they will delivery eventually the same set of messages, but we're not making any guarantees about the order in which those messages get delivered.
+first of all, we make a new timestamp, and we can use a lamport timestamp for example, for that, what we do require is that this timestamp is globally unique. so any two nodes generating timestamps will not generate an identical timestamp, and if you remember the way we can do that with lamport timestamps is by including the node id of the node that generated a particular timestamp, and that will make it globally unique.
+
+so we're assuming this is just t, the timestamp, and now we're going to take the key and the value that we wanted to set and that timestamp that we just generated packed this all together into a message, and sent that by a reliable broadcast. so remember that reliable broadcast means as long as any two nodes are not crashed, then they will delivery eventually the same set of messages, but we're not making any guarantees about the order in which those messages get delivered.
 
 
 
@@ -83,7 +92,8 @@ end on
 so when we deliver one of these messages here via reliable broadcast, first of all we figure out are there any existing values in our set of values for the same key k. so we find any entries in this where the key of the entry equals the key of the update that we're making, and we set that to previous.
 
 and so now this could be an empty set, if there is no existing value for the key k, in which case we go ahead.
-also we look at the timestamp of any previous value, so there is a previous value, for this particular k with a timestamp t', and if that timestamp t' is less then the timestamp t of the incoming update, then we overwrite it, so if this is the case that either there is no previous value, or the previous value has a lower timestamp, then we're going to remove the previous value from the set of values, and we're going to add the new mapping from k to v with timestamp t to the set of values, now this ensures that there is exact up to one entry in the set of values for a given key, and so therefore, this for all here, actually just means it's matching one particular item in the set if it exists.
+
+also we look at the timestamp of any previous value, so if there is a previous value for this particular k with a timestamp t', and if that timestamp t' is less then the timestamp t of the incoming update, then we overwrite it, so if this is the case that either there is no previous value, or the previous value has a lower timestamp, then we're going to remove the previous value from the set of values, and we're going to add the new mapping from k to v with timestamp t to the set of values, now this ensures that there is exact up to one entry in the set of values for a given key, and so therefore, this for all here, actually just means it's matching one particular item in the set if it exists.
 
 
 
@@ -107,15 +117,19 @@ Recall strong eventual consistency:
 
 now remember what we talked about the concept of strong eventual consistency, this is exactly the consistency model that we want to ensure in an application like this. and strong eventual consistency consists of two properties.
 first of all, we want that every update is eventually delivered by every replica as long as that replica is not crashed.
-
 and secondly, any two replicas that have processed the same updates must be in the same state
 
 -------------------------------------------------
 CRDT algorithm implements this:
     Reliable broadcast ensures every operation is eventually delivered to every (non-crashed) replica
+    Applying an operation is commutative: order of delivery doesn't matter
 -------------------------------------------------
 now the way we achieve the eventual delivery in this CRDT algorithm that I just showed you, is by using reliable broadcasts, and this is exactly what reliable broadcast ensures, it ensures that any two non-crashed nodes will eventually deliver the same set of messages.
-furthermore, the process for updating a replica state when it delivers one of these messages by reliable broadcast, this process is commutative, and which means that we can apply these various operations here in any order, and the final outcome will be the same, so this might require a little bit of thinking, and there's an exercise in the lecture notes, asking you to actually prove for this particular algorithm, that the process of applying an operation really is commutative.
+furthermore, the process for updating a replica state when it delivers one of these messages by reliable broadcast, this process is commutative, and which means that we can apply these various operations here in any order, and the final outcome will be the same.
+
+todo:
+so this might require a little bit of thinking, and there's an exercise in the lecture notes, asking you to actually prove for this particular algorithm, that the process of applying an operation really is commutative.
+
 now, this is called an operation-based CRDT, it's an example of an operation based CRDT, because the things that we're broadcasting are operations, so it's one operation at a time in each broadcast, so this does require the broadcast to be reliable, because otherwise you know, if you're missing a message then you will never end up in a consistent state with the other nodes necessarily.
 
 
@@ -126,11 +140,16 @@ there's an alternative construction for CRDTs that we can use, which is called a
 State-based map CRDT
 =====================================================
 The operator U merges two states 81 and 82 as follows:
-s1 ∪ s2 = {(t,k,v) ∈ (s1 ∪ s2) | (t', K', v') ∄ (s1 ∪ s2). k'= k ∧ t' > t}
+s1 ⨆ s2 = {(t, k, v) ∈ (s1 ∪ s2) | ∄ (t', K', v') ∈ (s1 ∪ s2). k'= k ∧ t' > t}
 ---------------------------------------------
 And so with a state-based CRDT, you always have a merge operator or this merge function which is usually written like a set union operator, but square rather than round.
+
 this merge operator here must satisfy several properties that I will explain on the next slide, and in this particular algorithm, we will define the merge operator like this. so the merge operator is going to take two sets of values in this case s1 and s2, these are sets of values of exactly the same form as we had in the operation based version that is their triples of timestamp key and value.
+
 and in order to merge these two sets of values, we're going to take the set union of s1 and s2, take all of the triples in there, and then for every given key, we're going to keep only the value with the highest timestamp, and we're going to throw away any older timestamps for that particular key, and that's implemented by this logic here, so for every given triple, we keep only those where there does not exist another triple in the same set that has the same key but a higher timestamp, and the effect of this is that we keep only the highest timestamp for every given key.
+
+(t, k, v) ∈ (s1 ∪ s2) == (t', K', v') ∈ (s1 ∪ s2)
+即相同的集合里面, 不存在k一样, 但是t也一样的值, 一定是取t最大的那个
 
 
 so given this merge operator here, now the rest of the algorithm this looks kind of familiar.
@@ -155,28 +174,35 @@ on request to set key k to value U do
     broadcast `values` by best-effort broadcast
 end on
 ---------------------------------------------
-now the process for updating the value for a given key, this is different, and so here, as before, we generate a new timestamp can be a lamport timestamp as before.
+now the process for updating the value for a given key, this is different.
+
+and so here, as before, we generate a new timestamp can be a lamport timestamp as before.
 and now, rather than broadcasting this operation, we're just going to update the set of values directly, and so we're going to update it in such a way that given the set of values we remove any existing entries with the same key k, which may be none if there is no previous entry. but whatever current entry with key k exists, we're going to remove it, and then we're going to add this new triple with the new timestamp, the new key and the new value, we're going to add that to a set of values.
+
+{(t',k',v') ∈ values | k' ≠ k}: 这个操作相当于remove了,
+∪ {(t,k,v): 这个操作相当于add了
+
 and now, we're going to broadcast this entire set of values to any other replicas, so rather than broadcasting the operation, we're broadcasting the entire state of the replica, which is here this value `values`.
 and this is why it's called state-based CRDT because the thing we're broadcasting are these values.
 
 ---------------------------------------------
 on delivering V by best effort broadcast do
-    values := values ∪ V
+    values := values ⨆ V
 end on
 ---------------------------------------------
 and now when this set of values capital v(V) here is delivered, we use the merge function in order to merge that with the recipient's set of values, and so this means you know you've got these sets of values flying around, which may be delivered in arbitrary orders, and the end result is just we keep each replica when it receives one of these set of values, it just merges it into its own local state, and as a result, it keeps just maintaining the state that is the latest version of whatever has been flying around.
 
 so the interesting thing to note here, is that I said that we can broadcast by ###best effort broadcast### rather than by reliable broadcast, and this is indeed a distinction between the state-based approach and operation based approach as we will see in a moment.
 
+###: todo 为什么可以 best effort
 
 ====================================================
 State-based CRDTs
 ====================================================
-Merge operator ∪ must satisfy: ∀ s1, S2, s3...
-    Commutative: s1 ∪ S2= s2 ∪ s1
-    Associative: (S1 ∪ S2) ∪ S3= s1 ∪ (S2 ∪ s3)
-    Idempotent: s1 ∪ s1 = s1
+Merge operator ⨆ must satisfy: ∀ s1, S2, s3...
+    Commutative: s1 ⨆ S2= s2 ⨆ s1
+    Associative: (S1 ⨆ S2) ⨆ S3 = s1 ⨆ (S2 ⨆ s3)
+    Idempotent: s1 ⨆ s1 = s1
 
 ---------------------------------------------
 
@@ -190,21 +216,26 @@ and if we have a merge operator that satisfies these constructions, then we can 
 
 
 ---------------------------------------------
-State-based versus operation- based:
+State-based versus operation-based:
     Op-based CRDT typically has smaller messages
     State-based CRDT can tolerate message loss/duplication
 ---------------------------------------------
 now there's a trade-off here between operation based and state-based CRDTs.
 so as we saw with the operation based CRDTs, the broadcast message contain just a single operation, so those messages containing just one operation are usually quite small, so they're quite efficient in terms of network traffic, because compared to the state-based approach, where a replica needs to broadcast its entire state that might be a much bigger amount of data imagine a key value mapping that has lots of keys in it. you're going to be sending all of the keys and all of the values associated with them in every single message, so here the advantage of the operation based approach is that it has smaller messages typically.
-state-based approach has larger messages, but it can tolerate messages being lost, and this is quite interesting here, it can also tolerate duplication, duplication is easy because we have idempotent in the merge function, therefore, if you receive duplicates, you'll just do nothing. but even with message loss, it can tolerate this, because the entire state is encoded in every single message. so if you miss a message somewhere along the way, as long as you receive some later messages, that later message will supersede any previous messages anyway. and this actually ensures then that you will get convergence of the replicas, even if you've missed some of the messages in the middle. and so this is quite nice now, because with state-based CRDTs, you don't need to involve the costs of a reliable broadcast protocol, because the CRDT itself can deal with unreliability. of course if no messages are ever delivered, then it won't converge, but as long as eventually messages, some of the messages get through, then you can still get convergence properties.
 
 
 
+state-based approach has larger messages, but it can tolerate messages being lost, and this is quite interesting here, it can also tolerate duplication, duplication is easy because we have idempotent in the merge function, therefore, if you receive duplicates, you'll just do nothing.
+but even with message loss, it can tolerate this, because the entire state is encoded in every single message. so if you miss a message somewhere along the way, as long as you receive some later messages, that later message will supersede any previous messages anyway. and this actually ensures then that you will get convergence of the replicas, even if you've missed some of the messages in the middle.
+and so this is quite nice now, because with state-based CRDTs, you don't need to involve the costs of a reliable broadcast protocol, because the CRDT itself can deal with unreliability. of course if no messages are ever delivered, then it won't converge, but as long as eventually messages, some of the messages get through, then you can still get convergence properties.
+
+state-based可以通过后续的传输来达到最终一致性, 所以不需要可靠通信, 不像operation-based, 只要掉了一个中间的状态就不对了
+反观spring-cloud, 也是用了这种state-based, 每更新一次, 会拉所有的配置下来对比, 最后再更新
 -----------------------------------------------------------------------------
 Not necessarily uses broadcast:
     Can also merge concurrent updates to replicas e.g. in quorum replication, anti-entropy,
 -----------------------------------------------------------------------------
-another nice thing about state-based with CRDTs is here, I wrote it with a based on a replication protocol based on broadcast, but you can actually use it in other forms of replication as well, where it's not actually a broadcast protocol, but if you remember back lecture 5, I think it was on replication. we had these ideas of quorum replication where a client sends an update to a quorum of replicas, and then maybe the replica have an anti-entropy protocol amongst themselves, in order to try and resolve any differences in the updates that they've seen, and state-based CRDTs work very well in this particular setting as well, where you've got these replicas that want to exchange their updates through some kind of anti-entropy protocol.
+another nice thing about state-based with CRDTs is here, I wrote it with a based on a replication protocol based on broadcast, but you can actually use it in other forms of replication as well, where it's not actually a broadcast protocol, but if you remember back lecture 5, I think it was on replication, we had these ideas of quorum replication where a client sends an update to a quorum of replicas, and then maybe the replica have an anti-entropy protocol amongst themselves, in order to try and resolve any differences in the updates that they've seen, and state-based CRDTs work very well in this particular setting as well, where you've got these replicas that want to exchange their updates through some kind of anti-entropy protocol.
 
 so this has been an example of a map CRDT, so our data type was a map from keys to values, we can construct this kind of concurrency control, for other types of applications and other data types as well.
 
@@ -213,8 +244,10 @@ collaborative text editor
 =============================
 and so one interesting one to consider are collaborative text editor like google docs.
 
-so let me give you an actual demo of this, I think this makes a bit more interesting, so I have here two windows of google docs, and you can see if I type in one of them disappears in the other window, and you can see if I type in one of them disappears in the other window, I can go down here and I can add a smiley(:-)) and this will appear in the top window as well. you know so far this is probably familiar you're probably used this kind of software before. now the interesting thing is what happens if these devices get disconnected from each other for a little while. so let's set things up like this, so I write the word to here, and I'm going to go into my network settings, I'm going to fiddle with the network to drop all of the network packets. and so now these two apps will still work, and at the top I can type "one two", and at the bottom I can type "two three", and google docs hasn't realized yet that my network is disconnected, so it's just happily letting me type here, but you can see that the two copies of the document have diverged, so they are ended up being temporarily inconsistent with each other.
-and as the network connection is repaired, we will want those to end up back in a consistent state, so let's say I repair the network, and you can see exactly what has happens, so google doc has been able to merge these updates, so the addition of one has gone down and been added to the lower document and the addition of three has been added to the top document, so we ended up with "one two three" as the merged result automatically, you know we didn't have to do any conflict resolution here, or do anything particular, google docs just figured out by itself what we wanted, and just gave us the merged document automatically, so let's look at some algorithms that can achieve this kind of collaborative editing,
+so let me give you an actual demo of this, I think this makes a bit more interesting, so I have here two windows of google docs, and you can see if I type in one of them disappears in the other window, and you can see if I type in one of them disappears in the other window, I can go down here and I can add a smiley(:-)) and this will appear in the top window as well. you know so far this is probably familiar you're probably used this kind of software before.
+
+now the interesting thing is what happens if these devices get disconnected from each other for a little while. so let's set things up like this, so I write the word to here, and I'm going to go into my network settings, I'm going to fiddle with the network to drop all of the network packets. and so now these two apps will still work, and at the top I can type "one two", and at the bottom I can type "two three", and google docs hasn't realized yet that my network is disconnected, so it's just happily letting me type here, but you can see that the two copies of the document have diverged, so they are ended up being temporarily inconsistent with each other.
+and as the network connection is repaired, we will want those to end up back in a consistent state, so let's say I repair the network, and you can see exactly what has happens, so google doc has been able to merge these updates, so the addition of one has gone down and been added to the lower document, and the addition of three has been added to the top document, so we ended up with "one two three" as the merged result automatically, you know we didn't have to do any conflict resolution here, or do anything particular, google docs just figured out by itself what we wanted, and just gave us the merged document automatically, so let's look at some algorithms that can achieve this kind of collaborative editing,
 
 
 
@@ -222,11 +255,54 @@ and let me show you by an example, the problem that arises when we try to build 
 ==========================================================
 Collaborative text editing: the problem
 ==========================================================
-so let's say we here have got a document consisting of two characters B and C, and we're going to allow users to edit this document by inserting and deleting characters, and we're just going to deal with the document one character at a time, just like google docs, you know every single keystroke adds or deletes oen character in the document typically, and so we've got user a and b, they start off with this in the same state with a document containing b at index 0, and c at index 1.
+so let's say we here have got a document consisting of two characters B and C, and we're going to allow users to edit this document by inserting and deleting characters, and we're just going to deal with the document one character at a time, just like google docs, you know every single keystroke adds or deletes oen character in the document typically, and so we've got user a and b, they start off with this in the same state with a document containing B at index 0, and c at index 1.
 
-now let's say on user A wants to insert letter A at index 0 at this document. and result then of course is that b ends up at index 1, and c index ends up at index 2, so the indexes get moved along by 1.
+now let's say on UserA wants to insert letter A at index 0 at this document. and result then of course is that B ends up at index 1, and C index ends up at index 2, so the indexes get moved along by 1.
 
-let's say concurrently while this is happening, the user B wants to insert the letter D at the end of the document. so this is just like the example I just showed you with google docs with the one two three, except with individual letters, and so here, letter D gets inserted at index two as we expect, now
+let's say concurrently while this is happening, the UserB wants to insert the letter D at the end of the document. so this is just like the example I just showed you with google docs with the one two three, except with individual letters, and so here, letter D gets inserted at index two as we expect.
+
+now let's try and synchronize these two.
+so let's say the network is repaired, the two nodes can connect to each other again, and so UserA is going to send its operation insert A at index 0, we're going to send that over to UserB. and UserB is going to apply that, so UserB is going to insert the letter A at index 0, and we will end up with the document ABCD which is exactly what we wanted in this case, so that has worked fine.
+BCD -> (insert, 0, A) -> ABCD
+
+let's look at what happens if we go in the reverse direction, so in the reverse direction, so in the reverse direction we take again the operation that happened so in this case, it's insert the letter D at index 2, we send that over to UserA, and UserA insert D at index 2, and oh no, things have gone wrong here.
+because if you look what has happened, here we are on the left, UserA we have ended up with the document ABDC, whereas on the right we ended up with the document ABCD, and the two users now are inconsistent with each other.
+BCD -> (insert, 2, D) -> ABDC
+
+this is not what we wanted, and the reason why they have become inconsistent with each other is the problem with this insertion of D at index 2 here, the problem with this operation is we can't just directly apply that operation here on the left hand side, because index 2 no longer has the same meaning because we can currently perform this insertion at index 0, really the insertion here of D should have happened at index 3 not at index 2, so we have to somehow deal with the fact that this concurrent editing has happened and adjust the indexes accordingly, and this is exactly what operational transformation does.
+
+
+=========================================
+Operational transformation
+=========================================
+so operational transformation is a family of algorithms that deal with exactly this problem of several people concurrently updating a text document, and they deal with it by transforming the operations as the name says, so we have the operations which are recorded as before just like one character at a time insert or delete.
+
+and so we have the insert of A at index 0, and the insert of D at index 2, and now, insert D at index 2 when this gets sent over the network to UserA, user A is first going to check any operations that were concurrent with this particular operation, and here it knows that its own insertion of A at index 0 was concurrent, and so it now calls this transformation function T,
+
+T((insert,2, "D"), (insert, 0, "A")) = (insert, 3, "D")
+this capital T here is the transformation function, it takes two operations, the first operation is the operations just received from the network, and the other operation is its own operation that is concurrent with the received operation, and based on these two, it returns a new version of the received operation, that is transformed relative to this concurrent operation, so in this case here the transformation function t, is going to take us first argument the insertion of D at index 2, and it's going to return a transformed version of this same operation, which is realizing that, "okay, we've had this concurrent insertion at 0". this means we have to increase the index of the insertion of D by one, and so therefore the result of this transformation function t here, is that we now perform the insertion of D at index 3 rather than at index 2.
+if we perform the insertion at index 3, now we have the document ABCD which is exactly what we wanted.
+
+going in the opposite direction here, the insertion of A at index 0 also gets transformed with regard to the operation that is concurrent on UserB's side. so it's the transformation goes just the other way around, because they detect the same concurrency relationship between these two operations, probably using vector clocks or something like that.
+
+T((insert, 0, "A"), (insert, 2, "D")) = (insert, 0, "A")
+and in this case here, this operation of index 0 does not get transformed, because in this case, the concurrent operation is further along in the document. it's further to the right. and so therefore, it doesn't affect the index of this operation that happens earlier in the document. and therefore this transformation function here returns the unmodified insertion of A at index 0, and here insertion A at index 0 is applied, and we end up with the document ABCD as we expected.
+
+so I'm not going to run you through the full operational transformation algorithm because the detail is quite fiddly, and it get quite messy and we don't really have time to talk about that, but this is the basic idea of how the algorithm works.
+
+
+one downside of operational transformation algorithms is that generally they require total order broadcast as the mechanism for communication between the users. so even though a user can immediately apply updates to their own local copy, it relies on the network broadcast delivering the updates or the operations to all of the users in the same order. and so this means we do have all of the costs of total order broadcast associated with making operational transformation work.
+
+there's an alternative, which is to use a CRDT
+=========================================
+Text editing CRDT
+=========================================
+
+
+
+
+
+
 
 
 
