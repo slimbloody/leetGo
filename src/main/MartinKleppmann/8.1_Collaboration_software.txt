@@ -293,10 +293,14 @@ so I'm not going to run you through the full operational transformation algorith
 
 one downside of operational transformation algorithms is that generally they require total order broadcast as the mechanism for communication between the users. so even though a user can immediately apply updates to their own local copy, it relies on the network broadcast delivering the updates or the operations to all of the users in the same order. and so this means we do have all of the costs of total order broadcast associated with making operational transformation work.
 
-there's an alternative, which is to use a CRDT
 =========================================
 Text editing CRDT
 =========================================
+there's an alternative, which is to use a CRDT.
+so the CRDT have the property though they don't require total order broadcast, in this case this particular CRDT will require causal broadcast, I'll show you the algorithm in a moment.
+
+first, the concept of how it works, so the real problem that operational transformation had to solve is the fact the indexes don't have the same meaning if there are concurrent insertions or deletions. in our case like the insert the index 2 suddenly has to move along to index 3, and so we have to keep track everything in order to perform that transformation.
+as an alternative we could simply not use indexes in the first place. and instead of using indexes to refer to the places where we're inserting or deleting characters, we could use some other constructions, so let's say we're just going to give each character in the document a unique identifier, and in my case this unique identifier is going to consist of a rational number, so some kind of fractional number, and it's also going to consider the node id of the node that inserted a particular character, and we can think of the entire document as consisting of the number line between 0 and 1, so 0 is the start of the document, and here the start of the document is indicated with this little turn style symbol here.
 
 
 
