@@ -139,7 +139,7 @@ there's an alternative construction for CRDTs that we can use, which is called a
 =====================================================
 State-based map CRDT
 =====================================================
-The operator U merges two states 81 and 82 as follows:
+The operator U merges two states s1 and s2 as follows:
 s1 ⨆ s2 = {(t, k, v) ∈ (s1 ∪ s2) | ∄ (t', K', v') ∈ (s1 ∪ s2). k'= k ∧ t' > t}
 ---------------------------------------------
 And so with a state-based CRDT, you always have a merge operator or this merge function which is usually written like a set union operator, but square rather than round.
@@ -317,8 +317,70 @@ and likewise, in the opposite direction, the insertion of A at 0.25, it will jus
 
 so this is actually a very simple way of achieving the same property, but without all of this complexity of operational transformation.
 
-
 and here's the algorithm that does this.
+========================================================================
+Operation-based text CRDT (1/2)
+========================================================================
+function ELEMENTAT(chars, index)
+    min = the unique triple(p, n, v) ∈ chars such that
+          ∄(p',n',o') ∈ chars.p' < p ∨ (p' = p ∧ n' < n)}
+    if index = 0 then return min
+    else return ELEMENTAT(chars \ {min}, index- 1)
+end function
+
+on initialisation do
+    chars := {(0, null, ├), (1, null, ┤)}
+end on
+
+on request to read character at index `index` do
+    let (p,n,v) := ELEMENTAT(chars, index + 1); return v
+end on
+
+on request to insert character v at index index at node nodeId do
+    let (p1, n1, v1) := ELEMENTAT(chars, index)
+    let (p2, n2, v2) := ELEMENTAT(chars, index + 1)
+    broadcast(insert, (p1 + p2) / 2, nodeId, v) by causal broadcast
+end on
+
+
+--------------------------------------------------
+first of all, I want to define a function that given an index into the list it will find the appropriate element based on the ordering of these position ids, and that's done with this function here.
+so the way this works is that first of all we want to find the minimum element in the set of characters, and so we're going to find the minimum element that has some position identifier `p`, node id `n` and value `v`. and we're going to find the smallest one which is the element such that there does not exist another element in this set of characters, with a position identifier `p'` that is less than p, alternatively, we also don't want there to be a position identifier with the same position number and a lower node id, so the purpose for this is that you could actually end up with two characters having the same position identifier, if two different users can currently insert a character at the same position, and so they will calculate the same position number, because you're just doing halfway between the two endpoints, and so in this case, now we have to do a tie breaker, and the tie-breaker is going to be based on the node that inserted a particular character, so here this gives us a total ordering of all of the characters where we first sort by the position number, and for any characters that have the same position number, we secondarily sort by the node id, and this expression here finds the minimum of all of these characters, and if the index that we're looking for is zero, then we're just going to return that minimum, otherwise if we're looking for an index of one or greater, we're going to call this function recursively, we're going to remove the minimum element from the set. so now the next minimum is going to be the next one up, and we're going to decrement the index, and so then recursively as you keep calling this eventually index will be zero, and eventually it will reach this first case here of returning minimum, now this is a very slow algorithm, but i just want to illustrate the functionality in reality you could implement this in a more efficient way, but that's not the point here.
+so let's look at the initialization, so this time we set up our list of characters to start off with the two endpoints, so the kind of special marker characters for the beginning and the end with a position of zero and position of one respectively, when we want to read the character at a particular index in the document, we're going to use this element at the function that we just defined, and we're going to use index plus one, the plus one just skips the initial character with the placeholder character, and so that make sure that we actually return a particular index as seen by the document, not counting that initial placeholder character, and then we return that value.
+
+now if we want to insert a character at some index `index`, and this is executed by put some particular node id, we do exactly what I explained earlier, so we find the element at that particular index and the adjacent element at index plus one, so this now gives us the position id, position number just before and just after the position where we want to insert, so then we calculate the halfway point as p1 plus p2 over two {(p1 + p2) / 2}, and that's going to be the position number of the new character, we're going to include the node id as I said in order to tie break any insertions that happen to have the same position number, and v is the character that's being inserted.
+so now we're going to broadcast this message here by causal broadcast, I will explain in a moment why it's causal broadcast this time and not just reliable broadcast.
+
+
+
+========================================================================
+Operation-based text CRDT(2/2)
+========================================================================
+on delivering(insert, p, n, v) by causal broadcast do
+    chars := chars ∪ {(p, n, v)}
+end on
+
+on request to delete character at index index do
+    let (p,n,v) := ELEMENTAT( chars, index + 1)
+    broadcast (delete, p, n) by causal broadcast
+end on
+
+on delivering (delete, p, n) by causal broadcast do
+    chars:= {(p',n',v') ∈ chars | ┐(p' = p ∧ n' = n)}
+end on
+
+------------------------------------------------------------------------
+    Use causal broadcast so that insertion of a character is delivered before its deletion
+    Insertion and deletion of different characters commute
+
+------------------------------------------------------------------------
+so now when one of these insertion messages is delivered by causal broadcast, weill it's easy, we just add that particular element with the particular position number, particular node id, and particular character, we add that to the set of characters, and that's all we need to do for insertion.
+
+if we want to delete a character, that's also quite easy, we find the element at that particular index again, again we do plus one in order to account for the placeholder character at the beginning, we get back the position id, the node id and the character at that particular index, and now we're going to broadcast by causal broadcast a message containing the position identifier and the node id, because taken together the position number and the node id are going to uniquely identify a particular character in the document, and so that's uniquely going to tell everybody what is the character that we want to delete without referring to it by index, so we don't need the operational transformation, and now when we deliver one of these deletion operations here by causal broadcast, well we are just going to remove from the set of characters, any character that has exactly the position number p and the node id n in the deletion message, and so this is just going to update the set and remove whatever that delete character was from the set, if it's still there.
+of course, it could happen that several users concurrently delete the same character, in which case deleting it several times is the same as deleting it once, it's just gone in that case.
+and this is enough, this is a CRDT that ensures strong eventual consistency for a text document, the reason I use causal broadcast here, rather than reliable broadcast is because of deletions. and so here, we have to be sure that when we're deleting a character that deletion operation happens after the operation that inserted the character, because it only makes sense to delete a character that has been previously inserted, and so in this particular algorithm, it's not safe to reorder the insert and delete of the same character, because if we did the delete first and then the insert, there's no record of that delete having happened, and so we could end up then with the delete not taking effect, and so this would not be safe, but we can use causal broadcast in this case, and because the deletion of a character always happens causally later than the insertion of that character, the insertion always must happen before the deletion, and so therefore all of the nodes, all of the replicas will deliver the insertion before they deliver that deletion. and therefore the deletion then will have to desired effect of actually deleting the character, and otherwise for any insertions of deletions of different characters, insertion and deletion just commute, that's easy insertion is just a set union operator which commutes and so on, you can convince yourself that these procedures here commute, and as a result it's a CRDT, and we get strong eventual consistency again, so here making this efficient can be the challenge because in this case now, we're carrying along these potentially quite large arbitrary position numbers with every single character, so how you take this algorithm and actually make it really efficient so that you can build something like google docs in practice.
+
+that's an interesting area of research. in fact it happens to be one of my areas of research, but this really goes beyond the scope of this particular course. I just want to give you the flavor of how these CRDT algorithms work. so that's all I wanted to say about collaboration software CRDTs and operational transformations.
 
 
 
