@@ -57,3 +57,7 @@ https://www.runoob.com/charsets/ref-utf-greek.html
 
 merge operator:
 ⨆: U+2A06 N-ARY SQUARE UNION OPERATOR
+
+
+├
+┤

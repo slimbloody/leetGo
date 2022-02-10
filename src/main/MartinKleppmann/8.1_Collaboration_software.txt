@@ -300,11 +300,25 @@ there's an alternative, which is to use a CRDT.
 so the CRDT have the property though they don't require total order broadcast, in this case this particular CRDT will require causal broadcast, I'll show you the algorithm in a moment.
 
 first, the concept of how it works, so the real problem that operational transformation had to solve is the fact the indexes don't have the same meaning if there are concurrent insertions or deletions. in our case like the insert the index 2 suddenly has to move along to index 3, and so we have to keep track everything in order to perform that transformation.
-as an alternative we could simply not use indexes in the first place. and instead of using indexes to refer to the places where we're inserting or deleting characters, we could use some other constructions, so let's say we're just going to give each character in the document a unique identifier, and in my case this unique identifier is going to consist of a rational number, so some kind of fractional number, and it's also going to consider the node id of the node that inserted a particular character, and we can think of the entire document as consisting of the number line between 0 and 1, so 0 is the start of the document, and here the start of the document is indicated with this little turn style symbol here.
+as an alternative we could simply not use indexes in the first place. and instead of using indexes to refer to the places where we're inserting or deleting characters, we could use some other constructions, so let's say we're just going to give each character in the document a unique identifier, and in my case this unique identifier is going to consist of a rational number, so some kind of fractional number, and it's also going to consider the node id of the node that inserted a particular character, and we can think of the entire document as consisting of the number line between 0 and 1, so 0 is the start of the document, and here the start of the document is indicated with this little turn style symbol here. (├, ┤)
+
+├    B    C     ┤
+0.0  0.5  0.75  1.0
+so these two start and end symbols are not actually part of the document, they're just placeholders to mark the beginning and the end. and in between, we're just going to tak all of the characters and sort them in increasing order by the number associated with them, we're going to call this a position number. and then when we put the numbers in that order, we will just get the document in the order that we expect.
+
+and so here let's say that B has got a value of 0.5, the way we got that is we wanted to insert B as the first character in the document, so we just picked halfway between 0 and 1, and said okay B is going to have 0.5.
+then we want to insert C between 0.5 and 1.0, so we gave it a position number of halfway between 0.75.
+
+and so let's say now that UserA wants to insert the character A before B, so it's now going to pick a number halfway between 0 and 0.5, so it's going to be 0.25. and concurrently, the UserB on the right hand side, it wants to insert the letter D here between 0.75 and 1.0, so it's going to pick halfway between which is 0.875.
+
+now you can see you can keep subdividing these intervals to be smaller and smaller. if you use regular floating point numbers then you will eventually run out precision, and you will end up with all of the numbers being equal, so that won't work, so you do have to use arbitrary precision arithmetic in order to make this work.
+but assuming that you have a suitable number library that perform arbitrary precision arithmetic, you can take these operations and you can just send them over the network in a straightforward manner, so this insertion here of D at position 0.875, you can apply here on the right hand side, and 0.875 will slot just in the right place just where you expect it to happen.
+and likewise, in the opposite direction, the insertion of A at 0.25, it will just slot into the right place.
+
+so this is actually a very simple way of achieving the same property, but without all of this complexity of operational transformation.
 
 
-
-
+and here's the algorithm that does this.
 
 
 
