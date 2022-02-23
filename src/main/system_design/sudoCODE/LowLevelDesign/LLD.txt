@@ -1,0 +1,711 @@
+lld or low level design refers to the design of small components of an application or an application that serves the requirement or serves a set of business requirements
+
+
+we have discussed the same in the application video of the system design playlist if you have not checked that
+
+playlist the building blocks of low level design comprises of
+1. requirement gathering
+2. laying down all the use cases
+3. conversion of those use cases using the nvt technique(Noun and Verb technique) to uml class diagrams sequence diagrams and activity diagrams
+4. using object-oriented design techniques to model the problem
+convert that class diagram into actual implementation code, this step of converting the class diagram into the actual code using object-oriented modeling techniques is
+actually the low level design space
+
+5. and then the final step is implementation of that code using object-oriented principles and design patterns
+
+39
+00:01:25,200 --> 00:01:27,360
+let's take an example we are designing
+
+40
+00:01:27,360 --> 00:01:29,360
+something like a coffee brewer
+
+41
+00:01:29,360 --> 00:01:30,159
+which
+
+42
+00:01:30,159 --> 00:01:32,159
+is a machine that helps you to brew
+
+43
+00:01:32,159 --> 00:01:33,840
+different type of coffee and post the
+
+44
+00:01:33,840 --> 00:01:35,520
+coffee in a cup
+
+45
+00:01:35,520 --> 00:01:37,439
+here is how the class diagram and
+
+46
+00:01:37,439 --> 00:01:40,079
+sequence diagram of that coffee brewer
+
+47
+00:01:40,079 --> 00:01:42,079
+system or coffee bread low level design
+
+48
+00:01:42,079 --> 00:01:44,000
+would look like you have different
+
+49
+00:01:44,000 --> 00:01:45,360
+classes which are fulfilling the
+
+50
+00:01:45,360 --> 00:01:47,600
+responsibility with respect to different
+
+51
+00:01:47,600 --> 00:01:49,680
+functions of a coffee brewer and you
+
+52
+00:01:49,680 --> 00:01:51,439
+have a sequence diagram which is laying
+
+53
+00:01:51,439 --> 00:01:53,520
+out how different classes are
+
+54
+00:01:53,520 --> 00:01:55,360
+interacting with each other to fulfill
+
+55
+00:01:55,360 --> 00:01:57,119
+the functions like brewing coffee or
+
+56
+00:01:57,119 --> 00:01:59,119
+pouring coffee class diagrams reflect
+
+57
+00:01:59,119 --> 00:02:01,200
+the real world problem in terms of
+
+58
+00:02:01,200 --> 00:02:02,960
+classes their relationship with other
+
+59
+00:02:02,960 --> 00:02:04,560
+classes how they interact with other
+
+60
+00:02:04,560 --> 00:02:07,200
+classes responsibility of every class in
+
+61
+00:02:07,200 --> 00:02:09,199
+terms of class methods and functions and
+
+62
+00:02:09,199 --> 00:02:10,878
+the data and information those classes
+
+63
+00:02:10,878 --> 00:02:13,520
+hold in terms of class attributes while
+
+64
+00:02:13,520 --> 00:02:16,000
+designing complex systems these class
+
+65
+00:02:16,000 --> 00:02:17,920
+interactions can get fairly complicated
+
+66
+00:02:17,920 --> 00:02:20,239
+and hence uml sequence diagram actually
+
+67
+00:02:20,239 --> 00:02:22,400
+help us to understand how different
+
+68
+00:02:22,400 --> 00:02:24,319
+instances of classes are interacting
+
+69
+00:02:24,319 --> 00:02:26,319
+with each other what messages they are
+
+70
+00:02:26,319 --> 00:02:28,480
+passing to each other in what particular
+
+71
+00:02:28,480 --> 00:02:30,879
+order so that operations like pouring
+
+72
+00:02:30,879 --> 00:02:32,560
+coffee or brewing a coffee can be
+
+73
+00:02:32,560 --> 00:02:34,560
+fulfilled in case of coffee brewer
+
+74
+00:02:34,560 --> 00:02:36,879
+example the user of the system is one
+
+75
+00:02:36,879 --> 00:02:39,360
+individual at a time but in complicated
+
+76
+00:02:39,360 --> 00:02:41,280
+systems there can be multiple users or
+
+77
+00:02:41,280 --> 00:02:42,959
+multiple actors which are interacting
+
+78
+00:02:42,959 --> 00:02:44,800
+with the system if we talk about a
+
+79
+00:02:44,800 --> 00:02:46,400
+banking application there can be the
+
+80
+00:02:46,400 --> 00:02:47,920
+customer who is using that application
+
+81
+00:02:47,920 --> 00:02:49,440
+there can be the actual account manager
+
+82
+00:02:49,440 --> 00:02:51,200
+who is using that application and there
+
+83
+00:02:51,200 --> 00:02:52,800
+can be different people from account
+
+84
+00:02:52,800 --> 00:02:54,239
+department sales department which are
+
+85
+00:02:54,239 --> 00:02:56,720
+using the same application in that case
+
+86
+00:02:56,720 --> 00:02:58,400
+the use cases diagram come into the
+
+87
+00:02:58,400 --> 00:03:00,400
+picture which help us understand what
+
+88
+00:03:00,400 --> 00:03:01,680
+are the different use cases for
+
+89
+00:03:01,680 --> 00:03:03,760
+different actors of the system what are
+
+90
+00:03:03,760 --> 00:03:05,680
+the use cases for an account manager
+
+91
+00:03:05,680 --> 00:03:07,680
+what are the use cases for a bank
+
+92
+00:03:07,680 --> 00:03:08,959
+representative and what are the use
+
+93
+00:03:08,959 --> 00:03:10,800
+cases for a customer
+
+94
+00:03:10,800 --> 00:03:13,200
+in every lle problem it might or might
+
+95
+00:03:13,200 --> 00:03:15,360
+not be needed to design and develop the
+
+96
+00:03:15,360 --> 00:03:17,440
+use cases diagram but in actual
+
+97
+00:03:17,440 --> 00:03:18,879
+real-world scenario where you are
+
+98
+00:03:18,879 --> 00:03:20,879
+developing complex applications use
+
+99
+00:03:20,879 --> 00:03:23,200
+cases diagram do tell the story of how
+
+100
+00:03:23,200 --> 00:03:25,120
+the software is going to look like and
+
+101
+00:03:25,120 --> 00:03:27,360
+it helps you to build and design a
+
+102
+00:03:27,360 --> 00:03:28,879
+better software once all these
+
+103
+00:03:28,879 --> 00:03:30,480
+representations of class diagram
+
+104
+00:03:30,480 --> 00:03:32,319
+sequence diagram activity diagrams are
+
+105
+00:03:32,319 --> 00:03:35,519
+ready the next step is to convert these
+
+106
+00:03:35,519 --> 00:03:37,920
+models into actual code using object
+
+107
+00:03:37,920 --> 00:03:40,640
+oriented design principles such as solid
+
+108
+00:03:40,640 --> 00:03:43,360
+principles and design patterns so moving
+
+109
+00:03:43,360 --> 00:03:45,360
+from this uml to the code is actually
+
+110
+00:03:45,360 --> 00:03:46,959
+the design process as i have mentioned
+
+111
+00:03:46,959 --> 00:03:49,680
+before as well
+
+112
+00:03:50,799 --> 00:03:52,640
+in order to fulfill this particular step
+
+113
+00:03:52,640 --> 00:03:54,560
+we will study about different design
+
+114
+00:03:54,560 --> 00:03:56,879
+patterns object-oriented principles and
+
+115
+00:03:56,879 --> 00:03:58,879
+methodologies like what is a class
+
+116
+00:03:58,879 --> 00:04:00,879
+object polymorphism inheritance
+
+117
+00:04:00,879 --> 00:04:03,680
+abstraction encapsulation and solid
+
+118
+00:04:03,680 --> 00:04:06,000
+principles once we have in-depth
+
+119
+00:04:06,000 --> 00:04:07,840
+understanding of these principles and
+
+120
+00:04:07,840 --> 00:04:09,920
+object-oriented techniques we would be
+
+121
+00:04:09,920 --> 00:04:12,159
+able to convert these diagrams into code
+
+122
+00:04:12,159 --> 00:04:14,720
+very easily by following object oriented
+
+123
+00:04:14,720 --> 00:04:17,200
+principles
+
+124
+00:04:18,478 --> 00:04:20,399
+the advanced step of low level design
+
+125
+00:04:20,399 --> 00:04:22,960
+includes how to write testable
+
+126
+00:04:22,960 --> 00:04:25,120
+maintainable refactored code which is
+
+127
+00:04:25,120 --> 00:04:27,680
+production ready and which can include
+
+128
+00:04:27,680 --> 00:04:30,800
+the changes that will come with time and
+
+129
+00:04:30,800 --> 00:04:33,199
+how we can write such advance code that
+
+130
+00:04:33,199 --> 00:04:35,600
+is the part of advanced lld and usually
+
+131
+00:04:35,600 --> 00:04:37,280
+that is the that is the stage that you
+
+132
+00:04:37,280 --> 00:04:38,639
+will encounter when you are actually
+
+133
+00:04:38,639 --> 00:04:40,479
+working in a company where you will be
+
+134
+00:04:40,479 --> 00:04:42,080
+given a source code which might have
+
+135
+00:04:42,080 --> 00:04:43,680
+been developed by other developers and
+
+136
+00:04:43,680 --> 00:04:46,080
+you would have to add features to it or
+
+137
+00:04:46,080 --> 00:04:47,680
+you might have to write an application
+
+138
+00:04:47,680 --> 00:04:50,080
+from scratch there also you should know
+
+139
+00:04:50,080 --> 00:04:51,680
+how to write well
+
+140
+00:04:51,680 --> 00:04:53,680
+well maintainable well tested and
+
+141
+00:04:53,680 --> 00:04:55,680
+refactored code but those are about the
+
+142
+00:04:55,680 --> 00:04:57,280
+advanced lle techniques which we will
+
+143
+00:04:57,280 --> 00:05:00,000
+talk about in the end of the series
+
+144
+00:05:00,000 --> 00:05:02,240
+before we will just focus on the
+
+145
+00:05:02,240 --> 00:05:04,639
+basics of object oriented design
+
+146
+00:05:04,639 --> 00:05:07,360
+methodologies
+
+147
+00:05:08,639 --> 00:05:10,960
+llc interviews can be uh done in one of
+
+148
+00:05:10,960 --> 00:05:13,120
+the following formats either you would
+
+149
+00:05:13,120 --> 00:05:15,440
+be given a vague problem statement like
+
+150
+00:05:15,440 --> 00:05:17,199
+design a parking lot and you would have
+
+151
+00:05:17,199 --> 00:05:18,720
+to come up with the whole application
+
+152
+00:05:18,720 --> 00:05:21,199
+design for that parking lot you can ask
+
+153
+00:05:21,199 --> 00:05:22,560
+clarify questions gather the
+
+154
+00:05:22,560 --> 00:05:24,160
+requirements create class diagrams and
+
+155
+00:05:24,160 --> 00:05:26,080
+then write the actual code
+
+156
+00:05:26,080 --> 00:05:28,000
+another way of how lld interviews are
+
+157
+00:05:28,000 --> 00:05:30,000
+carried out is you will be given a full
+
+158
+00:05:30,000 --> 00:05:32,320
+application with which has test written
+
+159
+00:05:32,320 --> 00:05:34,080
+which has all the classes implemented
+
+160
+00:05:34,080 --> 00:05:35,759
+but you would be asked to add a
+
+161
+00:05:35,759 --> 00:05:37,919
+particular feature in that code base
+
+162
+00:05:37,919 --> 00:05:39,680
+that would require you to design maybe
+
+163
+00:05:39,680 --> 00:05:41,280
+one or two classes there are the
+
+164
+00:05:41,280 --> 00:05:42,720
+responsibility of those classes and
+
+165
+00:05:42,720 --> 00:05:44,560
+write the code in order to fulfill those
+
+166
+00:05:44,560 --> 00:05:45,759
+features
+
+167
+00:05:45,759 --> 00:05:47,520
+another format that some companies use
+
+168
+00:05:47,520 --> 00:05:49,759
+is they will give you a full source code
+
+169
+00:05:49,759 --> 00:05:51,600
+even the classes are implemented test or
+
+170
+00:05:51,600 --> 00:05:53,680
+written and they might give give you
+
+171
+00:05:53,680 --> 00:05:56,400
+with a bug in order to find out why that
+
+172
+00:05:56,400 --> 00:05:57,840
+bug exists in the
+
+173
+00:05:57,840 --> 00:06:00,000
+code base and how you can solve that bug
+
+174
+00:06:00,000 --> 00:06:02,000
+so in order to do that you must
+
+175
+00:06:02,000 --> 00:06:04,319
+understand the whole code base you must
+
+176
+00:06:04,319 --> 00:06:05,919
+understand how the object-oriented code
+
+177
+00:06:05,919 --> 00:06:06,880
+is written
+
+178
+00:06:06,880 --> 00:06:08,880
+write and run test and figure out why
+
+179
+00:06:08,880 --> 00:06:11,680
+the particular bug exists and to solve
+
+180
+00:06:11,680 --> 00:06:14,160
+that bug that would uh usually involve
+
+181
+00:06:14,160 --> 00:06:15,759
+the understanding of the code base and
+
+182
+00:06:15,759 --> 00:06:17,680
+also it would involve understanding of
+
+183
+00:06:17,680 --> 00:06:19,360
+the business logic where you can go and
+
+184
+00:06:19,360 --> 00:06:21,199
+actually find out if somebody has
+
+185
+00:06:21,199 --> 00:06:23,120
+violated a particular principle or if
+
+186
+00:06:23,120 --> 00:06:25,440
+somebody has not exposed the correct
+
+187
+00:06:25,440 --> 00:06:27,840
+method or if somebody has exposed a
+
+188
+00:06:27,840 --> 00:06:28,960
+wrong method
+
+189
+00:06:28,960 --> 00:06:32,000
+so problems of such uh nature can be
+
+190
+00:06:32,000 --> 00:06:33,600
+exist in form of bugs and you would be
+
+191
+00:06:33,600 --> 00:06:36,880
+required to solve that
+
+192
+00:06:38,319 --> 00:06:40,479
+in order to solve problems in any of
+
+193
+00:06:40,479 --> 00:06:42,479
+those lle interview formats you would
+
+194
+00:06:42,479 --> 00:06:45,039
+require basic understanding of objects
+
+195
+00:06:45,039 --> 00:06:48,400
+classes object-oriented techniques solid
+
+196
+00:06:48,400 --> 00:06:50,560
+design principles and
+
+197
+00:06:50,560 --> 00:06:52,639
+design patterns from the next video
+
+198
+00:06:52,639 --> 00:06:54,160
+onwards we are going to start from the
+
+199
+00:06:54,160 --> 00:06:56,000
+basics of basics we will discuss what
+
+200
+00:06:56,000 --> 00:06:58,400
+are objects and classes and how you can
+
+201
+00:06:58,400 --> 00:07:01,120
+use nvt technique to convert the problem
+
+202
+00:07:01,120 --> 00:07:02,880
+into a class type whatever i have
+
+203
+00:07:02,880 --> 00:07:04,160
+explained in this video and the
+
+204
+00:07:04,160 --> 00:07:05,360
+resources that i have shared in the
+
+205
+00:07:05,360 --> 00:07:07,599
+description if any part is doubtful or
+
+206
+00:07:07,599 --> 00:07:09,120
+if you have any questions or if any
+
+207
+00:07:09,120 --> 00:07:11,280
+particular piece of information or any
+
+208
+00:07:11,280 --> 00:07:13,039
+term is not related to you please feel
+
+209
+00:07:13,039 --> 00:07:14,639
+free to ask that in comments i will try
+
+210
+00:07:14,639 --> 00:07:16,639
+to respond to it till then take care see
+
+211
+00:07:16,639 --> 00:07:18,670
+you in the next video
+
+212
+00:07:18,670 --> 00:07:23,990
+[Music]
+

@@ -1,0 +1,1624 @@
+
+problem state:
+            synchronous communication
+producer -------------------------------> consumer
+
+Synchronous communication is easier and faster to implement.
+
+At the same time synchronous communication makes it harder to deal with consumer service failures.
+
+We need to think
+when and how to properly retry failed requests,
+how not to overwhelm consumer service with too many requests,
+and how to deal with a slow consumer service host.
+
+
+Another option is to introduce a new component
+that helps to setup asynchronous communication.
+
+
+Another option is to introduce a new component that helps to setup asynchronous communication.
+
+Producer sends data to that component and exactly one consumer gets this data a short time after.
+Such component is called a queue.
+And it is distributed, because data is stored across several machines.
+
+Please do not confuse queue with a topic.
+In case of a topic, message that is published goes to each and every subscriber.
+In case of a queue, message is received by one and only one consumer.
+todo: topic是怎么投递到queue里面的,是不是一个consumer监听了多个queue
+
+
+
+And as it often happens with interview questions, the statement is ambiguous.
+What are the functional requirements?
+What non-functional requirements have a priority over others?
+What is a scale we need to deal with?
+
+All these questions need to be clarified with the interviewer.
+
+Let's do our best and define requirements ourselves.
+
+=================================
+1. functional requirements
+=================================
+At this stage of the interview it may be hard to come up with a definitive set of requirements, And it’s usually not needed.
+
+Functional
+1. sendMessage(messageBody)
+2. receiveMessage()
+Time limit allows us to only focus on several core APIs, like send message and receive message.
+
+Non-Functional
+1. Scalable (handles load increases, more queues and messages)
+2. Highly Available (survives hardware/network failures)
+3. Highly Performant (single digit latency for main operations)
+4. Durable (once submitted, data is not lost)
+As for non-functional requirements, we want our system to be scalable and handle load increase, highly available and tolerate hardware and network failures, highly performant, so that both send and receive operations are fast, and durable, so that data is persisted once submitted to the queue.
+
+-------------------------------------------------------
+
+Among functional requirements, we can be asked to support create and delete queue APIs, or delete message API.
+
+There may be specific requirements for the producer (for example system needs to avoid duplicate submissions), or security requirements, or an ask to implement a specific ordering guarantee.
+
+As for non-functional requirements, the interviewer may define specific service level agreement numbers (so called SLA, for example minimum throughput our system needs to support), or requirements around cost-effectiveness (for example system needs to minimize hardware cost or operational support cost).
+
+
+But do not worry if you can’t think of all the possible requirements.
+You just need to be proactive and outline main use cases.
+
+----------------------------------------------------
+Let’s start with components that are common for many distributed systems.
+
+First, we need a virtual IP.
+VIP refers to the symbolic hostname (for example myWebService.domain.com) that resolves to a load balancer system.
+
+So next, we have a load balancer.
+A load balancer is a device that routes client requests across a number of servers.
+
+Next, we have a FrontEnd web service.
+A component responsible for initial request processing, like validation, authentication, etc.
+Queue metadata information like its name, creation date and time, owner and any other configuration settings will be stored in a database.
+
+And best practices dictate that databases should be hidden behind some facade, a dedicated web service responsible for handling calls to a database.
+
+And we need a place to store queue messages.
+So, lets introduce a backend web service, that will be responsible for message persistence and processing.
+-------------------------------------------------------------------
+                                          ┌─────────┐
+                                          │MetaData │
+                                          │Service  │
+                                          └─▲─────┬─┘
+                                            │     │
+                                            │     │
+                                          ┌─┴─────▼─┐
+                                          │MetaData │
+┌──────────┐                              │Service  │
+│  Client  │                              └─▲─────┬─┘
+│(Producer)│                                │     │
+└────┬─────┘                                │     │
+     │      ┌───────┐    ┌──────────┐     ┌─┴─────▼─┐    ┌───────┐
+     └──────►       ├────►Load      ├─────►         ├────►       │
+            │ VIP   │    │Balancer  │     │FrontEnd │    │BackEnd│
+     ┌──────┤       ◄────┤          ◄─────┤         ◄────┤       │
+     │      └───────┘    └──────────┘     └─────────┘    └───────┘
+┌────▼─────┐
+│  Client  │
+│(Consumer)│
+└──────────┘
+-------------------------------------------------------------------
+
+Now, let’s take a look at each component one by one.
+
+-------------------------------------------------------------------
+Load balancing is a big topic.
+And unless interviewer encourages you to dive deep into load balancing topic, we better not deviate too much from the main question of the interview.
+
+Always try to stay focused on what really matters.
+
+Internals of how load balancers work may not matter, but in order to make sure non-functional requirements to the system we build are fully met, we need to explain how load balancers will help us achieve high throughput and availability.
+
+When domain name is hit, request is transferred to one of the VIPs registered in DNS for our domain name.
+VIP is resolved to a load balancer device, which has a knowledge of FrontEnd hosts.
+-------------------------------------------------------------------
+By looking at this architecture, several questions have probably popped in your head?
+
+First, load balancer seems like a single point of failure.
+What happens if load balancer device goes down?
+
+Second, load balancers have limits with regards to number of requests they can process and number of bytes they can transfer.
+What happens when our distributed message queue service becomes so popular that load balancer limits are reached?
+
+To address high availability concerns, load balancers utilize a concept of primary and secondary nodes.
+
+The primary node accepts connections and serves requests while the secondary node monitors the primary.
+
+If, for any reason, the primary node is unable to accept connections, the secondary node takes over.
+
+As for scalability concerns, a concept of multiple VIPs (sometimes referred as VIP partitioning) can be utilized.
+
+In DNS we assign multiple A records to the same DNS name for the service.
+
+As a result, requests are partitioned across several load balancers.
+
+And by spreading load balancers across several data centers, we improve both availability and performance.
+
+-------------------------------------------------------------------
+
+00:06:03,720 --> 00:06:07,430
+Let's move on to the next component, which
+is a FrontEnd web service.
+
+100
+00:06:07,430 --> 00:06:12,860
+FrontEnd is a lightweight web service, consisting
+of stateless machines located across several
+
+101
+00:06:12,860 --> 00:06:14,880
+data centers.
+
+102
+00:06:14,880 --> 00:06:21,139
+FrontEnd service is responsible for: request
+validation, authentication and authorization,
+
+103
+00:06:21,139 --> 00:06:30,580
+SSL termination, server-side data encryption,
+caching, rate limiting (also known as throttling),
+
+104
+00:06:30,580 --> 00:06:35,169
+request dispatching, request deduplication,
+usage data collection.
+
+105
+00:06:35,169 --> 00:06:39,419
+Let’s discuss some basics of these features.
+
+106
+00:06:39,419 --> 00:06:44,169
+Request validation helps to ensure that all
+the required parameters are present in the
+
+107
+00:06:44,169 --> 00:06:48,669
+request and values of these parameters honor
+constraints.
+
+108
+00:06:48,669 --> 00:06:54,759
+For example, in our case we want to make sure
+queue name comes with every send message request.
+
+109
+00:06:54,759 --> 00:07:00,000
+And message size does not exceed a specified
+threshold.
+
+110
+00:07:00,000 --> 00:07:04,389
+During authentication check we verify that
+message sender is a registered customer of
+
+111
+00:07:04,389 --> 00:07:06,860
+our distributed queue service.
+
+112
+00:07:06,860 --> 00:07:12,199
+And during authorization check we verify that
+sender is allowed to publish messages to the
+
+113
+00:07:12,199 --> 00:07:14,210
+queue it claims.
+
+114
+00:07:14,210 --> 00:07:19,240
+TLS is a protocol that aims to provide privacy
+and data integrity.
+
+115
+00:07:19,240 --> 00:07:25,139
+TLS termination refers to the process of decrypting
+request and passing on an unencrypted request
+
+116
+00:07:25,139 --> 00:07:27,400
+to the backend service.
+
+117
+00:07:27,400 --> 00:07:32,419
+And we want to do TLS termination on FrontEnd
+hosts because TLS on the load balancer is
+
+118
+00:07:32,419 --> 00:07:34,490
+expensive.
+
+119
+00:07:34,490 --> 00:07:40,050
+Termination is usually handled by not a FrontEnd
+service itself, but a separate HTTP proxy
+
+120
+00:07:40,050 --> 00:07:43,819
+that runs as a process on the same host.
+
+121
+00:07:43,819 --> 00:07:46,879
+Next is the server-side encryption.
+
+122
+00:07:46,879 --> 00:07:51,300
+Because we want to store messages securely
+on backend hosts, messages are encrypted as
+
+123
+00:07:51,300 --> 00:07:54,949
+soon as FrontEnd receives them.
+
+124
+00:07:54,949 --> 00:08:00,229
+Messages are stored in encrypted form and
+FrontEnd decrypts them only when they are
+
+125
+00:08:00,229 --> 00:08:02,580
+sent back to a consumer.
+
+126
+00:08:02,580 --> 00:08:04,800
+Cache stores copies of source data.
+
+127
+00:08:04,800 --> 00:08:11,630
+In FrontEnd cache we will store metadata information
+about the most actively used queues.
+
+128
+00:08:11,630 --> 00:08:16,629
+As well as user identity information to save
+on calls to authentication and authorization
+
+129
+00:08:16,629 --> 00:08:17,629
+services.
+
+130
+00:08:17,629 --> 00:08:21,850
+Rate limiting or throttling is the process
+of limiting the number of requests you can
+
+131
+00:08:21,850 --> 00:08:25,819
+submit to a given operation in a given amount
+of time.
+
+132
+00:08:25,819 --> 00:08:29,620
+Throttling protects the web service from being
+overwhelmed with requests.
+
+133
+00:08:29,620 --> 00:08:33,280
+Leaky bucket algorithm is one of the most
+famous.
+
+134
+00:08:33,280 --> 00:08:37,070
+Rate limiting is a quite popular system design
+question on its own.
+
+135
+00:08:37,070 --> 00:08:41,399
+And we will have a separate video for it.
+
+136
+00:08:41,399 --> 00:08:47,550
+FrontEnd service makes remote calls to at
+least two other web services: Metadata service
+
+137
+00:08:47,550 --> 00:08:49,149
+and backend service.
+
+138
+00:08:49,149 --> 00:08:53,560
+FrontEnd service creates HTTP clients for
+both services and makes sure that calls to
+
+139
+00:08:53,560 --> 00:08:56,160
+these services are properly isolated.
+
+140
+00:08:56,160 --> 00:09:01,589
+It means that when one service let’s say
+Metadata service experiences a slowdown, requests
+
+141
+00:09:01,589 --> 00:09:04,390
+to backend service are not impacted.
+
+142
+00:09:04,390 --> 00:09:09,440
+There are common patterns like bulkhead and
+circuit breaker that helps to implement resources
+
+143
+00:09:09,440 --> 00:09:15,890
+isolation and make service more resilient
+in cases when remote calls start to fail.
+
+144
+00:09:15,890 --> 00:09:18,510
+Next, we have request deduplication.
+
+145
+00:09:18,510 --> 00:09:25,630
+It may occur when a response from a successful
+send message request failed to reach a client.
+
+146
+00:09:25,630 --> 00:09:30,500
+Lesser an issue for ‘at least once’ delivery
+semantics, a bigger issue for ‘exactly once’
+
+147
+00:09:30,500 --> 00:09:34,899
+and ‘at most once’ delivery semantics,
+when we need to guarantee that message was
+
+148
+00:09:34,899 --> 00:09:37,170
+never processed more than one time.
+
+149
+00:09:37,170 --> 00:09:42,089
+Caching is usually used to store previously
+seen request ids to avoid deduplication.
+
+150
+00:09:42,089 --> 00:09:45,820
+Last but not least is a usage data collection.
+
+151
+00:09:45,820 --> 00:09:50,140
+When we gather real-time information that
+can be used for audit.
+
+152
+00:09:50,140 --> 00:09:54,541
+And even though FrontEnd service has many
+responsibilities, the rule of thumb is to
+
+153
+00:09:54,541 --> 00:09:56,620
+keep it as simple as possible.
+
+154
+00:09:56,620 --> 00:10:00,620
+Moving on to the next component, which is
+Metadata service.
+
+155
+00:10:00,620 --> 00:10:03,399
+Metadata service stores information about
+queues.
+
+156
+00:10:03,399 --> 00:10:08,300
+Every time queue is created, we store information
+about it in the database.
+
+157
+00:10:08,300 --> 00:10:13,769
+Conceptually, Metadata service is a caching
+layer between the FrontEnd and a persistent
+
+158
+00:10:13,769 --> 00:10:14,769
+storage.
+
+159
+00:10:14,769 --> 00:10:17,880
+It handles many reads and a relatively small
+number of writes.
+
+160
+00:10:17,880 --> 00:10:22,389
+As we read every time message arrives and
+write only when new queue is created.
+
+161
+00:10:22,389 --> 00:10:27,000
+Even though strongly consistent storage is
+preferred to avoid potential concurrent updates,
+
+162
+00:10:27,000 --> 00:10:30,029
+it is not strictly required.
+
+163
+00:10:30,029 --> 00:10:33,779
+Lets take a look at different approaches of
+organizing cache clusters.
+
+164
+00:10:33,779 --> 00:10:38,240
+The first option is when cache is relatively
+small and we can store the whole data set
+
+165
+00:10:38,240 --> 00:10:40,370
+on every cluster node.
+
+166
+00:10:40,370 --> 00:10:45,459
+FrontEnd host calls a randomly chosen Metadata
+service host, because all the cache cluster
+
+167
+00:10:45,459 --> 00:10:48,750
+nodes contain the same information.
+
+168
+00:10:48,750 --> 00:10:53,779
+Second approach is to partition data into
+small chunks, called shards.
+
+169
+00:10:53,779 --> 00:10:58,139
+Because data set is too big and cannot be
+placed into a memory of a single host.
+
+170
+00:10:58,139 --> 00:11:03,680
+So, we store each such chunk of data on a
+separate node in a cluster.
+
+171
+00:11:03,680 --> 00:11:09,100
+FrontEnd then knows which shard stores the
+data and calls the shard directly.
+
+172
+00:11:09,100 --> 00:11:11,100
+And the third option is similar to the second
+one.
+
+173
+00:11:11,100 --> 00:11:17,329
+We also partition data into shards, but FrontEnd
+does not know on what shard data is stored.
+
+174
+00:11:17,329 --> 00:11:22,279
+So, FrontEnd calls a random Metadata service
+host and host itself knows where to forward
+
+175
+00:11:22,279 --> 00:11:24,060
+the request to.
+
+176
+00:11:24,060 --> 00:11:29,350
+In option one, we can introduce a load balancer
+between FrontEnd and Metadata service.
+
+177
+00:11:29,350 --> 00:11:33,920
+As all Metadata service hosts are equal and
+FrontEnd does not care which Metadata host
+
+178
+00:11:33,920 --> 00:11:35,580
+handles the request.
+
+179
+00:11:35,580 --> 00:11:40,790
+In option two and three, Metadata hosts represent
+a consistent hashing ring.
+
+180
+00:11:40,790 --> 00:11:43,829
+Do not worry if this term is completely new
+to you.
+
+181
+00:11:43,829 --> 00:11:48,649
+Distributed cache topic is big and we will
+have a separate video on how to design a distributed
+
+182
+00:11:48,649 --> 00:11:49,649
+cache.
+
+183
+00:11:49,649 --> 00:11:52,420
+Components we built so far were relatively
+straightforward.
+
+184
+00:11:52,420 --> 00:11:57,950
+Not easy of course, but if you have understanding
+of several core design principles, you will
+
+185
+00:11:57,950 --> 00:12:00,339
+at least progress thus far in the interview.
+
+186
+00:12:00,339 --> 00:12:05,720
+By the way, the set of components we just
+discussed: VIP + Load Balancer + FrontEnd
+
+187
+00:12:05,720 --> 00:12:11,550
+web service + Metadata web service that represents
+a caching layer on top of a database is so
+
+188
+00:12:11,550 --> 00:12:16,980
+popular in the world of distributed systems,
+that you may consider it a standard and apply
+
+189
+00:12:16,980 --> 00:12:18,670
+to many system designs.
+
+190
+00:12:18,670 --> 00:12:21,600
+Now, let’s take a look at the backend component.
+
+191
+00:12:21,600 --> 00:12:23,170
+This is where the real challenge starts.
+
+192
+00:12:23,170 --> 00:12:28,259
+To understand how backend service architecture
+may look like, let’s try to answer some
+
+193
+00:12:28,259 --> 00:12:29,370
+important questions first.
+
+194
+00:12:29,370 --> 00:12:34,610
+By the way, if you stuck during the interview,
+not knowing how to progress further, start
+
+195
+00:12:34,610 --> 00:12:36,120
+asking yourself questions.
+
+196
+00:12:36,120 --> 00:12:40,010
+Asking right questions helps to split the
+problem into more manageable pieces.
+
+197
+00:12:40,010 --> 00:12:45,160
+Plus, it helps to establish a better communication
+channel with the interviewer.
+
+198
+00:12:45,160 --> 00:12:48,790
+Interviewer will let you know whether you
+are on the right path or not.
+
+199
+00:12:48,790 --> 00:12:51,040
+So, what those question may be?
+
+200
+00:12:51,040 --> 00:12:54,230
+We need to figure out where and how messages
+are stored, right?
+
+201
+00:12:54,230 --> 00:12:56,000
+Is database an option?
+
+202
+00:12:56,000 --> 00:12:57,370
+Yes, it is.
+
+203
+00:12:57,370 --> 00:12:58,870
+But not the best one and let me explain why.
+
+204
+00:12:58,870 --> 00:13:05,020
+We are building a distributed message queue,
+a system that should be able to handle a very
+
+205
+00:13:05,020 --> 00:13:06,060
+high throughput.
+
+206
+00:13:06,060 --> 00:13:09,899
+And this means that all this throughput will
+be offloaded to the database.
+
+207
+00:13:09,899 --> 00:13:14,870
+In other words, a problem of building a distributed
+message queue becomes a problem of building
+
+208
+00:13:14,870 --> 00:13:17,820
+a database that can handle high throughput.
+
+209
+00:13:17,820 --> 00:13:22,959
+And we know that highly-available and scalable
+databases exist out there.
+
+210
+00:13:22,959 --> 00:13:27,600
+And if you are a junior software engineer,
+it is totally reasonable to say that we will
+
+211
+00:13:27,600 --> 00:13:31,949
+utilize a 3-rd party database solution and
+stop right there.
+
+212
+00:13:31,949 --> 00:13:36,400
+But for a senior position, we need to either
+explain how to build a distributed database
+
+213
+00:13:36,400 --> 00:13:42,680
+(and we promise you a separate video on this)
+or we need to keep seeking for other options.
+
+214
+00:13:42,680 --> 00:13:46,779
+And if not a database, where else can we store
+data?
+
+215
+00:13:46,779 --> 00:13:49,089
+Who thought about memory?
+
+216
+00:13:49,089 --> 00:13:51,389
+Please let me know in the comments.
+
+217
+00:13:51,389 --> 00:13:52,850
+And you are correct by the way.
+
+218
+00:13:52,850 --> 00:13:56,160
+As well as those who said file system.
+
+219
+00:13:56,160 --> 00:14:01,720
+As we may need to store messages for days
+or even weeks, we need a more durable storage,
+
+220
+00:14:01,720 --> 00:14:03,150
+like a local disk.
+
+221
+00:14:03,150 --> 00:14:07,860
+At the same time newly arrived messages may
+live in memory for a short period of time
+
+222
+00:14:07,860 --> 00:14:11,259
+or until memory on the backend host is fully
+utilized.
+
+223
+00:14:11,259 --> 00:14:14,339
+Next question we should ask ourselves: how
+do we replicate data?
+
+224
+00:14:14,339 --> 00:14:17,130
+And I believe you may already figured this
+out.
+
+225
+00:14:17,130 --> 00:14:22,920
+We will send copies of messages to some other
+hosts, so that data can survive host hardware
+
+226
+00:14:22,920 --> 00:14:25,330
+or software failures.
+
+227
+00:14:25,330 --> 00:14:30,660
+And finally, let's think about how FrontEnd
+hosts select backend hosts for both storing
+
+228
+00:14:30,660 --> 00:14:33,350
+messages and retrieving them.
+
+229
+00:14:33,350 --> 00:14:35,949
+We can leverage Metadata service, right?
+
+230
+00:14:35,949 --> 00:14:40,190
+So, let's summarize what we have just discussed.
+
+231
+00:14:40,190 --> 00:14:45,750
+Message comes to the FrontEnd, FrontEnd consults
+Metadata service what backend host to send
+
+232
+00:14:45,750 --> 00:14:47,720
+data to.
+
+233
+00:14:47,720 --> 00:14:52,370
+Message is sent to a selected backend host
+and data is replicated.
+
+234
+00:14:52,370 --> 00:14:58,129
+And when receive message call comes, FrontEnd
+talks to Metadata service to identify a backend
+
+235
+00:14:58,129 --> 00:14:59,220
+host that stores the data.
+
+236
+00:14:59,220 --> 00:15:03,080
+Now, let's dive deep into the backend service
+architecture.
+
+237
+00:15:03,080 --> 00:15:07,360
+We will consider two options of how backend
+hosts relate to each other.
+
+238
+00:15:07,360 --> 00:15:12,600
+In the first option, each backend instance
+is considered a leader for a particular set
+
+239
+00:15:12,600 --> 00:15:13,970
+of queues.
+
+240
+00:15:13,970 --> 00:15:17,560
+And by leader we mean that all requests for
+a particular queue (like send message and
+
+241
+00:15:17,560 --> 00:15:21,839
+receive message requests) go to this leader
+instance.
+
+242
+00:15:21,839 --> 00:15:23,900
+Let's look at the example.
+
+243
+00:15:23,900 --> 00:15:27,879
+Send message request comes to a FrontEnd instance.
+
+244
+00:15:27,879 --> 00:15:32,490
+Message comes to a queue with ID equal to
+q1.
+
+245
+00:15:32,490 --> 00:15:37,819
+FrontEnd service calls Metadata service to
+identify a leader backend instance for this
+
+246
+00:15:37,819 --> 00:15:38,899
+queue.
+
+247
+00:15:38,899 --> 00:15:43,259
+In this particular example, instance B is
+a leader for q1.
+
+248
+00:15:43,259 --> 00:15:49,040
+Message is sent to the leader and the leader
+is fully responsible for data replication.
+
+249
+00:15:49,040 --> 00:15:54,209
+When receive message request comes to a FrontEnd
+instance, it also makes a request to the Metadata
+
+250
+00:15:54,209 --> 00:15:57,660
+service to identify the leader for the queue.
+
+251
+00:15:57,660 --> 00:16:02,449
+Message is then retrieved from the leader
+instance and leader is responsible for cleaning
+
+252
+00:16:02,449 --> 00:16:06,540
+up the original message and all the replicas.
+
+253
+00:16:06,540 --> 00:16:10,399
+We need a component that will help us with
+leader election and management.
+
+254
+00:16:10,399 --> 00:16:13,110
+Let’s call it In-cluster manager.
+
+255
+00:16:13,110 --> 00:16:17,209
+And as already mentioned, in-cluster manager
+is responsible for maintaining a mapping between
+
+256
+00:16:17,209 --> 00:16:21,730
+queues, leaders and followers.
+
+257
+00:16:21,730 --> 00:16:24,130
+In-cluster manager is a very sophisticated
+component.
+
+258
+00:16:24,130 --> 00:16:27,769
+It has to be reliable, scalable and performant.
+
+259
+00:16:27,769 --> 00:16:30,779
+Creating such a component from scratch is
+not an easy task.
+
+260
+00:16:30,779 --> 00:16:33,959
+Let’s see if we can avoid leader election
+in the first place.
+
+261
+00:16:33,959 --> 00:16:38,160
+Can you think of an option when all instances
+are equal?
+
+262
+00:16:38,160 --> 00:16:41,519
+Please pause this video and think for a while.
+
+263
+00:16:41,519 --> 00:16:47,360
+In the second option, we have a set of small
+clusters, each cluster consists of 3-4 machines
+
+264
+00:16:47,360 --> 00:16:49,660
+distributed across several data centers.
+
+265
+00:16:49,660 --> 00:16:54,529
+When send message request comes, similar to
+the previous design option, we also need to
+
+266
+00:16:54,529 --> 00:16:59,420
+call Metadata service to identify which cluster
+is responsible for storing messages for the
+
+267
+00:16:59,420 --> 00:17:00,850
+q1 queue.
+
+268
+00:17:00,850 --> 00:17:06,440
+After that we just make a call to a randomly
+selected instance in the cluster.
+
+269
+00:17:06,440 --> 00:17:11,069
+And instance is responsible for data replication
+across all nodes in the cluster.
+
+270
+00:17:11,069 --> 00:17:17,279
+When receive message request comes and we
+identified which cluster stores messages for
+
+271
+00:17:17,280 --> 00:17:22,410
+the q1 queue, we once again call a randomly
+selected host and retrieve the message.
+
+272
+00:17:22,410 --> 00:17:25,720
+Selected host is responsible for the message
+cleanup.
+
+273
+00:17:25,720 --> 00:17:31,050
+As you may see, we no longer need a component
+for leader election, but we still need something
+
+274
+00:17:31,050 --> 00:17:34,430
+that will help us to manage queue to cluster
+assignments.
+
+275
+00:17:34,430 --> 00:17:41,060
+Let’s call this component an Out-cluster
+manager (not the best name, I know, but naming
+
+276
+00:17:41,060 --> 00:17:43,360
+is hard).
+
+277
+00:17:43,360 --> 00:17:48,850
+And this component will be responsible for
+maintaining a mapping between queues and clusters.
+
+278
+00:17:48,850 --> 00:17:53,160
+Is out-cluster manager a simpler component
+than in-cluster manager?
+
+279
+00:17:53,160 --> 00:17:56,290
+It turns out that not really.
+
+280
+00:17:56,290 --> 00:18:01,770
+While in-cluster manager manages queue assignment
+within the cluster, out-cluster manager manages
+
+281
+00:18:01,770 --> 00:18:05,100
+queue assignment across clusters.
+
+282
+00:18:05,100 --> 00:18:09,790
+In-cluster manager needs to know about each
+and every instance in the cluster.
+
+283
+00:18:09,790 --> 00:18:14,500
+Out-cluster manager may not know about each
+particular instance, but it needs to know
+
+284
+00:18:14,500 --> 00:18:17,190
+about each cluster.
+
+285
+00:18:17,190 --> 00:18:21,040
+In-cluster manager listens to heartbeats from
+instances.
+
+286
+00:18:21,040 --> 00:18:25,470
+Out-cluster manager monitors health of each
+independent cluster.
+
+287
+00:18:25,470 --> 00:18:30,940
+And while in-cluster manager deals with host
+failures and needs to adjust to the fact that
+
+288
+00:18:30,940 --> 00:18:35,690
+instances may die and new instances may be
+added to the cluster, out-cluster manager
+
+289
+00:18:35,690 --> 00:18:40,680
+is responsible for tracking each cluster utilization
+and deal with overheated clusters.
+
+290
+00:18:40,680 --> 00:18:48,400
+Meaning that new queues may no longer be assigned
+to clusters that reached their capacity limits.
+
+291
+00:18:48,400 --> 00:18:50,220
+And what about really big queues?
+
+292
+00:18:50,220 --> 00:18:54,650
+When a single queue gets so many messages
+that a single leader (in design option A)
+
+293
+00:18:54,650 --> 00:18:57,400
+or a single cluster (in design option B)
+
+294
+00:18:57,400 --> 00:19:00,070
+cannot handle such a big load?
+
+295
+00:19:00,070 --> 00:19:04,690
+In-cluster manager splits queue into parts
+(partitions) and each partition gets a leader
+
+296
+00:19:04,690 --> 00:19:06,420
+server.
+
+297
+00:19:06,420 --> 00:19:10,100
+Out-cluster manager may split queue across
+several clusters.
+
+298
+00:19:10,100 --> 00:19:15,570
+So that messages for the same queue are equally
+distributed between several clusters.
+
+299
+00:19:15,570 --> 00:19:19,620
+So far we have covered all the main components
+of the high-level architecture.
+
+300
+00:19:19,620 --> 00:19:25,710
+Let’s see what else is important to mention
+while discussing distributed message queues.
+
+301
+00:19:25,710 --> 00:19:27,410
+Queue creation and deletion.
+
+302
+00:19:27,410 --> 00:19:32,210
+Queue can be auto-created, for example when
+the first message for the queue hits FrontEnd
+
+303
+00:19:32,210 --> 00:19:34,980
+service, or we can define API for queue creation.
+
+304
+00:19:34,980 --> 00:19:39,850
+API is a better option, as we will have more
+control over queue configuration parameters.
+
+305
+00:19:39,850 --> 00:19:45,640
+Delete queue operation is a bit controversial,
+as it may cause a lot of harm and must be
+
+306
+00:19:45,640 --> 00:19:47,210
+executed with caution.
+
+307
+00:19:47,210 --> 00:19:52,520
+For this reason, you may find examples of
+well-known distributed queues that do not
+
+308
+00:19:52,520 --> 00:19:55,530
+expose deleteQueue API via public REST endpoint.
+
+309
+00:19:55,530 --> 00:20:01,270
+Instead, this operation may be exposed through
+a command line utility, so that only experienced
+
+310
+00:20:01,270 --> 00:20:02,830
+admin users may call it.
+
+311
+00:20:02,830 --> 00:20:06,560
+As for a message deletion, there are several
+options at our disposal.
+
+312
+00:20:06,560 --> 00:20:10,920
+One option is not to delete a message right
+after it was consumed.
+
+313
+00:20:10,920 --> 00:20:15,750
+In this case consumers have to be responsible
+for what they already consumed.
+
+314
+00:20:15,750 --> 00:20:17,930
+And it is not as easy as it sounds.
+
+315
+00:20:17,930 --> 00:20:22,430
+As we need to maintain some kind of an order
+for messages in the queue and keep track of
+
+316
+00:20:22,430 --> 00:20:26,680
+the offset, which is the position of a message
+within a queue.
+
+317
+00:20:26,680 --> 00:20:29,420
+Messages can then be deleted several days
+later, by a job.
+
+318
+00:20:29,420 --> 00:20:31,940
+This idea is used by Apache Kafka.
+
+319
+00:20:31,940 --> 00:20:37,170
+The second option, is to do something similar
+to what Amazon SQS is doing.
+
+320
+00:20:37,170 --> 00:20:42,310
+Messages are also not deleted immediately,
+but marked as invisible, so that other consumers
+
+321
+00:20:42,310 --> 00:20:45,820
+may not get already retrieved message.
+
+322
+00:20:45,820 --> 00:20:49,940
+Consumer that retrieved the message, needs
+to then call delete message API to delete
+
+323
+00:20:49,940 --> 00:20:51,370
+the message from a backend host.
+
+324
+00:20:51,370 --> 00:20:57,270
+And if the message was not explicitly deleted
+by a consumer, message becomes visible and
+
+325
+00:20:57,270 --> 00:20:59,120
+may be delivered and processed twice.
+
+326
+00:20:59,120 --> 00:21:03,130
+We know that messages need to be replicated
+to achieve high durability.
+
+327
+00:21:03,130 --> 00:21:09,290
+Otherwise, if we only have one copy of data,
+it may be lost due to unexpected hardware
+
+328
+00:21:09,290 --> 00:21:11,300
+failure.
+
+329
+00:21:11,300 --> 00:21:15,560
+Messages can be replicated synchronously or
+asynchronously.
+
+330
+00:21:15,560 --> 00:21:20,690
+Synchronously means that when backend host
+receives new message, it waits until data
+
+331
+00:21:20,690 --> 00:21:23,130
+is replicated to other hosts.
+
+332
+00:21:23,130 --> 00:21:29,430
+And only if replication is fully completed,
+successful response is returned to a producer.
+
+333
+00:21:29,430 --> 00:21:33,680
+Asynchronous replication means that response
+is returned back to a producer as soon as
+
+334
+00:21:33,680 --> 00:21:37,280
+message is stored on a single backend host.
+
+335
+00:21:37,280 --> 00:21:40,350
+Message is later replicated to other hosts.
+
+336
+00:21:40,350 --> 00:21:43,190
+Both options have pros and cons.
+
+337
+00:21:43,190 --> 00:21:47,540
+Synchronous replication provides higher durability,
+but with a cost of higher latency for send
+
+338
+00:21:47,540 --> 00:21:48,960
+message operation.
+
+339
+00:21:48,960 --> 00:21:53,890
+Asynchronous replication is more performant,
+but does not guarantee that message will survive
+
+340
+00:21:53,890 --> 00:21:55,130
+backend host failure.
+
+341
+00:21:55,130 --> 00:21:58,180
+There are three main message delivery guarantees.
+
+342
+00:21:58,180 --> 00:22:03,130
+At most once, when messages may be lost but
+are never redelivered.
+
+343
+00:22:03,130 --> 00:22:07,920
+At least once, when messages are never lost
+but may be redelivered.
+
+344
+00:22:07,920 --> 00:22:12,900
+And exactly once, when each message is delivered
+once and only once.
+
+345
+00:22:12,900 --> 00:22:16,240
+And you probably have a question already,
+why do we need three?
+
+346
+00:22:16,240 --> 00:22:20,970
+Will anyone ever want other than exactly once
+delivery?
+
+347
+00:22:20,970 --> 00:22:26,400
+Great question, and the simple answer is that
+it is hard to achieve exactly once delivery
+
+348
+00:22:26,400 --> 00:22:28,040
+in practice.
+
+349
+00:22:28,040 --> 00:22:33,100
+In a distributed message queue system there
+are many potential points of failure.
+
+350
+00:22:33,100 --> 00:22:38,630
+Producer may fail to deliver or deliver multiple
+times, data replication may fail, consumers
+
+351
+00:22:38,630 --> 00:22:41,150
+may fail to retrieve or process the message.
+
+352
+00:22:41,150 --> 00:22:45,600
+All this adds complexity and leads to the
+fact that most distributed queue solutions
+
+353
+00:22:45,600 --> 00:22:50,910
+today support at-least-once delivery, as it
+provides a good balance between durability,
+
+354
+00:22:50,910 --> 00:22:52,200
+availability and performance.
+
+355
+00:22:52,200 --> 00:22:58,220
+With a pull model, consumer constantly sends
+retrieve message requests and when new message
+
+356
+00:22:58,220 --> 00:23:01,350
+is available in the queue, it is sent back
+to a consumer.
+
+357
+00:23:01,350 --> 00:23:08,280
+With a push model, consumer is not constantly
+bombarding FrontEnd service with receive calls.
+
+358
+00:23:08,280 --> 00:23:12,870
+Instead, consumer is notified as soon as new
+message arrives to the queue.
+
+359
+00:23:12,870 --> 00:23:16,390
+And as always, there are pros and cons.
+
+360
+00:23:16,390 --> 00:23:19,260
+Here I will not enumerate all of them, will
+simply state that from a distributed message
+
+361
+00:23:19,260 --> 00:23:22,870
+queue perspective pull is easier to implement
+than a push.
+
+362
+00:23:22,870 --> 00:23:26,860
+But from a consumer perspective, we need to
+do more work if we pull.
+
+363
+00:23:26,860 --> 00:23:30,720
+Many of us think of FIFO acronym when we hear
+about queues.
+
+364
+00:23:30,720 --> 00:23:35,980
+FIFO stands for first-in, first-out, meaning
+that the oldest message in a queue is always
+
+365
+00:23:35,980 --> 00:23:37,840
+processed first.
+
+366
+00:23:37,840 --> 00:23:41,710
+But in distributed systems, it is hard to
+maintain a strict order.
+
+367
+00:23:41,710 --> 00:23:46,510
+Message A may be produced prior to message
+B, but it is hard to guarantee that message
+
+368
+00:23:46,510 --> 00:23:49,930
+A will be stored and consumed prior to message
+B.
+
+369
+00:23:49,930 --> 00:23:55,110
+For these reasons many distributed queue solutions
+out there either does not guarantee a strict
+
+370
+00:23:55,110 --> 00:23:56,340
+order.
+
+371
+00:23:56,340 --> 00:24:01,130
+Or have limitations around throughput, as
+queue cannot be fast while it’s doing many
+
+372
+00:24:01,130 --> 00:24:04,930
+additional validations and coordination to
+guarantee a strict order.
+
+373
+00:24:04,930 --> 00:24:09,550
+With regards to security, we need to make
+sure that messages are securely transferred
+
+374
+00:24:09,550 --> 00:24:11,710
+to and from a queue.
+
+375
+00:24:11,710 --> 00:24:16,670
+Encryption using SSL over HTTPS helps to protect
+messages in transit.
+
+376
+00:24:16,670 --> 00:24:20,240
+And we also may encrypt messages while storing
+them on backend hosts.
+
+377
+00:24:20,240 --> 00:24:23,580
+We discussed this when talked about FrontEnd
+service responsibilities.
+
+378
+00:24:23,580 --> 00:24:26,280
+Monitoring is critical for every system.
+
+379
+00:24:26,280 --> 00:24:31,340
+With regards to distributed message queue,
+we need to monitor components (or microservices)
+
+380
+00:24:31,340 --> 00:24:35,550
+that we built: fronted, metadata and backend
+services.
+
+381
+00:24:35,550 --> 00:24:39,350
+As well as provide visibility into customer’s
+experience.
+
+382
+00:24:39,350 --> 00:24:44,670
+In other words, we need to monitor health
+of our distributed queue system and give customers
+
+383
+00:24:44,670 --> 00:24:48,150
+ability to track state of their queues.
+
+384
+00:24:48,150 --> 00:24:51,960
+Each service we built has to emit metrics
+and write log data.
+
+385
+00:24:51,960 --> 00:24:57,390
+As operators of these services we need to
+create dashboards for each microservice and
+
+386
+00:24:57,390 --> 00:24:59,490
+setup alerts.
+
+387
+00:24:59,490 --> 00:25:04,170
+And customers of our queue have to be able
+to create dashboards and set up alerts as
+
+388
+00:25:04,170 --> 00:25:05,170
+well.
+
+389
+00:25:05,170 --> 00:25:08,750
+For this purpose, integration with monitoring
+system is required.
+
+390
+00:25:08,750 --> 00:25:12,940
+Do not forget to mention monitoring aspect
+to the interviewer.
+
+391
+00:25:12,940 --> 00:25:18,000
+Many times this topic is omitted by candidates,
+but it is very important.
+
+392
+00:25:18,000 --> 00:25:21,420
+Let's take one final look at the architecture
+we built.
+
+393
+00:25:21,420 --> 00:25:25,410
+And evaluate whether non-functional requirements
+are fulfilled.
+
+394
+00:25:25,410 --> 00:25:26,970
+Is our system scalable?
+
+395
+00:25:26,970 --> 00:25:27,970
+Yes.
+
+396
+00:25:27,970 --> 00:25:29,530
+As every component is scalable.
+
+397
+00:25:29,530 --> 00:25:34,620
+When load increases, we just add more load
+balancers, more FrontEnd hosts, more Metadata
+
+398
+00:25:34,620 --> 00:25:38,830
+service cache shards, more backend clusters
+and hosts.
+
+399
+00:25:38,830 --> 00:25:40,530
+Is our system highly available?
+
+400
+00:25:40,530 --> 00:25:41,530
+Yes.
+
+401
+00:25:41,530 --> 00:25:45,740
+As there is no a single point of failure,
+each component is deployed across several
+
+402
+00:25:45,740 --> 00:25:47,590
+data centers.
+
+403
+00:25:47,590 --> 00:25:52,490
+Individual hosts may die, network partitions
+may happen, but with this redundancy in place
+
+404
+00:25:52,490 --> 00:25:55,540
+our system will continue to operate.
+
+405
+00:25:55,540 --> 00:25:56,780
+Is our system highly performant?
+
+406
+00:25:56,780 --> 00:26:02,350
+It’s actually very well depends on the implementation,
+hardware and network setup.
+
+407
+00:26:02,350 --> 00:26:05,510
+Each individual microservice needs to be fast.
+
+408
+00:26:05,510 --> 00:26:09,740
+And we need to run our software in high-performance
+data centers.
+
+409
+00:26:09,740 --> 00:26:10,920
+Is our system durable?
+
+410
+00:26:10,920 --> 00:26:11,920
+Sure.
+
+411
+00:26:11,920 --> 00:26:16,570
+We replicate data while storing and ensure
+messages are not lost during the transfer
+
+412
+00:26:16,570 --> 00:26:19,070
+from a producer and to a consumer.
+
+413
+00:26:19,070 --> 00:26:21,710
+And that is it for today’s system design
+interview question.
+
+414
+00:26:21,710 --> 00:26:23,570
+Thank you for watching this video.
+
+415
+00:26:23,570 --> 00:26:26,450
+If you have any questions please leave them
+in the comments below.
+
+416
+00:26:26,450 --> 00:26:27,360
+And I will see you next time.
+
