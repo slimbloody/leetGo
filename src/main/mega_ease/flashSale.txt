@@ -1,0 +1,47 @@
+1. WebAssembly Introduction
+WebAssembly是一种运行在现代网络浏览器中的新型代码，并且提供新的性能特性和效果。它设计的目的不是为了手写代码而是为诸如C、C++和Rust等低级源语言提供一个高效的编译目标。
+
+v8引擎执行js主要时间花在了解析和编译上了, 执行时间很短
+所以要优化 解析和编译
+搞出一个js的子集, 把gc什么的去掉, 编程静态类型提高效率, 演化成了Asm.js
+
+mvp: minimum valueable product
+
+
+WebAssembly Characteristic:
+1. (nearly)Native Speed
+2. Compact Size
+3. Safety & Security(在沙箱里面执行)
+4. All Languages(其他语言可以编译成wasm二进制代码去执行)
+    1. 可以被浏览器页面加载放到浏览器上执行(web embedding)
+    2. Host Application创建WASM VMs 来加载代码执行(Non-web Embedding)
+
+2. WebAssembly on Service Side(怎么集成到后台程序里面去)
+
+3. WebAssembly In Easegress(云原生的流量编排系统)
+
+4. Handle Flash Sale With Easegress
+消费者角度
+1. High Discount
+2. Limited Stock
+3. Short Time
+
+开发角度
+1. High Concurrency
+2. High Latency
+3. Service Fault
+
+1. 秒杀开始前阻止住请求打到后端服务
+2. 秒杀进入的比较早的, 放进去; 进入的比较晚的, 阻止掉
+3. 很早就进入的, 又刷新了一下 ,重新进入秒杀页面, 也认为他进去了
+
+
+1. Block all request before the flash sale starts
+2. Admit the first N users to product page, and redirect all other users to sold out page.(多少人能进商品页面的)
+3. Always admit a user if he/she had been admitted once
+
+
+
+
+
+

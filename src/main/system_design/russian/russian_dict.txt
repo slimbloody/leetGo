@@ -5,6 +5,9 @@ proactive
 简明柯林斯
 adj.
 积极主动的，主动出击的；前摄的（前一活动中的因素对后一活动造成影响的）
+不是同一台 redis 扣减库存
+https://www.cnblogs.com/benbenhan/p/13321628.html
+https://blog.csdn.net/weixin_40663800/article/details/102902899
 
 
 
