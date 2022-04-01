@@ -1,0 +1,514 @@
+problem state:
+            synchronous communication
+producer -------------------------------> consumer
+
+pros:
+Synchronous communication is easier and faster to implement.
+cons:
+At the same time synchronous communication makes it harder to deal with consumer service failures.
+
+We need to think
+    1. when and how to properly retry failed requests,
+    2. how not to overwhelm consumer service with too many requests,
+    3. and how to deal with a slow consumer service host.
+
+
+Another option is to introduce a new component that helps to setup asynchronous communication.
+
+Producer sends data to that component and exactly one consumer gets this data a short time after. Such component is called a queue. And it is distributed, because data is stored across several machines.
+
+Please do not confuse queue with a topic.
+In case of a topic, message that is published goes to each and every subscriber.
+In case of a queue, message is received by one and only one consumer.
+todo: topic是怎么投递到queue里面的,是不是一个consumer监听了多个queue
+
+
+
+And as it often happens with interview questions, the statement is ambiguous.
+What are the functional requirements?
+What non-functional requirements have a priority over others?
+What is a scale we need to deal with?
+
+All these questions need to be clarified with the interviewer.
+
+Let's do our best and define requirements ourselves.
+
+=================================
+1. functional requirements
+=================================
+At this stage of the interview it may be hard to come up with a definitive set of requirements, And it’s usually not needed.
+
+Functional
+1. sendMessage(messageBody)
+2. receiveMessage()
+Time limit allows us to only focus on several core APIs, like send message and receive message.
+
+Non-Functional
+1. Scalable (handles load increases, more queues and messages)
+2. Highly Available (survives hardware/network failures)
+3. Highly Performant (single digit latency for main operations)
+4. Durable (once submitted, data is not lost)
+As for non-functional requirements, we want our system to be scalable and handle load increase, highly available and tolerate hardware and network failures, highly performant, so that both send and receive operations are fast, and durable, so that data is persisted once submitted to the queue.
+
+-------------------------------------------------------
+
+Among functional requirements, we can be asked to support create and delete queue APIs, or delete message API.
+
+There may be specific requirements for the producer (for example system needs to avoid duplicate submissions), or security requirements, or an ask to implement a specific ordering guarantee.
+
+As for non-functional requirements, the interviewer may define specific service level agreement numbers (so called SLA, for example minimum throughput our system needs to support), or requirements around cost-effectiveness (for example system needs to minimize hardware cost or operational support cost).
+
+
+But do not worry if you can’t think of all the possible requirements.
+You just need to be proactive and outline main use cases.
+
+
+-------------------------------------------------------------------
+                                          ┌─────────┐
+                                          │MetaData │
+                                          │Database │
+                                          └─▲─────┬─┘
+                                            │     │
+                                            │     │
+                                          ┌─┴─────▼─┐
+                                          │MetaData │
+┌──────────┐                              │Service  │
+│  Client  │                              └─▲─────┬─┘
+│(Producer)│                                │     │
+└────┬─────┘                                │     │
+     │      ┌───────┐    ┌──────────┐     ┌─┴─────▼─┐    ┌───────┐
+     └──────►       ├────►Load      ├─────►         ├────►       │
+            │ VIP   │    │Balancer  │     │FrontEnd │    │BackEnd│
+     ┌──────┤       ◄────┤          ◄─────┤         ◄────┤       │
+     │      └───────┘    └──────────┘     └─────────┘    └───────┘
+┌────▼─────┐
+│  Client  │
+│(Consumer)│
+└──────────┘
+----------------------------------------------------
+Now, let's start drafting the architecture.
+Let’s start with components that are common for many distributed systems.
+
+First, we need a virtual IP.
+VIP refers to the symbolic hostname (for example myWebService.domain.com) that resolves to a load balancer system.
+
+So next, we have a load balancer.
+A load balancer is a device that routes client requests across a number of servers.
+
+Next, we have a FrontEnd web service.
+A component responsible for initial request processing, like validation, authentication, etc.
+
+Queue metadata information like its name, creation date and time, owner and any other configuration settings will be stored in a database.
+
+And best practices dictate that databases should be hidden behind some facade, a dedicated web service responsible for handling calls to a database.
+
+And we need a place to store queue messages.
+So, lets introduce a backend web service, that will be responsible for message persistence and processing.
+-------------------------------------------------------------------
+
+
+-------------------------------------------------------------------
+Now, let’s take a look at each component one by one.
+-------------------------------------------------------------------
+Load balancing is a big topic.
+And unless interviewer encourages you to dive deep into load balancing topic, we better not deviate too much from the main question of the interview.
+
+Always try to stay focused on what really matters.
+
+Internals of how load balancers work may not matter, but in order to make sure non-functional requirements to the system we build are fully met, we need to explain how load balancers will help us achieve high throughput and availability.
+
+When domain name is hit, request is transferred to one of the VIPs registered in DNS for our domain name.
+VIP is resolved to a load balancer device, which has a knowledge of FrontEnd hosts.
+-------------------------------------------------------------------
+By looking at this architecture, several questions have probably popped in your head?
+
+1. First, load balancer seems like a single point of failure. What happens if load balancer device goes down?
+2. Second, load balancers have limits with regards to number of requests they can process and number of bytes they can transfer. What happens when our distributed message queue service becomes so popular that load balancer limits are reached?
+
+To address high availability concerns, load balancers utilize a concept of primary and secondary nodes.
+
+The primary node accepts connections and serves requests while the secondary node monitors the primary.
+If, for any reason, the primary node is unable to accept connections, the secondary node takes over.
+As for scalability concerns, a concept of multiple VIPs (sometimes referred as VIP partitioning) can be utilized.
+todo: 如果load balancer b起监控作用, 是不是对服务器的一种浪费, 能不能直接让两个lb同时工作
+
+todo:
+In DNS we assign multiple A records to the same DNS name for the service.
+As a result, requests are partitioned across several load balancers.
+And by spreading load balancers across several data centers, we improve both availability and performance.
+
+-------------------------------------------------------------------
+
+Let's move on to the next component, which is a FrontEnd web service.
+
+FrontEnd is a lightweight web service, consisting of stateless machines located across several data centers.
+
+FrontEnd service is responsible for(action):
+1. request validation
+2. authentication and authorization
+3. SSL termination
+4. server-side data encryption
+5. caching
+6. rate limiting (also known as throttling)
+8. request dispatching
+9. request deduplication
+10. usage data collection.
+
+Let’s discuss some basics of these features.
+
+1. request validation
+    1. Required parameters are present
+    2. Data falls within an acceptable range
+Request validation helps to ensure that all the required parameters are present in the request and values of these parameters honor constraints.
+For example, in our case we want to make sure queue name comes with every send message request, and message size does not exceed a specified threshold.
+
+2. authentication and authorization
+    1. Authentication is the process of validating the identity of a user or a service
+    2. Authorization is the process of determining whether or not a specific actor is permitted to take a certain action
+During authentication check, we verify that message sender is a registered customer of our distributed queue service. And during authorization check we verify that sender is allowed to publish messages to the queue it claims.
+
+3. SSL termination
+    1. TLS is a protocol that aims to provide privacy and data integrity
+    2. TLS termination refers to the process of decrypting request and passing on an unencrypted request to the back end service
+    3. SSL on the load balancer is expensive
+    And we want to do TLS termination on FrontEnd hosts because TLS on the load balancer is expensive.
+    4. Termination is usually handled by not a FrontEnd service itself, but a separate TLS HTTP proxy that runs as a process on the same host
+
+4. server-side encryption.
+    1. Because we want to store messages securely on backend hosts, messages are encrypted as soon as FrontEnd receives them.
+    2. Messages are stored in encrypted form and FrontEnd decrypts them only when they are sent back to a consumer.
+
+5. caching
+    1. Cache stores copies of source data.
+    In FrontEnd cache we will store metadata information about the most actively used queues. As well as user identity information to save on calls to authentication and authorization services.
+    2. It helps to reduce load to backend services, increases overall system throughput and availability, decreases latency
+    3. Stores metadata information about the most actively used queues
+    4. Stores user identity information to save on calls to auth services
+
+6. rate limiting (also known as throttling)
+    1. Rate limiting or throttling is the process of limiting the number of requests you can submit to a given operation in a given amount of time.
+    2. Throttling protects the web service from being overwhelmed with requests.
+    3. Leaky bucket algorithm is one of the most famous.
+
+7. request dispatching
+    1. Responsible for all the activities associated with sending requests to backend services (clients management, response handling, resources isolation, etc.)
+    2. Bulkhead pattern helps to isolate elements of an application into pools so that if one fails, the others will continue to function
+    3. Circuit Breaker pattern prevents an application from repeatedly trying to execute an operation that's likely to fail
+
+Bulkhead pattern 舱壁模式
+离系统中的各个功能单元和实体，使得系统不会因为一个单元或者服务的失败而导致整体失败。
+这种思路在造船行业、兵工行业都有类似的应用场景。现在任何大型船舶在设计上都会有隔舱，目的就是即使有少量进水，也可以只将进水部位隔离在小范围，不会扩散而导致船舶大面积进水，从而沉没。
+
+FrontEnd service makes remote calls to at least two other web services: Metadata service and backend service. FrontEnd service creates HTTP clients for both services and makes sure that calls to these services are properly isolated. It means that when one service let's say Metadata service experiences a slowdown, requests to backend service are not impacted.
+
+There are common patterns like bulkhead and circuit breaker that helps to implement resources isolation and make service more resilient in cases when remote calls start to fail.
+
+
+8. request deduplication
+    1. It may occur when a response from a successful send message request failed to reach a client.
+    2. Lesser an issue for "at least once" delivery semantics, a bigger issue for "exactly once"
+and "at most once" delivery semantics, when we need to guarantee that message was never processed more than one time.
+    3. Caching is usually used to store previously seen request ids to avoid deduplication.
+
+ is a usage data collection.
+
+10. usage data collection.
+    1. When we gather real-time information that can be used for audit and billing(invoices).
+
+---------------------------------------------------------------------------------
+And even though FrontEnd service has many responsibilities, the rule of thumb is to keep it as simple as possible.
+---------------------------------------------------------------------------------
+
+
+=================================================================================
+Metadata service.
+=================================================================================
+Metadata service stores information about queues. Every time queue is created, we store information about it in the database.
+
+1. Conceptually, Metadata service is a caching layer between the FrontEnd and a persistent storage.
+2. It handles many reads and a relatively small number of writes. As we read every time message arrives and write only when new queue is created.
+3. Even though strongly consistent storage is preferred to avoid potential concurrent updates, it is not strictly required.
+
+
+---------------------------------------------------
+Lets take a look at different approaches of organizing cache clusters.
+---------------------------------------------------
+1.
+The first option is when cache is relatively small and we can store the whole data set on every cluster node.
+FrontEnd host calls a randomly chosen Metadata service host, because all the cache cluster nodes contain the same information.
+
+2.
+Second approach is to partition data into small chunks, called shards.
+Because data set is too big and cannot be placed into a memory of a single host. So, we store each such chunk of data on a separate node in a cluster. FrontEnd then knows which shard stores the data and calls the shard directly.
+
+3.
+And the third option is similar to the second one. We also partition data into shards, but FrontEnd does not know on what shard data is stored. So, FrontEnd calls a random Metadata service host and host itself knows where to forward the request to.
+
+
+In option one, we can introduce a load balancer between FrontEnd and Metadata service, as all Metadata service hosts are equal and FrontEnd does not care which Metadata host handles the request.
+
+In option two and three, Metadata hosts represent a consistent hashing ring.
+
+
+By the way, the set of components we just discussed: VIP + Load Balancer + FrontEnd web service + Metadata web service that represents a caching layer on top of a database is so popular in the world of distributed systems, that you may consider it a standard and apply to many system designs.
+
+
+================================================================
+BackEnd Service
+This is where the real challenge starts.
+================================================================
+To understand how backend service architecture may look like, let’s try to answer some important questions first.
+By the way, if you stuck during the interview, not knowing how to progress further, start asking yourself questions. Asking right questions helps to split the problem into more manageable pieces. Plus, it helps to establish a better communication channel with the interviewer. Interviewer will let you know whether you are on the right path or not.
+
+---------------------------------------------
+So, what those question may be?
+---------------------------------------------
+1. We need to figure out where and how messages are stored, right?
+
+Is database an option? Yes, it is.
+But not the best one and let me explain why.
+
+We are building a distributed message queue, a system that should be able to handle a very high throughput. And this means that all this throughput will be offloaded to the database.
+In other words, a problem of building a distributed message queue becomes a problem of building a database that can handle high throughput. And we know that highly-available and scalable databases exist out there.
+And if you are a junior software engineer, it is totally reasonable to say that we will utilize a 3-rd party database solution and stop right there.
+But for a senior position, we need to either explain how to build a distributed database (and we promise you a separate video on this) or we need to keep seeking for other options.
+
+And if not a database, where else can we store data?
+Who thought about memory? Please let me know in the comments.
+And you are correct by the way. As well as those who said file system.
+
+As we may need to store messages for days or even weeks, we need a more durable storage, like a local disk. At the same time newly arrived messages may live in memory for a short period of time or until memory on the backend host is fully utilized.
+---------------------------------------------
+Answer: RAM and a local disk of a backend host
+---------------------------------------------
+
+---------------------------------------------
+2. Next question we should ask ourselves: how do we replicate data?
+And I believe you may already figured this out.
+
+We will send copies of messages to some other hosts, so that data can survive host hardware or software failures.
+---------------------------------------------
+---------------------------------------------
+Answer: Replicate within a group of hosts
+---------------------------------------------
+
+---------------------------------------------
+3. And finally, let's think about how FrontEnd hosts select backend hosts for both storing messages and retrieving them.
+    1. How does FrontEnd select a backend host to send data to?
+    2. How does FrontEnd know where to retrieve data from?
+---------------------------------------------
+We can leverage Metadata service, right?
+---------------------------------------------
+Answer: Metadata service
+---------------------------------------------
+
+So, let's summarize what we have just discussed.
+Message comes to the FrontEnd, FrontEnd consults Metadata service what backend host to send data to.
+Message is sent to a selected backend host and data is replicated.
+And when receive message call comes, FrontEnd talks to Metadata service to identify a backend host that stores the data.
+
+
+---------------------------------------------
+Now, let's dive deep into the backend service architecture.
+We will consider two options of how backend hosts relate to each other.
+---------------------------------------------
+1. Option A: Leader-Follower relationship
+In the first option, each backend instance is considered a leader for a particular set of queues. And by leader we mean that all requests for a particular queue (like send message and receive message requests) go to this leader instance.
+
+---------------------------------------------
+Let's look at the example.
+---------------------------------------------
+1. Send message request comes to a FrontEnd instance, Message comes to a queue with ID equal to q1.
+2. FrontEnd service calls Metadata service to identify a leader backend instance for this queue. In this particular example, instance B is a leader for q1.
+3. Message is sent to the leader and the leader is fully responsible for data replication.
+4. When receive message request comes to a FrontEnd instance, it also makes a request to the Metadata service to identify the leader for the queue.
+5. Message is then retrieved from the leader instance and leader is responsible for cleaning up the original message and all the replicas.
+
+We need a component that will help us with leader election and management. Let’s call it In-cluster manager.
+And as already mentioned, in-cluster manager is responsible for maintaining a mapping between queues, leaders and followers. In-cluster manager is a very sophisticated component. It has to be reliable, scalable and performant. Creating such a component from scratch is not an easy task.
+
+Let’s see if we can avoid leader election in the first place. Can you think of an option when all instances are equal?
+--------------------------------------
+|Queue Id | Leader Host | Followers |
+--------------------------------------
+|q1       | D           | A, C      |
+--------------------------------------
+|q2       | D           | B, E      |
+--------------------------------------
+
+---------------------------------------------
+2. In the second option, we have a set of small clusters, each cluster consists of 3-4 machines distributed across several data centers.
+---------------------------------------------
+1. When send message request comes, similar to the previous design option, we also need to call Metadata service to identify which cluster is responsible for storing messages for the q1 queue.
+2. After that we just make a call to a randomly selected instance in the cluster. And instance is responsible for data replication across all nodes in the cluster.
+3. When receive message request comes and we identified which cluster stores messages for the q1 queue, we once again call a randomly selected host and retrieve the message.
+4. Selected host is responsible for the message cleanup.
+
+As you may see, we no longer need a component for leader election, but we still need something that will help us to manage queue to cluster assignments.
+
+Let’s call this component an Out-cluster manager (not the best name, I know, but naming is hard). And this component will be responsible for maintaining a mapping between queues and clusters.
+
+Is out-cluster manager a simpler component than in-cluster manager?
+It turns out that not really.
+
+------------------------------------------------------------------------------------------------
+|In-cluster manager                                 |  In-cluster manager                      |
+------------------------------------------------------------------------------------------------
+|Manages queue assignment within the cluster        | Manages queue assignment among clusters  |
+------------------------------------------------------------------------------------------------
+| Maintains a list of hosts  in the cluster         | Maintains a list of clusters             |
+------------------------------------------------------------------------------------------------
+| Monitors heartbeats from hosts                    | Monitors each cluster health             |
+------------------------------------------------------------------------------------------------
+| Deals with leader and follower failures           | Deals with overheated clusters           |
+------------------------------------------------------------------------------------------------
+| Splits queue between cluster nodes (partitioning) | Splits queue between clusters            |
+------------------------------------------------------------------------------------------------
+
+1. While in-cluster manager manages queue assignment within the cluster, out-cluster manager manages queue assignment across clusters.
+2. In-cluster manager needs to know about each and every instance in the cluster. Out-cluster manager may not know about each particular instance, but it needs to know about each cluster.
+3. In-cluster manager listens to heartbeats from instances. Out-cluster manager monitors health of each independent cluster.
+4. And while in-cluster manager deals with host failures and needs to adjust to the fact that instances may die and new instances may be added to the cluster, out-cluster manager is responsible for tracking each cluster utilization and deal with overheated clusters. Meaning that new queues may no longer be assigned to clusters that reached their capacity limits.
+
+5. And what about really big queues? When a single queue gets so many messages that a single leader (in design option A) or a single cluster (in design option B) cannot handle such a big load?
+In-cluster manager splits queue into parts (partitions) and each partition gets a leader server.
+Out-cluster manager may split queue across several clusters.
+
+So that messages for the same queue are equally distributed between several clusters.
+
+So far we have covered all the main components of the high-level architecture.
+
+----------------------------------------------------
+Let’s see what else is important to mention while discussing distributed message queues.
+----------------------------------------------------
+
+----------------------------------------------------
+Queue creation and deletion.
+----------------------------------------------------
+
+
+1. Queue creation and deletion
+Queue can be auto-created, for example when the first message for the queue hits FrontEnd service, or we can define API for queue creation. API is a better option, as we will have more control over queue configuration parameters.
+
+Delete queue operation is a bit controversial, as it may cause a lot of harm and must be executed with caution. For this reason, you may find examples of well-known distributed queues that do not expose deleteQueue API via public REST endpoint. Instead, this operation may be exposed through a command line utility, so that only experienced admin users may call it.
+
+2. Message deletion
+As for a message deletion, there are several options at our disposal. One option is not to delete a message right after it was consumed. In this case consumers have to be responsible for what they already consumed. And it is not as easy as it sounds. As we need to maintain some kind of an order for messages in the queue and keep track of the offset, which is the position of a message within a queue.
+    1. Messages can then be deleted several days later, by a job. This idea is used by Apache Kafka.
+    2. The second option, is to do something similar to what Amazon SQS is doing. Messages are also not deleted immediately, but marked as invisible, so that other consumers may not get already retrieved message. Consumer that retrieved the message, needs to then call delete message API to delete the message from a backend host. And if the message was not explicitly deleted by a consumer, message becomes visible and may be delivered and processed twice.
+
+3. Message replication
+We know that messages need to be replicated to achieve high durability. Otherwise, if we only have one copy of data, it may be lost due to unexpected hardware failure. Messages can be replicated synchronously or asynchronously.
+    Synchronously means that when backend host receives new message, it waits until data is replicated to other hosts. And only if replication is fully completed, successful response is returned to a producer.
+    Asynchronous replication means that response is returned back to a producer as soon as message is stored on a single backend host, Message is later replicated to other hosts.
+
+Both options have pros and cons.
+    1. Synchronous replication provides higher durability, but with a cost of higher latency for send message operation.
+    2. Asynchronous replication is more performant, but does not guarantee that message will survive backend host failure.
+
+4. message delivery guarantees
+There are three main message delivery guarantees.
+    1. At most once, when messages may be lost but are never redelivered.
+    2. At least once, when messages are never lost but may be redelivered.
+    3. And exactly once, when each message is delivered once and only once.
+
+And you probably have a question already, why do we need three?
+Will anyone ever want other than exactly once delivery?
+
+Great question, and the simple answer is that it is hard to achieve exactly once delivery in practice.
+
+In a distributed message queue system there are many potential points of failure. Producer may fail to deliver or deliver multiple times, data replication may fail, consumers may fail to retrieve or process the message. All this adds complexity and leads to the fact that most distributed queue solutions today support at-least-once delivery, as it provides a good balance between durability, availability and performance.
+
+5. Push vs. pull
+With a pull model, consumer constantly sends retrieve message requests and when new message is available in the queue, it is sent back to a consumer.
+With a push model, consumer is not constantly bombarding FrontEnd service with receive calls. Instead, consumer is notified as soon as new message arrives to the queue.
+
+todo: Here I will not enumerate all of them
+And as always, there are pros and cons.
+Here I will not enumerate all of them, will simply state that from a distributed message queue perspective pull is easier to implement than a push.
+But from a consumer perspective, we need to do more work if we pull.
+
+
+
+         push模型                                     pull模型
+描述      服务端主动发送数据给客户端                       客户端主动从服务端拉取数据，通常客户端会定时拉取
+实时性     较好,收到数据后可立即发送给客户端                 一般, 取决于pull的间隔时间
+服务端状态  需要保存push状态,哪些客端已经发送成功,哪些发送失败  服务端无状态
+客户端状态  无需额外保存状态                               需保存当前拉取的信息的状态，以便在故障或古重启的时候恢复
+状态保存    集中式，集中在服务端                            分布式，分散在各个客户端
+负载均衡    服务端统一处理和控制                            客户端之间做分配，需要协调机制，如使用zookeeper
+其他      1. 服务端需要做流量控制，无法最大化客户端的处理能力。  有户端的请求可能很多无效或者没有数据可供传输，浪费带宽和服务器处理能力
+          2. 其次，在客户端故障情况下，无效的push对服务端有定负载。
+
+缺点方案    服务器端的状态存储是个难点，可以将这些状态转移到DB或者key-value存储，来减轻server压力。  1. 针对实时性的问题，可以将push加入进来，push小数据的通知信息，让客户端再来主动pull
+                                                                                       2. 针对无效请求的问题，可以设置逐渐延长间隔时间的策略，以及合理设计协议尽量缩小请求数据包来节省带宽。
+
+
+推模式
+Broker 来主导消息的发送， Consumer 被动接受消息
+优点
+1. 消息的实时性高，broker接受到消息后可以立刻推送
+2. 消费端接单，只需要等待消息的到来
+缺点:无法考虑到Consumer 的消费速率，容易发生爆仓的现象
+适用范围:消息量不大，消费能力强，消息的实效性要求高
+
+拉模式
+Consumer 主动向 Broker 拉去数据
+优点
+1. Broker相对轻松，只需要存储数据，等待请求，发送数据
+2. 更加适合消息的批量发送
+缺点
+1. 消息延迟严重
+2. 消息忙请求：消息非常久才产生一条，那么前面那段时间内，消费者发起的请求都是无效的
+适用范围:消息量大，消息实效性要求不高
+
+优化:
+为了解决拉模式的消息延迟问题，RocketMQ 和 Kafka 利用“长轮询”来优化
+
+
+6. FIFO
+Many of us think of FIFO acronym when we hear about queues. FIFO stands for first-in, first-out, meaning that the oldest message in a queue is always processed first.
+But in distributed systems, it is hard to maintain a strict order. Message A may be produced prior to message B, but it is hard to guarantee that message, A will be stored and consumed prior to message B.
+For these reasons many distributed queue solutions out there either does not guarantee a strict order, Or have limitations around throughput, as queue cannot be fast while it’s doing many additional validations and coordination to guarantee a strict order.
+
+7. Security
+With regards to security, we need to make sure that messages are securely transferred to and from a queue. Encryption using SSL over HTTPS helps to protect messages in transit. And we also may encrypt messages while storing them on backend hosts. We discussed this when talked about FrontEnd service responsibilities.
+
+8. Monitoring
+Monitoring is critical for every system. With regards to distributed message queue, we need to monitor components (or microservices) that we built: frontend, metadata and backend services.
+As well as provide visibility into customer's experience, in other words, we need to monitor health of our distributed queue system and give customers ability to track state of their queues. Each service we built has to emit metrics and write log data.
+
+As operators of these services we need to create dashboards for each microservice and setup alerts, And customers of our queue have to be able to create dashboards and set up alerts as well. For this purpose, integration with monitoring system is required.
+
+Do not forget to mention monitoring aspect to the interviewer. Many times this topic is omitted by candidates, but it is very important.
+
+--------------------------------------------------------
+Let's take one final look at the architecture we built, And evaluate whether non-functional requirements are fulfilled.
+
+Is our system scalable? Yes.
+As every component is scalable.
+When load increases, we just add more load balancers, more FrontEnd hosts, more Metadata service cache shards, more backend clusters and hosts.
+
+Is our system highly available? Yes.
+As there is no a single point of failure, each component is deployed across several data centers.
+Individual hosts may die, network partitions may happen, but with this redundancy in place our system will continue to operate.
+
+Is our system highly performant?
+It’s actually very well depends on the implementation, hardware and network setup. Each individual microservice needs to be fast. And we need to run our software in high-performance data centers.
+
+Is our system durable? Sure.
+We replicate data while storing and ensure messages are not lost during the transfer from a producer and to a consumer.
+
+
+当记录值有多个IP地址时，域名是如何解析的？
+当为域名添加A类型或者AAAA类型解析记录时，参数“值”支持填写多个IP地址，将域名解析到多个IP地址。
+当解析记录的“值”包含多个IP地址时，域名解析会返回所有的IP地址，但返回IP地址的顺序是随机的，浏览器默认取第一个返回的IP地址作为解析结果。
+
+
+其解析流程如下：
+1. 网站访问者通过浏览器向Local DNS发送解析请求。
+2. Local DNS将解析请求逐级转发至权威DNS。
+3. 权威DNS在收到解析请求后，将所有IP地址以随机顺序全部返回Local DNS。
+4. Local DNS将所有IP地址返回浏览器。
+5. 网站访问者的浏览器随机访问其中一个IP地址，通常选取返回的第一个IP地址。根据大量测试数据显示，解析到各IP地址的比例接近相等。
+

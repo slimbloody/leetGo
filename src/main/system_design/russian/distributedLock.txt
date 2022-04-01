@@ -1,0 +1,90 @@
+https://www.bilibili.com/video/BV1mw411d7Cc?spm_id_from=333.999.0.0
+
+
+What's the problem?
+Possible Solutions
+Distributed Lock Manager
+    Redlock(redis)
+    Google Chubby
+    ZooKeeper
+Takeaways
+
+买家和卖家同时操作订单
+1. 比如滴滴打车, 用户和司机同时操作订单
+买家取消订单, 卖家配送订单, 并发操作, 用状态机来管理
+
+Locking Solution
+一般有三种解决方案
+1. 数据库锁
+shared lock(共享锁):
+  select ... Lock in share mode
+  在写, 但是也可读
+exclusive lock(排他锁):
+  select ... for update
+  在写, 不可读
+  属于悲观锁, 同时容易造成死锁, 所以数据操作一定要按照顺序来
+
+eg: select * where id > xxx; 没法insert进去, insert新数据的id>xxx, 所以也被锁了, 本来不应该锁这种追加类型的数据的
+
+optimistic lock: version control
+{
+1. select id, data, version from table
+where id = $ID
+2. business code
+3.
+update table
+set data = $data
+    version = version + 1
+where id=$id and version=$ver
+4.
+if {update} failed, go to step 1
+else done!
+}
+
+悲观锁全部交给数据库字段处理
+乐观锁在应用层上有侵入性, 所有需要锁的代码都要带这一大批语句{}, 比较重, 本来预期只要lock unlock两个语句的, 数据库dsl入侵系统
+
+2. sharding application
+
+数据索引交给indices服务器管理,
+由Operation Gateway传递请求给indices
+indices把数据分片, Operation Gateway会把同一个数据的请求丢到同一个数据服务器上
+
+advantage:
+1. 比较方便锁
+disadvantage:
+1. Load is not balanced
+但是可能有hotspot
+2. Multiple Entities Transaction
+Transfer money from account A to account B
+如果数据变更涉及到多个节点, 比较难处理, 可以临时把数据挪到一个节点上
+3. Node Failed
+Data Replication cause
+more consistent issues
+R(ead) + W(rite) > N(个节点)
+NRW: 写的过半, 是强一致性算法, CP系统; 写少于一半, 读就会出现冲突, 要自己做merge, 即AP系统
+5个节点, 写2个节点, 读4个节点, 一定能读出最新的版本
+5个节点, 写3个节点, 读3个节点, 一定能读出最新的版本
+5个节点, 写5个节点, 读1个节点, 一定能读出最新的版本
+
+如果一个节点有问题了, 数据复制问题很大
+4. 如果加节点的话需要做一致性哈希
+
+Uber Ringpop:
+https://eng.uber.com/ringpop-open-source-nodeis-library/
+通过gossip的方式做索引同步
+
+3. centralized distributed lock manager
+租约: 如果拿到了锁一直不释放
+远程服务必须要有lock detection
+1. 长时间没unlock, 会自己
+2. 心跳, 心跳掉了即
+
+1) Provides a lock-leasing protocol
+2) Transaction Service is stateless
+3) Lock Manager must be designed for HA
+  1. No single point failure
+  2. The lock state can be persistent.
+4) Dead Lock Detection
+  1. Lock expired
+  2. Keepalive heart beats

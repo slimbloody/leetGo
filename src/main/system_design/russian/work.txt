@@ -1,0 +1,10 @@
+1. mysql有慢查询, 监控写操作, 看到幂等表写入比较多, 观察日志发现重复的次数又比较少, 活动的enter是做一些无关紧要的统计, 可以直接拿掉幂等表, 减少写库压力
+2. 全局性模块, 比如spring-retry, 需要检查之前的模块有没有用到spring-retry, 有可能之前的业务没有做幂等, 加了retry之后反而有不好的影响
+3. 腾讯会议疫情期间用不了, 和qjl下单不一样, 腾讯会议使用时间较长的, 下单进入详情页是一个短期操作, 所以是429是可以接受的,
+4. 美团mq早期高可用
+5. 美团应对抢购
+
+https://www.cnblogs.com/xiao-xue-di/p/12972955.html
+https://blog.csdn.net/meteor_93/article/details/94311541
+https://yunfuwu.top/blog/126.html
+应对秒杀: redis分片

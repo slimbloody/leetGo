@@ -1,0 +1,97 @@
+facet
+英 [ˈfæsɪt]  美 [ˈfæsɪt]
+n. 部分，方面；（宝石的）琢面，刻面；（构成昆虫或甲壳动物复眼的）小眼面
+v. 在……上琢面
+
+full mesh
+美 [fʊl meʃ]
+全网状；全连接
+
+https://www.omnisecu.com/basic-networking/full-mesh-topology.php
+Advantages of full-mesh topology
+1. Redundancy of paths is the main advantage of full-mesh topology. If a connection between two devices failed, there is always an alternate path available to reach the destination.
+2. Because of the extreme level of redundancy, full-Mesh topology is often used in the core layer and distribution layer of hierarchical network designs. Full-Mesh topology is also used for server connectivity redundancy and site-to-site WAN connectivity redundancy.
+
+Disadvantages of full-mesh topology
+• The cabling costs of full-mesh topology-based network can be very high.
+• It is not easy to troubleshoot a large full-Mesh topology based network.
+
+jitter
+英 [ˈdʒɪtə(r)]  美 [ˈdʒɪtər]
+n. 紧张不安；（电子信号等）晃动
+v. 紧张不安；（信号或装置）晃动
+
+agnostic
+英 [æɡˈnɒstɪk]  美 [æɡˈnɑːstɪk]
+n. 不可知论者
+adj. 不可知论的；怀疑的
+
+salient
+英 [ˈseɪliənt]  美 [ˈseɪliənt]
+adj. 突出的，显著的；（角）凸出的；（纹章，动物）后腿站立前爪举起的
+n. （防御工事的）凸出部分
+【名】 （Salient）（西）萨连特（人名）
+
+bulkhead
+英 [ˈbʌlkhed]  美 [ˈbʌlkhed]
+n. 隔板；防水壁
+
+Last but not least
+最后但并不是最不重要的
+
+billing
+英 [ˈbɪlɪŋ]  美 [ˈbɪlɪŋ]
+n. 广告；记账；开发票；演员表；总账款
+v. 开帐单（bill的ing形式）
+n. (Billing)人名；(英、德、芬、瑞典、匈)比林
+
+invoice
+英 [ˈɪnvɔɪs]  美 [ˈɪnvɔɪs]
+n. 发票，账单；货物
+v. 开发票给（某人）；（为提供的货物或服务）开清单，开发票
+
+the rule of thumb
+启发式即经验法则(the rule of thumb)，依靠经验法则，人们能够快速决策，但常会导致一些不自觉的偏差，即“启发式”偏差。
+
+offload
+英 [ˌɒfˈləʊd]  美 [ˌɔːfˈloʊd]
+vt. 卸下；卸货
+adj. 卸载的
+
+leverage
+英 [ˈliːvərɪdʒ]  美 [ˈlevərɪdʒ]
+n. 影响力，手段；杠杆力，杠杆作用；<美>杠杆比率
+v. <英>举债经营；充分利用（资源、观点等）
+
+fully-fledged
+英 [ˌfʊli ˈfledʒd]  美 [ˌfʊli ˈfledʒd]
+adj. 成熟的；羽毛丰满的；发育全的
+
+proactive
+英 [ˌprəʊˈæktɪv]  美 [ˌproʊˈæktɪv]
+adj. 积极主动的，主动出击的；前摄的（前一活动中的因素对后一活动造成影响的）
+
+naive approach
+初级的方法, 朴素法
+
+elaborate
+英 [ɪˈlæbərət; ɪˈlæbəreɪt]  美 [ɪˈlæbərət; ɪˈlæbəreɪt; ɪˈlæbərɪt]
+adj. 复杂的，详尽的；精心制作的
+v. 详细说明，详尽阐述；精心制作
+
+dedicated
+英 [ˈdedɪkeɪtɪd]  美 [ˈdedɪkeɪtɪd]
+adj. 专心致志的，献身的；专用的，专门用途的
+vt. 致力于，献身于；（在书、音乐或作品的前部）题献词；为（大楼，纪念碑）揭幕（dedicate 的过去式和过去分词）
+
+dedicated cache: 独立缓存
+co-located cache: 共有缓存
+
+dumb
+英 [dʌm]  美 [dʌm]
+adj. 哑的，不能说话的；一时说不出话的，不肯开口的；<非正式>愚蠢的；（计算机终端）简易的
+v. 使通俗化；<文>使变哑，使沉默
+
+revulsion
+英 [rɪˈvʌlʃn]  美 [rɪˈvʌlʃn]
+n. 剧变；厌恶；强烈反感；抽回
