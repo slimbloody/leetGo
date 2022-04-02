@@ -1,0 +1,38 @@
+1. why is throttling necessarily?
+    1. function
+        deal with traffic spike
+    2. question1: can auto-scaling replace throttling?
+        1. it is not happening immediately. Even autoscaling takes time. Our service may already crash
+            1. application crash
+                1. real application crash
+                    1. StackOverFlow and OutOfMemory
+                2. application crash in distributed system
+                    irresponsible for a period
+                3. how to detect application crash
+                4. application fault in practice
+                    1. early solution =>  irresponsible but active problem
+                        1. 和业务接口公用一个connector验活
+                        todo: tomcat
+                    2. improvement => add an exclusive connector for liveness probe
+                        1. 专门开了一个connector给验活接口, 如果多个
+                        2. java应用都是公用一个jvm的, 如果连jvm都响应不来说明应用真的有问题了
+                        3. 支付组之前有个应用, 开多线程消费dts的消息, 代码有bug, 一直消费不掉一直触发fullGc
+        2. bottleneck can be others. e.g.: database
+    3. question2: other means of how rate limiting can be achieved, load balancers(business indiscriminate, 网关操作不重不查数据库)
+    4. without it
+        1. noisy neighbor problem
+        when one client utilizes too much shared resources on a service host(服务宿主), like CPU, memory, disk or network I/O.
+        2. crash
+    5. how to deal with
+        1. immediate rejected
+        2. their processing is delay
+2. design
+    1. can implementing throttling for a single host satisfy our needs?
+    2. design
+        1. functional requirements
+            For a given request our rate limiting solution should return a boolean value, whether request is throttled or not.
+        2. non-functional requirements
+            1. scalability
+            2. performance
+            3. availability/consistency
+            4. durability

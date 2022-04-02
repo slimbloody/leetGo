@@ -1,0 +1,170 @@
+l1:
+cpu管理
+内存管理
+终端管理
+磁盘管理
+文件管理
+
+管理单cpu的计算机
+怎么在显示器上面显示内容
+
+显卡显存里面的内容->mov->内存->通过cpu总线->总线控制器->PCI总线->图形控制器->显示器的显存地址
+
+操作系统:
+应用软件
+(中间这一层叫接口)
+操作系统
+计算机硬件
+
+线性代数:
+别人掌握了SVD(奇异值分解)及其应用(1960-2000)
+我们还在扣高斯消元法解方程(1800)
+
+课程目标: 能改操作系统
+
+stanford:
+实验一:扩展线程      实现线程调度
+实验二:实现系统调用  将整个接口剥掉，添加
+实验三:实现虚存管理  扩展实现内存管理
+实验四:打展文件系统  扩展实现一一个文件管理
+
+CMU 给一个板子, 自己搭一个操作系统
+
+=======================
+l2:
+
+图灵机
+人(图灵机) -> 笔(控制器) -> 纸(纸带)
+
+
+        修改控制器 ------>--------
+            ^                    |
+            |                    | 写入
+    -----------------            |
+    |               |            |
+设置控制器动作 | 控制器状态 | 数据对象   ------------->  纸带
+(就是应用程序去控制的)
+
+
+
+
+冯诺依曼结构:
+存储程序的主要思想:将程序和数据存放到计算机内部的存储器中，计算机在程序的控制下一步-一步进行处理
+输入输出设备 存储器 运算器 控制器
+
+
+程序存到内存里面(IP PC指针 指向当前处理的指令)    载入控制器形成控制逻辑
+(描述控制器的怎么工作的)
+
+
+
+开机发生了什么 == 开机pc指向的第一句语句/计算机执行的第一句指令 是什么
+1.
+
+
+
+1.x86 PC刚开机时CPU处于实模式
+和保护模式对应，实模式的寻址CS:IP(CS左移4位 + IP)，和保护模式不一样
+2.开机时，CS=0xFFFF 段寄存器; IP=0x0000 偏移寄存器
+3.寻址0xFFFF0(ROM BIOS映射区)
+basic input output system
+CS左移4位 + IP 刚好就是 0xFFFF0
+4.检查RAM,键盘,显示器,软硬磁盘
+如果这一段过不去代表硬件坏了 不能运行操作系统
+5.将磁盘0磁道0扇区读入0x7c00处
+一个扇区512字节, 0磁道0扇区, 操作系统的引导时候扇区
+6.设置cs=0x07c0，ip=0x0000
+开始去引导扇区执行
+引导扇区坏了怎么办
+1、如果硬盘引导扇区损坏，需要打开分区助手功能进行修复。方法就是用硬盘医生检查坏道和分区，并且格式化以后，可以自动修复。修复就是把坏扇区隐藏起来，这样重新格式化，重写引导记录，这样硬盘就算修复了。
+2、如果损坏严重，最好把硬盘低格一下，然后重新分区，就会把坏扇区彻底修复。不过这种方法会伤害硬盘，将会降低硬盘寿命。轻易不要选择此方法。
+
+
+
+引导扇区就是启动设备的第一一个扇区
+启动设备信息被设置在CMOS中
+[Complementary Metal Oxide Semiconductor（互补金属氧化物半导体）]
+CMOS常指保存计算机基本启动信息（时钟,启动设置,硬件配置信息）的芯片
+
+
+
+=============================
+.text等是伪操作符，告诉编译器产生文本段，.text用于标识文本段的开始位置。此处的.text、.data、.bss表明这3个段重叠，不分段!
+
+BOOTSEG = 0x07c0
+INITSEG = 0x9000
+SETUPSEG = 0x9020
+
+此条语句就是0x7c00处存放的语句!
+
+将0x07c0:0x0000处的256个字移动到0x9000:0x0000处
+=============================
+assembly language
+bootsect.s
+.globl begtext,begdata,begbss,endtext,enddata,endbss
+.text //文本段
+begtext:
+.data //数据段
+begdata:
+.bss //未初始化数据段
+begbss:
+entry start //关键字entry告诉链接器“程序入口”
+start:
+  mov ax, #BOOTSEG mov ds, ax // (源操作数在后面, dx <- as, ax <- #BOOTSEG)
+  mov ax, #INITSEG mov es, ax
+  mov cx, #256
+  sub si, si sub di,di  // (两个值都为0 自己减自己 ds + si |  es + ds)
+  rep movw // 移动256个字 正好是512个字节 为了腾出空间
+           // mov之后的w代表在复制时的单位：字（word）
+           // 从7C00 -> 90000
+  jmpi go, INITSEG // jmp是跳转 jmpi是间接跳转 为了把go给ip INITSEG给cs
+
+=============================
+
+go: mov ax,cs //cs=0x9000
+  mov ds,ax mov es,ax mov ss,ax mov sp,#0xff00
+load_setup: //载入setup模块
+  mov dx,#0x0000 mov cx,#0x0002 mov bx,#0x0200
+  mov ax,#0x0200+SETUPLEN int 0x13 //BIOS中断
+  jnc ok_load_setup
+  mov dx,#0x0000
+  mov ax,#0x0000 //复位
+  int 0x13
+  j load_setup //重读
+
+
+
+
+Ok_load_setup: //载入setup模块
+  mov dl,#0x00 mov ax,#0x0800 //ah=8获得磁盘参数
+  int 0x13 mov ch,#0x00 mov sectors,cx
+  mov ah,#0x03 xor bh,bh int 0x10 //读光标
+  mov cx,#24 mov bx,#0x0007
+  mov bp,#msg1 mov ax,#1301 int 0x10 //显示字符
+  mov ax,#SYSSEG //SYSSEG=0x1000
+  mov es,ax
+  call read_it //读入system模块
+  jmpi 0,SETUPSEG
+
+
+read_it: mov ax,es cmp ax,#ENDSEG jb ok1_read
+         ret
+
+ok1_read:
+         mov ax,sectors
+         sub ax,sread //sread是当前磁道已读扇区数,ax未读扇区数
+         call read_track //读磁道...
+
+.org 510
+         .word 0xAA55 //扇区的最后两个字节
+
+
+
+
+
+
+=======================
+=======================
+
+1.并发高挡住并发
+2.占用进程中的内存

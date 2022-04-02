@@ -109,10 +109,7 @@ data that is stored in stable storage is able to survive the crash and will stil
 
 
 3. Byzantine (fail-arbitrary):
-
 Faulty nodes may do anything, including crashing or malicious behaviour.
-
-
 
 what it means for a node to be byzantine faulty is just it deviates from the algorithm, we specify an algorithm that all of the nodes are supposed to follow, but a byzantine faulty node may not follow the algorithm. it might pretend to follow the algorithm, it might do stuff to try and make it look honest even though it actually behaving in some of malicious way, so we're not going to constrain the behavior of a byzantine faulty node in any way. we're just going to assume that it can do anything that it wants, including malicious behavior, and so a piece of terminology here we can always categorize a node as either faulty or correct, so a node is faulty if it crashes for example, or in the byzantine model faulty a node is faulty if it deviates from the algorithm,
 (we can always categorize a node as either faulty or correct)

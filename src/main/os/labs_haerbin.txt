@@ -1,0 +1,17 @@
+Bochs 是一个免费且开放源代码的 IA-32（x86）架构 PC 机模拟器。在它模拟出的环境中可以运行 Linux、DOS 和各种版本的 Windows 等多种操作系统。而 Bochs 本身具有很高的移植性，可以运行在多种软硬件平台之上，这也是我们选择它做为本书的指定模拟器的主要原因。
+
+
+因为有些实验内容涉及到在自己改进的 Linux 0.11 下，运行自己编的应用程序。被改进的功能都是高版本 Linux 内核已经具有的，在其上确认自己编写的应用程序无误后，再用之测试自己改进的 Linux 0.11，可以更有信心些。
+
+
+
+$ cd /home/shiyanlou/oslab/
+
+# 解压，并指定解压到 /home/shiyanlou/
+# 这样的话，在 /home/shiyanlou/oslab/ 中就能找到解压后的所有文件
+$ tar -zxvf hit-oslab-linux-20110823.tar.gz \
+  -C /home/shiyanlou/
+
+# 查看是否解压成功
+$ ls -al
+# 除了压缩包 hit-oslab-linux-20110823.tar.gz 之外，其他的就是压缩包中的内容
