@@ -1,0 +1,384 @@
+dapper
+英 [ˈdæpə(r)]  美 [ˈdæpər]
+adj. 短小精悍的；衣冠楚楚的；整洁的；整齐的
+n. （Dapper）人名；（英）达珀；（意）达珀尔；（德）达佩尔
+
+todo:
+其他的跟踪论文
+1. Pinpoint
+2. Magpie
+3. X-trace
+
+Code instrumentation refers to the task of including code in programs to monitor the performance of .NET applications. We can use code instrumentation to display messages or write to event logs in case of a failure during the execution of an application at run time.
+
+Code instrumentation enables us to monitor and examine an application while developing it or after deploying it. Code instrumentation includes the following tasks:
+1. Debugging
+This process enables us to troubleshoot programming and logical errors in code. We use debugging tools, such as Cordbg.exe or DbgClr.exe, to debug applications.
+2. Tracing
+Using Tracing technique, we can gather information about code execution at run time. Tracing information can be used to troubleshoot an application after it is deployed.
+3. Writing to Performance counters and event logs
+With counters and logs we collect and analyze performance-related data to monitor the performance of applications. Event logs enable us to log information about the events that occur during the execution of an application.
+
+
+
+https://stackoverflow.com/questions/8755211/what-is-meant-by-the-term-instrumentation
+
+
+wiki:
+In the context of computer programming, instrumentation refers to the measure of a product's performance, to diagnose errors, and to write trace information.[1] Instrumentation can be of two types: source instrumentation and binary instrumentation.
+
+oracle:
+Instrumentation is the addition of byte-codes to methods for the purpose of gathering data to be utilized by tools. Since the changes are purely additive, these tools do not modify application state or behavior. Examples of such benign tools include monitoring agents, profilers, coverage analyzers, and event loggers.
+https://bigbully.github.io/Dapper-translation/
+
+
+ubiquitous
+英 [juːˈbɪkwɪtəs]  美 [juːˈbɪkwɪtəs]
+adj. 普遍存在的，无所不在的
+
+instrumentation
+英 [ˌɪnstrəmenˈteɪʃn]  美 [ˌɪnstrəmenˈteɪʃn]
+n. 使用仪器；乐器法；仪表化
+
+invaluable
+英 [ɪnˈvæljuəbl]  美 [ɪnˈvæljuəbl]
+adj. 极有用的，极宝贵的
+
+certain
+英 [ˈsɜːt(ə)n]  美 [ˈsɜːrtn]
+adj. 必然的，必定的；确定的，无疑的；某个，特定的；某位，一位叫……的；一定程度上的，有点儿
+pron. 某些，某几个
+
+pronoun
+英 [ˈprəʊnaʊn]  美 [ˈproʊnaʊn]
+n. 代词
+
+self-contained
+自给自足
+
+foremost
+英 [ˈfɔːməʊst]  美 [ˈfɔːrmoʊst]
+adj. 最前的，最重要的
+adv. 首先，第一；最基础地，最重要地
+
+artifact
+英 [ˈɑːtɪfækt]  美 [ˈɑːrtɪfækt]
+n. （尤指有文化价值或历史价值的）人工制品，历史文物；非自然存在物体，假象（=artefact）
+n. a man-made object taken as a whole
+
+
+noteworthy
+英 [ˈnəʊtwɜːði]  美 [ˈnoʊtwɜːrði]
+adj. 值得注意的，显著的
+
+reproduce
+英 [ˌriːprəˈdjuːs]  美 [ˌriːprəˈduːs]
+v. 复制，翻印；模拟；再制造，再现；繁殖，生殖
+
+
+
+negligible
+英 [ˈneɡlɪdʒəb(ə)l]  美 [ˈneɡlɪdʒəbl]
+adj. 微不足道的，不值一提的
+
+omit
+omission
+英 [əˈmɪʃ(ə)n]  美 [əˈmɪʃn]
+n. 省略，遗漏；被省略（或排除）的人（或物）；（尤指道德上或法律义务的）疏忽
+
+anomaly
+英 [əˈnɒməli]  美 [əˈnɑːməli]
+n. 异常事物，反常现象；近点角，近点距离
+
+corpus
+英 [ˈkɔːpəs]  美 [ˈkɔːrpəs]
+n. 文集，全集；语料库；体，身体；胃体；本金
+【名】 （Corpus）（西）科尔普斯（人名）
+
+coverage
+英 [ˈkʌvərɪdʒ]  美 [ˈkʌvərɪdʒ]
+n. 覆盖范围；新闻报道；保险范围；课程内容；防守，盯守
+
+code coverage:
+代码覆盖率，是一种通过计算测试过程中被执行的源代码占全部源代码的比例，进而间接度量软件质量的方法。它在保证测试质量的时候潜在保证实际产品的质量，可以基于此在程序中寻找没有被测试用例测试过的地方，进一步创建新的测试用例来增加覆盖率。按性质，它属于白盒测试的范畴，即主要依据源代码的内部结构来设计测试用例，通过设计不同的输入来测试软件的不同部分。
+
+play out
+英  美 [pleɪ aʊt]
+逐渐发生；结束；放出；用完；做完
+perform or be performed to the end
+play to a finish
+
+deplete
+英 [dɪˈpliːt]  美 [dɪˈpliːt]
+v. 大量减少，耗尽
+
+retrospect
+英 [ˈretrəspekt]  美 [ˈretrəspekt]
+n. 回顾，回想
+v. 回顾，追溯
+
+python:
+introspection
+英 [ˌɪntrəˈspekʃ(ə)n]  美 [ˌɪntrəˈspekʃn]
+n. 内省；反省
+
+initiator
+英 [ɪˈnɪʃieɪtə(r)]  美 [ɪˈnɪʃieɪtər]
+n. 发起人，创始人；（化）（连锁反应的）引发剂；引爆装置，起爆器
+
+on behalf of
+代表；为了
+
+in turn
+反过来；转而；轮流，依次
+B can respond right away, but C requires work from backends D and E before it can reply to A, which in turn responds to the originating request.
+B马上回响应, c在回复a前需要d和e的请求, 反过来响应最初的请求,
+
+
+Two classes of solutions have been proposed to aggregate this information so that one can associate all record entries with a given initiator (e.g., RequestX in Figure 1), black-box and annotation-based monitoring
+schemes.
+两类解决方案
+
+
+regression
+英 [rɪˈɡreʃn]  美 [rɪˈɡreʃn]
+n. 后退，倒退；（思想或行为的）退化，退行；（疾病或症状的）消退；（统计）回归
+
+statistical regression
+统计回归（现象）
+
+
+
+probabilistically
+有概率性地
+盖然论地
+
+
+========================================================================================
+https://opentracing.io/
+
+supported-tracers:
+  https://www.jianshu.com/p/a07d05f70eff
+  Pinpoint
+    一个韩国团队开源的产品，运用了字节码增强技术，只需要在启动时添加启动参数即可，对代码无侵入，目前支持Java和PHP语言，底层采用HBase来存储数据，探针收集的数据粒度非常细，但性能损耗大，因其出现的时间较长，完成度也很高，应用的公司较多
+  Apache SkyWalking
+    国人开源的产品，主要开发人员来自于华为，2019年4月17日Apache董事会批准SkyWalking成为顶级项目，支持Java、.Net、NodeJs等探针，数据存储支持Mysql、Elasticsearch等，跟Pinpoint一样采用字节码注入的方式实现代码的无侵入，探针采集数据粒度粗，但性能表现优秀，且对云原生支持，目前增长势头强劲，社区活跃
+========================================================================================
+APM全称Application Performance Management应用性能管理，目的是通过各种探针采集数据，收集关键指标，同时搭配数据呈现以实现对应用程序性能管理和故障管理的系统化解决方案。
+
+Zabbix、Premetheus、open-falcon等监控系统主要关注服务器硬件指标与系统服务运行状态等，而APM系统则更重视程序内部执行过程指标和服务之间链路调用情况的监控，APM更有利于深入代码找到请求响应“慢”的根本问题，与Zabbix之类的监控是互补关系
+
+========================================================================================
+
+
+OpenTracing
+Microservices provides a powerful architecture, but not without its own challenges, especially with regards to debugging and observing distributed transactions across complex networks — simply because there are no in-memory calls or stack traces to do so.
+
+ Distributed tracing provides a solution for describing and analyzing the cross-process transactions. Some of the uses cases of distributed tracing as described in Google’s Dapper paper include anomaly detection, diagnosing steady state problems, distributed profiling, resource attribution and workload modeling of microservices.
+
+========================================================================================
+Distributed Tracing: A Mental Model
+1. Trace: The description of a transaction as it moves through a distributed system.
+2. Span: A named, timed operation representing a piece of the workflow. Spans accept key:value tags as well as fine-grained, timestamped, structured logs attached to the particular span instance.
+3. Span context: Trace information that accompanies the distributed transaction, including when it passes the service to service over the network or through a message bus. The span context contains the trace identifier, span identifier, and any other data that the tracing system needs to propagate to the downstream service.
+
+========================================================================================
+The components in a modern software system can be broken down into three categories:
+  1. Application and business logic: Your code.
+  2. Widely shared libraries: Other people’s code.
+  3. Widely shared services: Other people’s infrastructure.
+These three components have different requirements and drive the design of the Distributed Tracing systems which is tasked with monitoring the application. The resulting design yields four important pieces:
+
+A tracing instrumentation API: What decorates application code.
+Wire protocol: What gets sent alongside application data in RPC requests.
+  In computer networking, a wire protocol refers to a way of getting data from point to point: A wire protocol is needed if more than one application has to interoperate. In contrast to transport protocols at the transport level (like TCP or UDP), the term "wire protocol" is used to describe a common way to represent information at the application level.
+Data protocol: What gets sent asynchronously (out-of-band) to your analysis system.
+Analysis system: A database and interactive UI for working with the trace data.
+
+========================================================================================
+What is a Span?
+The "span" is the primary building block of a distributed trace, representing an individual unit of work done in a distributed system.
+
+Each span encapsulates the following state according to the OpenTracing specification:
+1. An operation name
+2. A start timestamp and finish timestamp
+3. A set of key:value span Tags
+4. A set of key:value span Logs
+5. A SpanContext
+
+
+----------------------------------------------------------------------------------------
+Tags
+----------------------------------------------------------------------------------------
+Tags are key:value pairs that enable user-defined annotation of spans in order to query, filter, and comprehend trace data.
+
+Span tags should apply to the whole span. There is a list available at semantic_conventions.md listing conventional span tags for common scenarios. Examples may include tag keys like db.instance to identify a database host, http.status_code to represent the HTTP response code, or error which can be set to True if the operation represented by the Span fails.
+
+就是阿里云sls log nginx部分的tag
+
+------------------------------------------------------------------------------
+Logs
+------------------------------------------------------------------------------
+Logs are key:value pairs that are useful for capturing span-specific logging messages and other debugging or informational output from the application itself. Logs may be useful for documenting a specific moment or event within the span (in contrast to tags which should apply to the span as a whole).
+
+
+-----------------------------------------------------------------------------
+-----------------------------------------------------------------------------
+The SpanContext carries data across process boundaries. Specifically, it has two major components:
+  1. An implementation-dependent state to refer to the distinct span within a trace
+    i.e., the implementing Tracer’s definition of spanID and traceID
+  2. Any Baggage Items(也是往下传的context, 属于span context里面的一部分)
+    1. These are key:value pairs that cross process-boundaries.
+    2. These may be useful to have some data available for access throughout the trace.
+
+
+
+------------------------------------------------------------------------------
+Example Span:
+    t=0            operation name: db_query               t=x
+
+     +-----------------------------------------------------+
+     | · · · · · · · · · ·    Span     · · · · · · · · · · |
+     +-----------------------------------------------------+
+
+Tags:
+- db.instance:"customers"
+- db.statement:"SELECT * FROM mytable WHERE foo='bar'"
+- peer.address:"mysql://127.0.0.1:3306/customers"
+
+Logs:
+- message:"Can't connect to mysql server on '127.0.0.1'(10061)"
+
+SpanContext:
+- trace_id:"abc123"
+- span_id:"xyz789"
+- Baggage Items:
+  - special_id:"vsid1738"
+=============================================================================
+
+=============================================================================
+Scopes and Threading
+=============================================================================
+-----------------------------------------------------------------------------
+Introduction
+-----------------------------------------------------------------------------
+span只允许在单个线程里面活跃,
+In any given thread there is an "active" span primarily responsible for the work accomplished by the surrounding application code, called the ActiveSpan. The OpenTracing API allows for only one span in a thread to be active at any point in time. This is managed using a Scope, which formalizes the activation and deactivation of a Span.
+
+Other spans that are involved with the same thread will satisfy either of the following conditions:
+1. Started
+2. Not finished
+3. Not "active"
+
+For example, there can be multiple spans on the same thread, if the spans are:
+1. Waiting for I/O
+2. Blocked on a child Span
+3. Off of the critical path
+
+例如在线程池里面传递traceContext, 阿里云实现的 TransmittableThreadLocal
+-----------------------------------------------------------------------------
+Accessing the Current Active Span
+-----------------------------------------------------------------------------
+As it is inconvenient to pass an active Span from function to function manually, so OpenTracing requires that every Tracer contain a ScopeManager. The ScopeManager API grants access to the active Span through a Scope. This means that a developer can access any active Span through a Scope.
+
+-----------------------------------------------------------------------------
+Moving a span between threads
+-----------------------------------------------------------------------------
+Using the ScopeManager API, a developer can transfer the spans among different threads. A Span’s lifetime might start in one thread and end in another. The ScopeManager API allows for a Span to be transferred to another thread or callback. Passing of scopes to another thread or callback is not supported. For more details, refer to the language specific documentation.
+
+=============================================================================
+Best Practice:
+
+Stepping Back: Who is OpenTracing for?
+OpenTracing is a thin standardization layer that sits between application/library code and various systems that consume tracing and causality data. Here is a diagram:
+
+   +-------------+  +---------+  +----------+  +------------+
+   | Application |  | Library |  |   OSS    |  |  RPC/IPC   |
+   |    Code     |  |  Code   |  | Services |  | Frameworks |
+   +-------------+  +---------+  +----------+  +------------+
+          |              |             |             |
+          |              |             |             |
+          v              v             v             v
+     +-----------------------------------------------------+
+     | · · · · · · · · · · OpenTracing · · · · · · · · · · |
+     +-----------------------------------------------------+
+       |               |                |               |
+       |               |                |               |
+       v               v                v               v
+ +-----------+  +-------------+  +-------------+  +-----------+
+ |  Tracing  |  |   Logging   |  |   Metrics   |  |  Tracing  |
+ | System A  |  | Framework B |  | Framework C |  | System D  |
+ +-----------+  +-------------+  +-------------+  +-----------+
+
+-----------------------------------------------------------------------------
+
+Use case        Description
+Application Code: Developers writing application code can use OpenTracing to describe causality, demarcate control flow, and add fine-grained logging information along the way.
+Library Code: Libraries that take intermediate control of requests can integrate with OpenTracing for similar reasons. For instance, a web middleware library can use OpenTracing to create spans for request handling, or an ORM library can use OpenTracing to describe higher-level ORM semantics and measure execution for specific SQL queries.
+OSS Services: Beyond embedded libraries, entire OSS services may adopt OpenTracing to integrate with distributed traces initiating in – or propagating to – other processes in a larger distributed system. For instance, an HTTP load balancer may use OpenTracing to decorate requests, or a distributed key:value store may use OpenTracing to explain the performance of reads and writes.
+RPC/IPC Frameworks: Any subsystem tasked with crossing process boundaries may use OpenTracing to standardize the format of tracing state as it injects into and extracts from various wire formats and protocols.
+----------------------------------------------------------------------------------------
+
+
+All of the above should be able to use OpenTracing to describe and propagate distributed traces without knowledge of the underlying OpenTracing implementation.
+
+========================================================================================
+How does OpenTracing fit into this?
+The OpenTracing API provides a standard, vendor neutral framework for instrumentation. This means that if a developer wants to try out a different distributed tracing system, then instead of repeating the whole instrumentation process for the new distributed tracing system, the developer can simply change the configuration of the Tracer.
+
+很像springcloud, 屏蔽底层实现细节, 修改配置即可
+========================================================================================
+neutral
+英 [ˈnjuːtrəl]  美 [ˈnuːtrəl]
+adj. 中立的，不偏不倚的；中性的，不带感情色彩的；暗淡的，素净的；（化学中）中性的，非酸非碱的；不带电的
+n. （车辆排挡的）空挡；中立者，中立国；素净色，中和色；不活动，停滞；不带电的接触点
+
+alongside
+英 [əˌlɒŋˈsaɪd]  美 [əˌlɔːŋˈsaɪd]
+prep. 在……旁边；沿着……的边；与……一起，与……并肩（工作）；与……相比；与……同等重要的；同时，共存
+adv. 在旁边
+
+
+
+========================================================================================
+
+audience
+英 [ˈɔːdiəns]  美 [ˈɔːdiəns]
+n. 观众，听众；读者；觐见，拜见；拥护者
+
+ample
+英 [ˈæmpl]  美 [ˈæmp(ə)l]
+adj. 充足的，充裕的；丰满的；宽敞的，巨大的
+========================================================================================
+
+
+demarcate
+英 [ˈdiːmɑːkeɪt]  美 [ˈdiːmɑːrkeɪt]
+vt. 划分界线；区别
+
+
+comprehend [ ,kɔmpri'hend ]
+v.
+1. get the meaning of something
+"Do you comprehend the meaning of this letter?"
+2. to become aware of through the senses
+同义词： perceive
+3. include in scope; include as part of something broader; have as one's sphere or territory
+v. 理解，领悟；包括，包含
+
+
+vendor-neutral
+厂商中立的
+Vendor neutrality is a business and design approach that seeks to ensure broad compatibility and interchangeability of products and technologies. The model encompasses standardization, non-proprietary design principles and unbiased business practices.
+
+Vendor-neutral hardware and software are designed for compatibility and interoperability. The term vendor-neutral contrasts with vendor-specific. In a vendor-specific data center, for example, hardware and software are supplied by single vendors, while in a vendor-neutral data center, technologies come from a variety of sources. Most current data centers are closer to the vendor-neutral model, although they may rely heavily upon a particular vendor.
+
+sleuth
+英 [sluːθ]  美 [sluːθ]
+n. 侦探；警犬
+vi. 做侦探；侦查
+
+
+
+
+

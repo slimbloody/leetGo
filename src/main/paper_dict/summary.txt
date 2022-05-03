@@ -1,0 +1,41 @@
+azure ppt:
+https://www.youtube.com/watch?v=QnYdbQO0yj4
+
+对象存储论文
+https://www.daimajiaoliu.com/daima/47e3b7d56100400
+分布式集合
+https://bbs.huaweicloud.com/blogs/167504
+
+有效备份因子，有效冗余倍数(effective-replica-factor)：实际占用的物理空间和要存的逻辑数据大小之间的比值。
+
+rack
+英 [r?k]  美 [r?k]
+n. 架子，支架；
+
+rack failure
+机架故障
+
+modular
+模块化的
+
+correlation
+英 [?k?r??le??(?)n]  美 [?k??r??le??n]
+n. 相互关系，关联；相关量
+
+
+
+知乎分布式集合:
+https://www.zhihu.com/column/c_1088374661406052352
+
+
+ec码
+https://zhuanlan.zhihu.com/p/105498593
+
+
+
+
+
+
+
+
+

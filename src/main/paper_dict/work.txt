@@ -8,3 +8,10 @@ https://www.cnblogs.com/xiao-xue-di/p/12972955.html
 https://blog.csdn.net/meteor_93/article/details/94311541
 https://yunfuwu.top/blog/126.html
 应对秒杀: redis分片
+
+
+更倾向于应用资源少但是节点数多, 因为大多数应用瓶颈都在io, 节点数多了相当于处理请求数的连接多了, 能够抗更多的请求
+
+
+
+

@@ -1,0 +1,6 @@
+billion
+num. 十亿
+billions
+n. 数十亿
+trillion
+num. 万亿
