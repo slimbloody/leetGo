@@ -28,6 +28,10 @@ n. 相互关系，关联；相关量
 https://www.zhihu.com/column/c_1088374661406052352
 
 
+
+左耳朵耗子
+https://tanxinyu.work/scaling-memcached-thesis/
+
 ec码
 https://zhuanlan.zhihu.com/p/105498593
 

@@ -215,5 +215,18 @@ Store machines reduce their main memory footprints by 20% through these two tech
 TFS（Taobao File System）是一个高可扩展、高可用、高性能、面向互联网服务的分布式文件系统， [1]  主要针对海量的非结构化数据，它构筑在普通的Linux机器集群上，可为外部提供高可靠和高并发的存储访问。TFS为淘宝提供海量小文件存储，通常文件大小不超过1M，满足了淘宝对小文件存储的需求，被广泛地应用在淘宝各项应用中。它采用了HA架构和平滑扩容，保证了整个文件系统的可用性和扩展性。同时扁平化的数据组织结构，可将文件名映射到文件的物理地址，简化了文件的访问流程，一定程度上为TFS提供了良好的读写性能。
 
 
+inode:
+https://blog.csdn.net/u010039418/article/details/115234532
 
+句柄:
+https://blog.csdn.net/wdfscsdn2015/article/details/76303597
+https://zhuanlan.zhihu.com/p/311436793
 
+haystack:
+https://oenhan.com/haystack-tfs
+https://blog.csdn.net/hacker00011000/article/details/72667731
+https://www.qtmuniao.com/2019/03/24/haystack/
+https://www.cnblogs.com/wangbin/p/9441885.html
+
+extent blockmap:
+https://developer.aliyun.com/article/448460

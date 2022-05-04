@@ -1,3 +1,7 @@
+存储变化:
+https://www.cnblogs.com/foxmailed/p/4290924.html
+
+
 corpus
 英 [?k??p?s]  美 [?k??rp?s]
 n. 文集，全集；语料库；体，身体；胃体；本金
@@ -6,3 +10,105 @@ n. 文集，全集；语料库；体，身体；胃体；本金
 corpse
 英 [k??ps]  美 [k??rps]
 n. 尸体
+
+
+To increase our storage efficiency, measured in the effective-replication-factor of BLOBs,
+measured:
+determined by measurement
+估量，判定（重要性、价值或影响等）
+
+
+over provision
+过度配置
+
+
+inform [ in'f?:m ]
+v. 通知，告知；告发，检举（inform on）；赋特征于，渗透；了解，熟悉；影响
+v.
+1. impart knowledge of some fact, state or affairs, or event to
+
+2. give character or essence to(赋特征于，渗透)
+eg: (原文:)We use these findings to inform our design.
+
+impart
+英 [?m?pɑ?t]  美 [?m?pɑ?rt]
+v. 传授，告知；赋予，给予
+
+prevalent
+英 [?prev?l?nt]  美 [?prev?l?nt]
+adj. 盛行的，普遍的
+
+denormalize
+在关系型数据库（relational database）中，反规范化（denormalization）是加速阅读性能（数据检索）的方法，管理员用这种方法有选择地在数据结构标准化后回加特定的冗余数据实例。
+
+order of magnitude
+英 [???d? ?v ?m?ɡn?tju?d]
+[数] 数量级
+
+percentile
+英 [p??senta?l]  美 [p?r?senta?l]
+n. 百分位，百分位数
+
+the near worst case
+最坏的情况
+
+
+The age of each object read is recorded and these are bucketed into intervals equivalent to the time needed to create 1 TB of that BLOB type.
+bucket
+v.
+1. put into a bucket
+2. carry in a bucket
+
+rigorous
+英 [?r?ɡ?r?s]  美 [?r?ɡ?r?s]
+adj. （测试、系统或程序）严密的，缜密的；（规则，制度等）严格的，苛刻的；一丝不苟的；严酷的，恶劣的
+
+resize photo
+调整照片
+crop photo
+裁切照片
+
+lay out
+英 [le? a?t]  美 [le? a?t]
+展示；安排；花钱；为……划样；提议
+
+expiry
+英 [?k?spa??ri]  美 [?k?spa??ri]
+n. 有效期终止，满期；（一段时间的）结束，终止；死亡，断气；呼气
+
+homogeneous
+英 [?h?m??d?i?ni?s]  美 [?ho?m??d?i?ni?s]
+adj. 同种类的，同性质的；齐性的，齐次的；同形态（固态、液态或气态）的
+
+acquisition
+英 [??kw??z??(?)n]  美 [??kw??z??n]
+n. 学得，习得；（金钱、财物等的）获取；购买，添置，增添物；收购，购置的产业
+
+acquisition n ([sth] obtained) 获得物
+We treat a cell as a unit of acquisition and as a unit of deployment and roll out
+
+
+
+roll out
+英 [?r??l a?t]  美 [?r??l a?t]
+v. 正式推出（新产品），开展（新的政治运动）；把……展开（或摊开）；碾平，压平，擀平；离开（通常比预期的要晚）
+
+https://prezi.com/-qlvrjyj5-jr/f4-facebooks-warm-blob-storage-system/
+https://www.51cto.com/article/595479.html
+https://www.getit01.com/p20190526061552666/
+https://www.cnblogs.com/foxmailed/p/4290924.html
+
+zty:
+https://blog.zhuangty.com/haystack-f4/#
+
+
+
+概率论中PDF、PMF和CDF的区别与联系
+https://blog.51cto.com/u_15077552/4625675
+
+
+
+
+
+
+
