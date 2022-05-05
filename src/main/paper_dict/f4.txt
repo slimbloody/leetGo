@@ -110,5 +110,6 @@ https://blog.51cto.com/u_15077552/4625675
 
 
 
-
+soft state:
+https://blog.csdn.net/historyasamirror/article/details/4458369
 
