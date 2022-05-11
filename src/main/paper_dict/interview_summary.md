@@ -184,7 +184,7 @@ activity-detailÕâ±ßÄÜ²»ÄÜÕâÑù²Ù×÷, °Ñ½Úµã·Ö³ÉÁ½·Ý, Á½·Ý½Úµã¶¼·ÅÔÚ²»Í¬µÄecsÉÏ(¿ÉÓ
             1. 
     3. ¼Ó»º´æ(ÓÐÐ©µØ·½ÊÇ²»·½±ã¼Ó»º´æµÄ)
         1. ds²ãÉÏ²ã¼ÓÒ»¸ö·â×°, ÏÈÐ´cache²ã, Í¨¹ýmqÒì²½°ÑcacheË¢µ½mysqlÀïÃæÈ¥
-           ÎªÊ²Ã´ÓÃds
+            ÎªÊ²Ã´ÓÃds
             1. 
             2. 
         2. mqÊ§Ð§»º´æ
