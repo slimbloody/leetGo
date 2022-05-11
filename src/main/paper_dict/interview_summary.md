@@ -1,3 +1,4 @@
+
 ¹«Ë¾µÄÏÖÔÚµÄÌåÁ¿, ¸ß·åÆÚÈÕ¶©µ¥Á¿ÉÏ°ÙÍò¸ßµÄÊ±ºò(150w), ÈÕgmv¹ýÒÚ, ÏêÇé·ÃÎÊÁ¿µ¥½ÚµãqpsÓÐ100¶à
 
 ÈÕ·ÃÎÊÁ¿ÓÐ2k¶àw 
@@ -8,14 +9,27 @@
 ========================================
 WAF -> LVS -> nginx -> gateway -> Entry application -> support application -> storage
 
+
+Î¢·þÎñ²ð·Ö:
+https://microservices.io/
+https://microservices.io/patterns/cn/index.html
 ========================================
 ´óµ¥Ìå²ð·Ö
 ========================================
 ÔçÆÚÊÇÔÚ´óµ¥ÌåÉÏÃæ¿ª·¢µÄ. ÔÚ´óµ¥ÌåÉÏÃæ¿ª·¢, Ð§ÂÊ±È½ÏµÍ
 1. µ¥ÌåÆô¶¯ËÙ¶È·Ç³£Âý, Æô¶¯Ò»ÏÂÒªÊ®¼¸·ÖÖÓ, ±¾µØµ÷ÊÔºÍÏßÉÏ¹ÊÕÏÏìÓ¦ËÙ¶È¶¼ÏàÓ¦±»ÍÏÂýÁË, 
-2. Ð­Í¬²»·½±ã, ¿ÉÄÜÒ»¸öÍ¬ÊÂ¸ÄÁË´úÂë, ÁíÒ»¸öÍ¬ÊÂÔÚÌá½»µÄÊ±ºòÓÖ·¢ÏÖÓÐ³åÍ»ÁË
+2. ÍÅ¶Ó·Ö¹¤µÄÕÏ°­(Ð­Í¬²»·½±ã), ¿ÉÄÜÒ»¸öÍ¬ÊÂ¸ÄÁË´úÂë, ÁíÒ»¸öÍ¬ÊÂÔÚÌá½»µÄÊ±ºòÓÖ·¢ÏÖÓÐ³åÍ»ÁË
 3. À©Õ¹ÄÜÁ¦ÊÜÏÞ, ÎÞ·¨°´ÐèÉìËõ, µ¥ÌåÓ¦ÓÃÖ»ÄÜ×÷ÎªÒ»¸öÕûÌå½øÐÐÀ©Õ¹, ÎÞ·¨½áºÏÒµÎñÄ£¿éµÄÌØµã½øÐÐÉìËõ
-4. ¿É¿¿ÐÔ²î, ¿ÉÄÜÒòÎªÄ³¸öÍ¬ÊÂÐ´³öÁËbug, µ¥ÌåcrashÁË, Õû¸ö·þÎñ¶¼²»¿ÉÓÃÁË
+4. ¹ÊÕÏÀ©É¢(¿É¿¿ÐÔ²î), ¿ÉÄÜÒòÎªÄ³¸öÍ¬ÊÂÐ´³öÁËbug, µ¥ÌåcrashÁË, Õû¸ö·þÎñ¶¼²»¿ÉÓÃÁË
+5. ¼¼ÊõÕ»ÊÜÏÞ, ÐèÒª³¤ÆÚÊ¹ÓÃÍ¬Ò»¸ö¼¼ÊõÕ»
+
+
+²ð·ÖÎªÎ¢·þÎñºó:
+¸ß¶È¿ÉÎ¬»¤ºÍ¿É²âÊÔ£ºÖ§³Ö¿ìËÙºÍÆµ·±µÄ¿ª·¢ºÍ²¿Êð¡£
+ÓëÆäËûÎ¢·þÎñËÉñîºÏ£ºÊ¹ÍÅ¶ÓÄÜ¹»ÔÚ´ó²¿·ÖÊ±¼ä¶ÀÁ¢µØ¹¤×÷ÔÚËûÃÇ×Ô¼ºµÄÎ¢·þÎñÉÏ£¬¶ø²»ÊÜÆäËûÎ¢·þÎñ¸ü¸Äµ¼ÖÂµÄÓ°Ïì£¬Í¬Ê±Ò²²»»áÓ°ÏìÆäËûÎ¢·þÎñ¡£
+¶ÀÁ¢²¿Êð£ºÊ¹ÍÅ¶ÓÄÜ¹»²¿ÊðËûÃÇµÄ·þÎñ£¬¶ø²»±ØÓëÆäËûÍÅ¶Ó½øÐÐÐ­µ÷¡£
+¼õÉÙ¹µÍ¨³É±¾£º¿ÉÒÔ²ð·Ö³ÉÐ¡ÍÅ¶Ó×¨×¢ÓÚ¸÷×ÔµÄÎ¢·þÎñ£¬¼õÉÙ´óÍÅ¶ÓÄÚ²¿¹µÍ¨³É±¾¡£
+
 
 ¸ù¾ÝÒµÎñÀàÐÍ, ´óÖÂ·ÖÎªÁË
 »î¶¯×é: ÃÅ»§, Ö÷¹Ü»î¶¯µÄ·¢²¼ä¯ÀÀ, ÉÌÆ··¢²¼ä¯ÀÀ
@@ -35,6 +49,43 @@ WAF -> LVS -> nginx -> gateway -> Entry application -> support application -> st
 
 ·þÎñ×ÔÑÝ½ø: ´ó·þÎñ±»²ð³ÉÐ¡·þÎñºó, ÈçºÎ»®Çå±ß½ç³ÉÎªÒ»¸öÄÑÌâ. ²ðµÄÌ«Ï¸, Ôö¼ÓÏµÍ³¸´ÔÓ¶È; Ì«´Ö£¬ÓÖ´ï²»µ½Ô¤ÆÚµÄÐ§¹û. ËùÒÔÕû¸ö×Ó·þÎñµÄ±ß½çÒ²Ó¦¸Ã²»¶ÏÊáÀíÍêÉÆ,Ï¸»¯,·þÎñÐèÒª²»¶ÏÑÝ½ø.
 
+CAP
+BASE
+    1. BA£ºBasically Available£¬»ù±¾¿ÉÓÃ
+        ÏµÍ³³öÏÖÁË²»¿ÉÔ¤ÖªµÄ¹ÊÕÏ£¬µ«»¹ÊÇÄÜÓÃ£¬Ïà±È½ÏÕý³£µÄÏµÍ³¶øÑÔ»áÓÐÏìÓ¦Ê±¼äÉÏµÄËðÊ§ºÍ¹¦ÄÜÉÏµÄËðÊ§¡£
+    2. S£ºSoft State£¬Èí×´Ì¬£¬×´Ì¬¿ÉÒÔÓÐÒ»¶ÎÊ±¼ä²»Í¬²½
+        Ê²Ã´ÊÇÈí×´Ì¬ÄØ£¿Ïà¶ÔÓÚÔ­×ÓÐÔ¶øÑÔ£¬ÒªÇó¶à¸ö½ÚµãµÄÊý¾Ý¸±±¾¶¼ÊÇÒ»ÖÂµÄ£¬ÕâÊÇÒ»ÖÖ¡°Ó²×´Ì¬¡±¡£
+        Èí×´Ì¬Ö¸µÄÊÇ£ºÔÊÐíÏµÍ³ÖÐµÄÊý¾Ý´æÔÚÖÐ¼ä×´Ì¬£¬²¢ÈÏÎª¸Ã×´Ì¬²»Ó°ÏìÏµÍ³µÄÕûÌå¿ÉÓÃÐÔ£¬¼´ÔÊÐíÏµÍ³ÔÚ¶à¸ö²»Í¬½ÚµãµÄÊý¾Ý¸±±¾´æÔÚÊý¾ÝÑÓÊ±¡£
+    3. E£ºEventually Consistent£¬×îÖÕÒ»ÖÂ£¬×îÖÕÊý¾ÝÊÇÒ»ÖÂµÄ¾Í¿ÉÒÔÁË£¬¶ø²»ÊÇÊ±Ê±±£³ÖÇ¿Ò»ÖÂ
+        ¶øÔÚÊµ¼Ê¹¤³ÌÊµ¼ùÖÐ£¬×îÖÕÒ»ÖÂÐÔ·ÖÎª5ÖÖ£º
+        Òò¹ûÒ»ÖÂÐÔ(Causal consistency):Èç¹û½ÚµãAÔÚ¸üÐÂÍêÄ³¸öÊý¾ÝºóÍ¨ÖªÁË½ÚµãB£¬ÄÇÃ´½ÚµãBÖ®ºó¶Ô¸ÃÊý¾ÝµÄ·ÃÎÊºÍÐÞ¸Ä¶¼ÊÇ»ùÓÚA¸üÐÂºóµÄÖµ¡£ÓÚ´ËÍ¬Ê±£¬ºÍ½ÚµãAÎÞÒò¹û¹ØÏµµÄ½ÚµãCµÄÊý¾Ý·ÃÎÊÔòÃ»ÓÐÕâÑùµÄÏÞÖÆ¡£
+        ¶Á¼ºÖ®ËùÐ´Ò»ÖÂÐÔ(Read-your-writes consistency): ½ÚµãA¸üÐÂÒ»¸öÊý¾Ýºó£¬Ëü×ÔÉí×ÜÊÇÄÜ·ÃÎÊµ½×ÔÉí¸üÐÂ¹ýµÄ×îÐÂÖµ£¬¶ø²»»á¿´µ½¾ÉÖµ¡£ÆäÊµÒ²ËãÒ»ÖÖÒò¹ûÒ»ÖÂÐÔ¡£
+        »á»°Ò»ÖÂÐÔ(Session consistency): »á»°Ò»ÖÂÐÔ½«¶ÔÏµÍ³Êý¾ÝµÄ·ÃÎÊ¹ý³Ì¿ò¶¨ÔÚÁËÒ»¸ö»á»°µ±ÖÐ: ÏµÍ³ÄÜ±£Ö¤ÔÚÍ¬Ò»¸öÓÐÐ§µÄ»á»°ÖÐÊµÏÖ ¡°¶Á¼ºÖ®ËùÐ´¡± µÄÒ»ÖÂÐÔ£¬Ò²¾ÍÊÇËµ£¬Ö´ÐÐ¸üÐÂ²Ù×÷Ö®ºó£¬¿Í»§¶ËÄÜ¹»ÔÚÍ¬Ò»¸ö»á»°ÖÐÊ¼ÖÕ¶ÁÈ¡µ½¸ÃÊý¾ÝÏîµÄ×îÐÂÖµ
+        µ¥µ÷¶ÁÒ»ÖÂÐÔ(Monotonic read consistency):Èç¹ûÒ»¸ö½Úµã´ÓÏµÍ³ÖÐ¶ÁÈ¡³öÒ»¸öÊý¾ÝÏîµÄÄ³¸öÖµºó£¬ÄÇÃ´ÏµÍ³¶ÔÓÚ¸Ã½ÚµãºóÐøµÄÈÎºÎÊý¾Ý·ÃÎÊ¶¼²»Ó¦¸Ã·µ»Ø¸ü¾ÉµÄÖµ¡£
+        µ¥µ÷Ð´Ò»ÖÂÐÔ(Monotonic write consistency):Ò»¸öÏµÍ³ÒªÄÜ¹»±£Ö¤À´×ÔÍ¬Ò»¸ö½ÚµãµÄÐ´²Ù×÷±»Ë³ÐòµÄÖ´ÐÐ¡£
+
+2pc, 3pc
+
+Nacos:
+ÎªÊ²Ã´ÓÃnacos×ö×¢²áÖÐÐÄºÍÅäÖÃÖÐÐÄ
+1. nacosÊý¾Ý½á¹¹
+2. nacosÈçºÎºÍspringcloudÕûºÏ
+3. copyOnWrite
+4. Í¨ÐÅ¸ÄÓÃrpc×¢²á
+5. ãÐÖµ±£»¤Ä£Ê½: ·¢ÏÖºÜ¶à½Úµã²»½¡¿µ
+   ÎªÁË·ÀÖ¹Òò¹ý¶àÊµÀý (Instance) ²»½¡¿µµ¼ÖÂÁ÷Á¿È«²¿Á÷Ïò½¡¿µÊµÀý (Instance) £¬¼Ì¶øÔì³ÉÁ÷Á¿Ñ¹Á¦°Ñ½¡¿µ ½¡¿µÊµÀý (Instance) Ñ¹¿å²¢ÐÎ³ÉÑ©±ÀÐ§Ó¦£¬Ó¦½«½¡¿µ±£»¤ãÐÖµ¶¨ÒåÎªÒ»¸ö 0 µ½ 1 Ö®¼äµÄ¸¡µãÊý¡£µ±ÓòÃû½¡¿µÊµÀý (Instance) Õ¼×Ü·þÎñÊµÀý (Instance) µÄ±ÈÀýÐ¡ÓÚ¸ÃÖµÊ±£¬ÎÞÂÛÊµÀý (Instance) ÊÇ·ñ½¡¿µ£¬¶¼»á½«Õâ¸öÊµÀý (Instance) ·µ»Ø¸ø¿Í»§¶Ë¡£ÕâÑù×öËäÈ»ËðÊ§ÁËÒ»²¿·ÖÁ÷Á¿£¬µ«ÊÇ±£Ö¤ÁË¼¯ÈºµÄÊ£Óà½¡¿µÊµÀý (Instance) ÄÜÕý³£¹¤×÷
+6. ÁÙÊ±Êý¾Ý, ³Ö¾Ã»¯ÓÃraft
+
+¼àÌýÕßÉè¼ÆÄ£Ê½
+
+2. ×Ô¶¯×¢ÏúÊµÀý
+4. ¶àÊý¾ÝÖÐÐÄ
+5. ¿ç×¢²áÖÐÐÄÍ¬²½
+1. Ñ©±À±£»¤
+3. ¼àÌýÖ§³Ö
+
+1. »Ò¶È
+
 ========================================
 ¶¨Ê±À©ÈÝ
 ========================================
@@ -48,10 +99,11 @@ WAF -> LVS -> nginx -> gateway -> Entry application -> support application -> st
 2. ´æÁ¿Êý¾ÝÇ¨ÒÆ
 3. ÓÃ¾É½Ó¿ÚË«¶Á¶Ô±È
 4. ³éÑùµ¥¶Á
-5. µ¥¶Á
-6. rename Êý¾Ý±í, ÅÂÍòÒ»»¹ÓÐÒÀÀµ, ·½±ã°Ñ±íÍ¨¹ýrenameÔÙ»Ø¹ö»ØÈ¥
+5. ¶ÁÐÂË«Ð´
+6. canal¼à¿Ø»òÕß°¢ÀïÔÆ¿ØÖÆÌ¨¼à¿Ø
+7. rename Êý¾Ý±í, ÅÂÍòÒ»»¹ÓÐÒÀÀµ, ·½±ã°Ñ±íÍ¨¹ýrenameÔÙ»Ø¹ö»ØÈ¥
 ÈôÉú²ú»·¾³ÒòÎªrename Ö®ºó±¨´í, ËµÃ÷»¹ÓÐ½Ó¿ÚÔÚ¶ÁÈ¡¾É±í, ¶ÁÇ¨ÒÆ²»ÍêÈ«
-7. drop ±í
+8. drop ±í
 
 todo:
 ÈçºÎ×öesÊý¾ÝÇ¨ÒÆ
@@ -138,11 +190,17 @@ activity-detailÕâ±ßÄÜ²»ÄÜÕâÑù²Ù×÷, °Ñ½Úµã·Ö³ÉÁ½·Ý, Á½·Ý½Úµã¶¼·ÅÔÚ²»Í¬µÄecsÉÏ(¿ÉÓ
         2. mqÊ§Ð§»º´æ
         3. Ó¦ÓÃÍâ½Ó»º´æ
         4. ÓÃ»§»ØÁ÷, Ö®Ç°µÄcacheÔç¾ÍÊ§Ð§ÁË, Ôì³ÉÂý²éÑ¯Á¿ÉÏÉý
+    
+       
+
     4. ºÄÊ±³¤µÄÇëÇóÒì²½, ·Ç±ØÒªµÄÒµÎñÁ÷³ÌÒì²½
     5. jvmÓÅ»¯
         1. ¶ÔÏóÈçºÎ·ÖÅäµÄ(Î»ÖÃ, ¿Õ¼ä)
-        2. g1(¹ÜÀí´ó¶Ñ)
-        3. cms(ÔÚÍÌÍÂÁ¿·½Ãæ×îÓÅ)
+        2. ¼õÉÙgcµÄÁ¿
+            1. ÄÜ²»ÄÜ¾¡Á¿²»Éú³ÉÐÂ¶ÔÏó
+            2. ¶ÔÏóÄÜ²»ÄÜ¸´ÓÃ
+        3. g1(¹ÜÀí´ó¶Ñ)
+        4. cms(ÔÚÍÌÍÂÁ¿·½Ãæ×îÓÅ)
 
 
 ========================================
@@ -152,6 +210,9 @@ activity-detailÕâ±ßÄÜ²»ÄÜÕâÑù²Ù×÷, °Ñ½Úµã·Ö³ÉÁ½·Ý, Á½·Ý½Úµã¶¼·ÅÔÚ²»Í¬µÄecsÉÏ(¿ÉÓ
     1. ¶©µ¥Á÷³Ì
     2. ÏÂµ¥ÓÅ»¯
     3. ÉÌÒµÉÏµÄ¿¼ÂÇ, ²»¿ÉÄÜÓÃÓÐÏÞµÄ»úÆ÷Ìá¹©ÎÞÏÞµÄ·þÎñ, ¼Óheader
+    
+    1. redis·Ö²¼Ê½Ëø(Ð¡Ã×)
+   
 2. ·Ö²¼Ê½ÊÂÎñ
 3. esÇ¨ÒÆ
     1. reindex
@@ -168,6 +229,9 @@ terms²éÑ¯¾ÍÓÃshould°ü×¡¼¸¸örangeQuery
    1. ¹¤ÆÚÖÊÁ¿ºÍËÙ¶ÈµÄ¾ñÔñ
    2. Ë«¶ÁÒì²½¶Ô±È
 
+========================================
+ÒµÎñÇúÏß¹Û²â
+========================================
 
 ========================================
 ¼¼ÊõÉÏ¹²ÓÐ×é¼þµÄÌá¹©
@@ -180,7 +244,7 @@ terms²éÑ¯¾ÍÓÃshould°ü×¡¼¸¸örangeQuery
  6. ResponseBodyAdvice,ControllerAdvice
  7. refreshedScoped
  8. Ô¤ÈÈ ContextRefreshedEvent
- 9. ordered
+ 9. orderedÔõÃ´ÉúÐ§µÄ
 10. beanÉúÃüÖÜÆÚ
 ========================================
 ÏµÍ³Éè¼Æ
@@ -226,9 +290,9 @@ https://www.bilibili.com/video/BV1534y1S7oU?spm_id_from=333.337.search-card.all.
 5. ÌÝ¶ÓÅàÑø, ¿ìËÙÅàÑøÒ»¸öºËÐÄµÄÈËÔ±³öÀ´(ÎÄµµÃèÊöÇåÎú, ÓïÑÔ¹æ·¶)
 6. ¼¼Êõ»ýÀÛ, ×Ô¼º×é·½°¸¿É²»¿ÉÒÔ¸´ÓÃµ½ÆäËû×éÀïÃæÈ¥
 
-
-
-
+========================================
+ÔÚÍÅ¶Ó¿´ÖØµÄµã
+========================================
 coding ÄÜÁ¦
 ¶Ô¼¼ÊõµÄÈÈÇé
 ÄÜ¼òÃ÷¶óÒªµØ¹µÍ¨
