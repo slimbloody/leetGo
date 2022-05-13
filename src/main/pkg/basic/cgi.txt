@@ -1,0 +1,3 @@
+https://zhuanlan.zhihu.com/p/295181598
+https://segmentfault.com/a/1190000018597945
+https://stackoverflow.com/questions/3937224/differences-and-uses-between-wsgi-cgi-fastcgi-and-mod-python-in-regards-to-py
