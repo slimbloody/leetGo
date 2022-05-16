@@ -1,56 +1,62 @@
-´æ´¢±ä»¯:
+å­˜å‚¨å˜åŒ–:
 https://www.cnblogs.com/foxmailed/p/4290924.html
 
 
 corpus
-Ó¢ [?k??p?s]  ÃÀ [?k??rp?s]
-n. ÎÄ¼¯£¬È«¼¯£»ÓïÁÏ¿â£»Ìå£¬ÉíÌå£»Î¸Ìå£»±¾½ğ
-¡¾Ãû¡¿ £¨Corpus£©£¨Î÷£©¿Æ¶ûÆÕË¹£¨ÈËÃû£©
+è‹± [?k??p?s]  ç¾ [?k??rp?s]
+n. æ–‡é›†ï¼Œå…¨é›†ï¼›è¯­æ–™åº“ï¼›ä½“ï¼Œèº«ä½“ï¼›èƒƒä½“ï¼›æœ¬é‡‘
+ã€åã€‘ ï¼ˆCorpusï¼‰ï¼ˆè¥¿ï¼‰ç§‘å°”æ™®æ–¯ï¼ˆäººåï¼‰
 
 corpse
-Ó¢ [k??ps]  ÃÀ [k??rps]
-n. Ê¬Ìå
+è‹± [k??ps]  ç¾ [k??rps]
+n. å°¸ä½“
 
 
 To increase our storage efficiency, measured in the effective-replication-factor of BLOBs,
 measured:
 determined by measurement
-¹ÀÁ¿£¬ÅĞ¶¨£¨ÖØÒªĞÔ¡¢¼ÛÖµ»òÓ°ÏìµÈ£©
+ä¼°é‡ï¼Œåˆ¤å®šï¼ˆé‡è¦æ€§ã€ä»·å€¼æˆ–å½±å“ç­‰ï¼‰
 
 
 over provision
-¹ı¶ÈÅäÖÃ
+è¿‡åº¦é…ç½®
+
+host failure: ä¸»æœºæ•…éšœ
 
 
 inform [ in'f?:m ]
-v. Í¨Öª£¬¸æÖª£»¸æ·¢£¬¼ì¾Ù£¨inform on£©£»¸³ÌØÕ÷ÓÚ£¬ÉøÍ¸£»ÁË½â£¬ÊìÏ¤£»Ó°Ïì
+v. é€šçŸ¥ï¼Œå‘ŠçŸ¥ï¼›å‘Šå‘ï¼Œæ£€ä¸¾ï¼ˆinform onï¼‰ï¼›èµ‹ç‰¹å¾äºï¼Œæ¸—é€ï¼›äº†è§£ï¼Œç†Ÿæ‚‰ï¼›å½±å“
 v.
 1. impart knowledge of some fact, state or affairs, or event to
 
-2. give character or essence to(¸³ÌØÕ÷ÓÚ£¬ÉøÍ¸)
-eg: (Ô­ÎÄ:)We use these findings to inform our design.
+2. give character or essence to(èµ‹ç‰¹å¾äºï¼Œæ¸—é€)
+eg: (åŸæ–‡:)We use these findings to inform our design.
 
 impart
-Ó¢ [?m?p¨»?t]  ÃÀ [?m?p¨»?rt]
-v. ´«ÊÚ£¬¸æÖª£»¸³Óè£¬¸øÓè
+è‹± [?m?pÉ‘?t]  ç¾ [?m?pÉ‘?rt]
+v. ä¼ æˆï¼Œå‘ŠçŸ¥ï¼›èµ‹äºˆï¼Œç»™äºˆ
 
 prevalent
-Ó¢ [?prev?l?nt]  ÃÀ [?prev?l?nt]
-adj. Ê¢ĞĞµÄ£¬ÆÕ±éµÄ
+è‹± [?prev?l?nt]  ç¾ [?prev?l?nt]
+adj. ç››è¡Œçš„ï¼Œæ™®éçš„
 
 denormalize
-ÔÚ¹ØÏµĞÍÊı¾İ¿â£¨relational database£©ÖĞ£¬·´¹æ·¶»¯£¨denormalization£©ÊÇ¼ÓËÙÔÄ¶ÁĞÔÄÜ£¨Êı¾İ¼ìË÷£©µÄ·½·¨£¬¹ÜÀíÔ±ÓÃÕâÖÖ·½·¨ÓĞÑ¡ÔñµØÔÚÊı¾İ½á¹¹±ê×¼»¯ºó»Ø¼ÓÌØ¶¨µÄÈßÓàÊı¾İÊµÀı¡£
+åœ¨å…³ç³»å‹æ•°æ®åº“ï¼ˆrelational databaseï¼‰ä¸­ï¼Œåè§„èŒƒåŒ–ï¼ˆdenormalizationï¼‰æ˜¯åŠ é€Ÿé˜…è¯»æ€§èƒ½ï¼ˆæ•°æ®æ£€ç´¢ï¼‰çš„æ–¹æ³•ï¼Œç®¡ç†å‘˜ç”¨è¿™ç§æ–¹æ³•æœ‰é€‰æ‹©åœ°åœ¨æ•°æ®ç»“æ„æ ‡å‡†åŒ–åå›åŠ ç‰¹å®šçš„å†—ä½™æ•°æ®å®ä¾‹ã€‚
 
 order of magnitude
-Ó¢ [???d? ?v ?m?¨Àn?tju?d]
-[Êı] ÊıÁ¿¼¶
+[æ•°] æ•°é‡çº§
 
 percentile
-Ó¢ [p??senta?l]  ÃÀ [p?r?senta?l]
-n. °Ù·ÖÎ»£¬°Ù·ÖÎ»Êı
+è‹± [p??senta?l]  ç¾ [p?r?senta?l]
+n. ç™¾åˆ†ä½ï¼Œç™¾åˆ†ä½æ•°
 
 the near worst case
-×î»µµÄÇé¿ö
+æœ€åçš„æƒ…å†µ
+
+
+Proxy:
+[C]~ for something(formal)or(technicalæœ¯è¯­)
+something that you use to represent something else that you are trying to measure or calculateï¼ˆæµ‹ç®—ç”¨çš„ï¼‰ä»£æ›¿ç‰©ï¼ŒæŒ‡æ ‡
 
 
 The age of each object read is recorded and these are bucketed into intervals equivalent to the time needed to create 1 TB of that BLOB type.
@@ -59,39 +65,65 @@ v.
 1. put into a bucket
 2. carry in a bucket
 
+
+
 rigorous
-Ó¢ [?r?¨À?r?s]  ÃÀ [?r?¨À?r?s]
-adj. £¨²âÊÔ¡¢ÏµÍ³»ò³ÌĞò£©ÑÏÃÜµÄ£¬çÇÃÜµÄ£»£¨¹æÔò£¬ÖÆ¶ÈµÈ£©ÑÏ¸ñµÄ£¬¿Á¿ÌµÄ£»Ò»Ë¿²»¹¶µÄ£»ÑÏ¿áµÄ£¬¶ñÁÓµÄ
+è‹± [?r?É¡?r?s]  ç¾ [?r?É¡?r?s]
+adj. ï¼ˆæµ‹è¯•ã€ç³»ç»Ÿæˆ–ç¨‹åºï¼‰ä¸¥å¯†çš„ï¼Œç¼œå¯†çš„ï¼›ï¼ˆè§„åˆ™ï¼Œåˆ¶åº¦ç­‰ï¼‰ä¸¥æ ¼çš„ï¼Œè‹›åˆ»çš„ï¼›ä¸€ä¸ä¸è‹Ÿçš„ï¼›ä¸¥é…·çš„ï¼Œæ¶åŠ£çš„
+
+canonical
+/k?'n?nikl;NAmE-'nÉ‘:n-/
+(technicalæœ¯è¯­)
+in the simplest accepted form in mathematicsï¼ˆæ•°å­¦è¡¨è¾¾å¼ï¼‰æœ€ç®€æ´çš„
 
 resize photo
-µ÷ÕûÕÕÆ¬
+è°ƒæ•´ç…§ç‰‡
 crop photo
-²ÃÇĞÕÕÆ¬
+è£åˆ‡ç…§ç‰‡
 
 lay out
-Ó¢ [le? a?t]  ÃÀ [le? a?t]
-Õ¹Ê¾£»°²ÅÅ£»»¨Ç®£»Îª¡­¡­»®Ñù£»ÌáÒé
+è‹± [le? a?t]  ç¾ [le? a?t]
+å±•ç¤ºï¼›å®‰æ’ï¼›èŠ±é’±ï¼›ä¸ºâ€¦â€¦åˆ’æ ·ï¼›æè®®
 
 expiry
-Ó¢ [?k?spa??ri]  ÃÀ [?k?spa??ri]
-n. ÓĞĞ§ÆÚÖÕÖ¹£¬ÂúÆÚ£»£¨Ò»¶ÎÊ±¼äµÄ£©½áÊø£¬ÖÕÖ¹£»ËÀÍö£¬¶ÏÆø£»ºôÆø
+è‹± [?k?spa??ri]  ç¾ [?k?spa??ri]
+n. æœ‰æ•ˆæœŸç»ˆæ­¢ï¼Œæ»¡æœŸï¼›ï¼ˆä¸€æ®µæ—¶é—´çš„ï¼‰ç»“æŸï¼Œç»ˆæ­¢ï¼›æ­»äº¡ï¼Œæ–­æ°”ï¼›å‘¼æ°”
 
 homogeneous
-Ó¢ [?h?m??d?i?ni?s]  ÃÀ [?ho?m??d?i?ni?s]
-adj. Í¬ÖÖÀàµÄ£¬Í¬ĞÔÖÊµÄ£»ÆëĞÔµÄ£¬Æë´ÎµÄ£»Í¬ĞÎÌ¬£¨¹ÌÌ¬¡¢ÒºÌ¬»òÆøÌ¬£©µÄ
+è‹± [?h?m??d?i?ni?s]  ç¾ [?ho?m??d?i?ni?s]
+adj. åŒç§ç±»çš„ï¼ŒåŒæ€§è´¨çš„ï¼›é½æ€§çš„ï¼Œé½æ¬¡çš„ï¼›åŒå½¢æ€ï¼ˆå›ºæ€ã€æ¶²æ€æˆ–æ°”æ€ï¼‰çš„
 
 acquisition
-Ó¢ [??kw??z??(?)n]  ÃÀ [??kw??z??n]
-n. Ñ§µÃ£¬Ï°µÃ£»£¨½ğÇ®¡¢²ÆÎïµÈµÄ£©»ñÈ¡£»¹ºÂò£¬ÌíÖÃ£¬ÔöÌíÎï£»ÊÕ¹º£¬¹ºÖÃµÄ²úÒµ
+è‹± [??kw??z??(?)n]  ç¾ [??kw??z??n]
+n. å­¦å¾—ï¼Œä¹ å¾—ï¼›ï¼ˆé‡‘é’±ã€è´¢ç‰©ç­‰çš„ï¼‰è·å–ï¼›è´­ä¹°ï¼Œæ·»ç½®ï¼Œå¢æ·»ç‰©ï¼›æ”¶è´­ï¼Œè´­ç½®çš„äº§ä¸š
 
-acquisition n ([sth] obtained) »ñµÃÎï
+acquisition n ([sth] obtained) è·å¾—ç‰©
 We treat a cell as a unit of acquisition and as a unit of deployment and roll out
 
 
+roll-out
+an occasion when a company introduces or starts to use a new product
+æ–°äº§å“å‘å¸ƒä¼šï¼›æ–°äº§å“çš„æ¨å‡º
 
 roll out
-Ó¢ [?r??l a?t]  ÃÀ [?r??l a?t]
-v. ÕıÊ½ÍÆ³ö£¨ĞÂ²úÆ·£©£¬¿ªÕ¹£¨ĞÂµÄÕşÖÎÔË¶¯£©£»°Ñ¡­¡­Õ¹¿ª£¨»òÌ¯¿ª£©£»ÄëÆ½£¬Ñ¹Æ½£¬ß¦Æ½£»Àë¿ª£¨Í¨³£±ÈÔ¤ÆÚµÄÒªÍí£©
+è‹± [?r??l a?t]  ç¾ [?r??l a?t]
+v. æ­£å¼æ¨å‡ºï¼ˆæ–°äº§å“ï¼‰ï¼Œå¼€å±•ï¼ˆæ–°çš„æ”¿æ²»è¿åŠ¨ï¼‰ï¼›æŠŠâ€¦â€¦å±•å¼€ï¼ˆæˆ–æ‘Šå¼€ï¼‰ï¼›ç¢¾å¹³ï¼Œå‹å¹³ï¼Œæ“€å¹³ï¼›ç¦»å¼€ï¼ˆé€šå¸¸æ¯”é¢„æœŸçš„è¦æ™šï¼‰
+
+quadruple
+è‹± [?kw?dr?p(?)l]  ç¾ [kwÉ‘??dru?pl]
+adj. ï¼ˆå°ºå¯¸æˆ–æ•°é‡ï¼‰å››å€çš„ï¼›ç”±å››éƒ¨ä»½ï¼ˆæˆ–äººã€ç¾¤ä½“ï¼‰æ„æˆçš„ï¼Œå››æ–¹é¢çš„ï¼›ï¼ˆéŸ³ä¹èŠ‚æ‹ï¼‰å››æ‹å­çš„
+vt. ï¼ˆä½¿ï¼‰æˆå››å€ï¼Œï¼ˆä½¿ï¼‰ç¿»ä¸¤ç•ª
+n. å››å€çš„ä¸œè¥¿ï¼ˆæˆ–æ•°å­—ã€æ•°é‡ï¼‰
+
+smooth out
+æ¶ˆé™¤ï¼›ä½¿å¹³æ»‘
+
+obviate
+è‹± [ËˆÉ’bvieÉªt]  ç¾ [ËˆÉ‘ËbvieÉªt]
+vt. æ’é™¤ï¼›é¿å…ï¼›æ¶ˆé™¤
+
+lower-end
+ä½ç«¯
 
 https://prezi.com/-qlvrjyj5-jr/f4-facebooks-warm-blob-storage-system/
 https://www.51cto.com/article/595479.html
@@ -103,7 +135,7 @@ https://blog.zhuangty.com/haystack-f4/#
 
 
 
-¸ÅÂÊÂÛÖĞPDF¡¢PMFºÍCDFµÄÇø±ğÓëÁªÏµ
+æ¦‚ç‡è®ºä¸­PDFã€PMFå’ŒCDFçš„åŒºåˆ«ä¸è”ç³»
 https://blog.51cto.com/u_15077552/4625675
 
 
@@ -112,4 +144,5 @@ https://blog.51cto.com/u_15077552/4625675
 
 soft state:
 https://blog.csdn.net/historyasamirror/article/details/4458369
+
 

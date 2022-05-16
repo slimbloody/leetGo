@@ -1,13 +1,14 @@
+1. 当前面临的问题
+2. design goal, 怎么围绕这个design goal叙事的
+
+
+http://bigbully.github.io/Dapper-translation/
+https://blog.csdn.net/vking_wang/article/details/89203639
+
 dapper
 英 [ˈdæpə(r)]  美 [ˈdæpər]
 adj. 短小精悍的；衣冠楚楚的；整洁的；整齐的
 n. （Dapper）人名；（英）达珀；（意）达珀尔；（德）达佩尔
-
-todo:
-其他的跟踪论文
-1. Pinpoint
-2. Magpie
-3. X-trace
 
 Code instrumentation refers to the task of including code in programs to monitor the performance of .NET applications. We can use code instrumentation to display messages or write to event logs in case of a failure during the execution of an application at run time.
 
@@ -44,6 +45,10 @@ invaluable
 英 [ɪnˈvæljuəbl]  美 [ɪnˈvæljuəbl]
 adj. 极有用的，极宝贵的
 
+address:
+~ (yourself to) something(formal)
+to think about a problem or a situation and decide how you are going to deal with it设法解决；处理；对付
+
 certain
 英 [ˈsɜːt(ə)n]  美 [ˈsɜːrtn]
 adj. 必然的，必定的；确定的，无疑的；某个，特定的；某位，一位叫……的；一定程度上的，有点儿
@@ -61,11 +66,21 @@ foremost
 adj. 最前的，最重要的
 adv. 首先，第一；最基础地，最重要地
 
+be of
+内容；具有……性质
+
+interest
+[C, usually pl., U]
+a good result or an advantage for somebody/ something
+
+are of special interest(有特殊的好处)
+Such systems are of special interest because large collections of small servers are a particularly cost-efficient platform for Internet services workloads.
+
+
 artifact
 英 [ˈɑːtɪfækt]  美 [ˈɑːrtɪfækt]
 n. （尤指有文化价值或历史价值的）人工制品，历史文物；非自然存在物体，假象（=artefact）
 n. a man-made object taken as a whole
-
 
 noteworthy
 英 [ˈnəʊtwɜːði]  美 [ˈnoʊtwɜːrði]
@@ -95,6 +110,10 @@ corpus
 n. 文集，全集；语料库；体，身体；胃体；本金
 【名】 （Corpus）（西）科尔普斯（人名）
 
+retro∙spect noun
+thinking about a past event or situation, often with a different opinion of it from the six you had at the time
+回顾；回想；追溯往事
+
 coverage
 英 [ˈkʌvərɪdʒ]  美 [ˈkʌvərɪdʒ]
 n. 覆盖范围；新闻报道；保险范围；课程内容；防守，盯守
@@ -112,10 +131,16 @@ deplete
 英 [dɪˈpliːt]  美 [dɪˈpliːt]
 v. 大量减少，耗尽
 
-retrospect
-英 [ˈretrəspekt]  美 [ˈretrəspekt]
-n. 回顾，回想
-v. 回顾，追溯
+retro∙spect∙ive/ˌretrə'spektiv/adj., noun
+1. thinking about or connected with something that happened in the past
+回顾的；涉及以往的
+2. (also less frequentformalretro∙active)(of a new law or decision新的法律或决定)
+intended to take effect from a particular date in the past rather than from the present date
+有追溯效力的；溯及既往的
+
+retrospective assessment
+回顾性评价
+
 
 python:
 introspection
@@ -138,6 +163,13 @@ B马上回响应, c在回复a前需要d和e的请求, 反过来响应最初的�
 Two classes of solutions have been proposed to aggregate this information so that one can associate all record entries with a given initiator (e.g., RequestX in Figure 1), black-box and annotation-based monitoring
 schemes.
 两类解决方案
+
+ori∙gin∙ate/ə'ridʒineit/verb(formal)
+[V, usually +adv./prep.]
+to happen or appear for the first time in a particular place or situation起源；发源；发端于
+The disease is thought to have originated in the tropics. 这种疾病据说起源于热带地区。
+[VN]
+to create something new创立；创建；发明
 
 
 regression
@@ -381,4 +413,23 @@ vi. 做侦探；侦查
 
 
 
+
+--------------------------------------
+demonstrate v
+demonstrably
+英 [dɪˈmɒnstrəbli; ˈdemənstrəbli]  美 [dɪˈmɑːnstrəbli]
+adv. 可论证地；明确地，无可否认地
+
+we believed that initial adoption would be greatly facilitated if the baseline overheads could be demonstrably negligible.
+初始
+
+
+co∙alesce/ˌkəuə'les;NAmEˌkouə-/verb[V]~ (into/ with something)(formal)
+to come together to form one larger group, substance, etc.
+合并；联合；结合
+
+
+perceptible
+英 [pəˈseptəb(ə)l]  美 [pərˈseptəbl]
+adj. 可察觉的；可感知的；看得见的
 
