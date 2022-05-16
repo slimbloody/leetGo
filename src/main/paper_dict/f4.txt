@@ -140,9 +140,47 @@ https://blog.51cto.com/u_15077552/4625675
 
 
 
+ec code serial:
+https://zhuanlan.zhihu.com/p/105498593
+https://zhuanlan.zhihu.com/p/103888948
+
 
 
 soft state:
 https://blog.csdn.net/historyasamirror/article/details/4458369
 
 
+https://www.51cto.com/article/595479.html
+https://cloud.tencent.com/developer/article/1882810
+https://www.cnblogs.com/foxmailed/p/4290924.html
+https://prezi.com/-qlvrjyj5-jr/f4-facebooks-warm-blob-storage-system/
+https://www.getit01.com/p20190526061552666/
+https://zhuanlan.zhihu.com/p/35217731
+https://www.qtmuniao.com/2019/03/30/f4/
+
+https://zhuanlan.zhihu.com/p/35217731
+
+https://zhuanlan.zhihu.com/p/61552666
+
+https://blog.zhuangty.com/haystack-f4/
+
+
+https://mp.weixin.qq.com/s/_pBtCIgoy0ErmEGwwz3FHQ
+每个 f4 数据单元（cell） 只处理锁定的卷（Volume），也就是只用支持读取和删除操作。数据文件和索引文件都是只读的，Haystack 中的备忘文件在 f4 中是不存在的。我们用了另一种方式来达到“删除”的效用，将每个 BLOB 进行加密后存储，将用于加密的秘钥（key）存在一个外部数据库中。响应删除请求时，只需要将 BLOB 对应的秘钥删掉就行（有点绝，对用户提供了隐私保证，而且将删除操作的延时降到很低）。
+
+通常 b 为 1G，即每个数据块（Block）选取 1G 大小（这有个疑问，看起来每个Block仍在Volume中，而不是单独拿出来，那么定位一个物理block是不是就得通过 volume 文件打开句柄 + offset + length），选这么大有两方面的考虑，一个是尽量减小 BLOB 的跨块概率，以减少读取一个 BLOB 还得多次 IO 的频率；另一个是降低 block 所需要维护的总元信息数量。不选更大的是因为重建起来会付出更大代价（但为什么就是 1G 呢？）
+
+todo:
+这样将有效冗余因子从 Haystack 的 3.6 降低到了 2.8
+haystack 就是1.2 * 3放在一个datacenter里面?
+
+
+http://arthurchiao.art/blog/facebook-f16-minipack-zh/
+http://arthurchiao.art/blog/facebook-f4-data-center-fabric-zh/
+https://icode.best/i/87358238378141
+
+
+https://cloud.tencent.com/developer/article/1882810
+
+
+https://www.qtmuniao.com/2019/03/30/f4/
