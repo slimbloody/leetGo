@@ -1,0 +1,191 @@
+http://static.kancloud.cn/thinkphp/mysql-faq/47453
+=======================================
+https://www.cnblogs.com/geaozhang/p/7147746.html
+=======================================
+QueryCache:
+
+开启了缓存，会自动将查询语句和结果集返回到内存，下次再查直接从内存中取；
+查询缓存会跟踪系统中每张表，若表发生变化，则和该张表相关的所有查询缓存全部失效，这是和buffer pool缓存机制很大的区别；
+检查查询缓存时，MYSQL不会对SQL做任何处理，它精确的使用客户端传来的查询，只要字符大小写或注释有点不同，查询缓存就认为是不同的查询；
+任何一个包含不确定的函数（比如now()、curren_date()）的查询不会被缓存。
+
+
+查询缓存可改善性能，但是开启查询缓存对读写增加了额外开销。
+1. 对于读，在查询前需先检查缓存
+2. 对于写，写入后需更新缓存
+一般情况下这些开销相对较小，因此需要根据业务权衡是否开启查询缓存
+
+
+Qcache_hits: 缓存命中次数
+Qcache_inserts: 多少次未命中然后插入
+Query Cache命中率 = Qcache_hits / (Qcache_hits + Qcache_inserts)
+
+果是在一个更新频率非常低而只读查询频率非常高的场景下，打开QC还是比较有优势的，其他场景下，则不建议使用。而且，QC一般也维持在100MB以内就够了，没必要设置超过数百MB。
+
+QC严格要求2次SQL请求要完全一样，包括SQL语句，连接的数据库、协议版本、字符集等因素都会影响，下面几个例子中的SQL会被认为是完全不一样而不会使用同一个QC内存块：
+mysql> set names latin1; SELECT * FROM table_name;
+mysql> set names latin1; select * from table_name;
+mysql> set names utf8; select * from table_name;
+
+最为重要的是，在MySQL里QC是由一个全局锁在控制，每次更新QC的内存块都需要进行锁定。
+
+都开这个QueryCache了, 为什么不把数据放回redis, 把计算压力丢给redis那边, 如果有修改的话, 就立即让缓存失效就行了.
+要非常强的一致性, 且基本没有写操作的, 才考虑用QueryCache
+
+===========================================================
+
+Innodb_buffer_pool_read_requests　　#逻辑读(缓存读)请求次数，也是读的请求次数
+Innodb_buffer_pool_reads　　#从物理磁盘中获取到数据的次数
+逻辑读就是从buffer pool的读，但是也会包含物理读，因为物理读也要是先将从disk中读取的数据放入buffer pool里，然后再进行逻辑读。所以：总的逻辑读也就是读的请求次数。
+读的命中率=(Innodb_buffer_pool_read_requests- Innodb_buffer_pool_reads)/ Innodb_buffer_pool_read_requests
+
+https://blog.csdn.net/qq_43564410/article/details/116403851
+https://blog.csdn.net/mashaokang1314/article/details/111165953
+https://zhuanlan.zhihu.com/p/65811829
+
+todo:
+https://www.cnblogs.com/coderyuhui/p/6861194.html
+
+使CPU读取或者写入数据时，不直接和低速的磁盘打交道，直接和缓冲区进行交互，从而解决了因为磁盘性能慢导致的数据库性能差的问题，弥补了两者之间的速度差异.
+
+操作系统，会有缓冲池 (buffer pool) 机制，避免每次访问磁盘，以加速数据的访问
+MySQL 作为一个存储系统，同样具有缓冲池 (buffer pool) 机制，以避免每次查询数据都进行磁盘 IO
+(磁盘读写是按页读取，一次至少读一页数据，一般是4K)
+BufferPool是内存上的一块区域，可以看作是一个数组，因为C语言在开辟内存空间的时候，是一个数组
+连续空间: | 控制块 | 碎片 | 缓存页 |
+todo: 为什么有碎片? 为了padding取的快?单纯为了padding为什么不把padding信息丢到控制块里面去?
+
+BUffer Pool中缓存的数据页类型有: 索引页、数据页、undo页、插入缓冲（insert buffer)、自适应哈希索引（adaptive hash index)、InnoDB存储的锁信息（lock info)、数据字典信息（data dictionary)等
+
+控制块
+1. 页面管理的普通信息，互斥锁， 页面的状态等
+2. 脏回写(flush)管理信息
+3. lru控制信息
+4. 快速查找的管理信息， 为了便于快速的超找某一个block或frame， 缓冲区里面的block被组织到一些hash表中; 缓冲区中的block数量是一定的， innodb缓冲区对所管理的block用lru(last recently used)策略进行替换
+
+
+默认缓存页大小和在磁盘上默认的页大小是一样，都是16KB，为了更好地管理，设计者为每一个缓存页都创建了一些所谓的控制信息，其中包括表空间编号、页号、缓存页在Buffer Pool中的地址、链表节点信息、一些锁信息以及LSN信息。(LSN即Log sequence number，日志序列号，这是WAL日志唯一的、全局的标识)
+每个缓存页对应的控制信息占用的内存大小是相同的，称为控制块，控制块个缓存页是一一对应的，它们都被存放到Buffer Pool中，其中控制块被存放到Buffer Pool的前面，缓存页放在后边。
+
+缓存页的哈希处理:
+我们是根据表空间号+页号来定位一个页的，相当于表空间号+页号是一个key，缓存页就是对应value，通过哈希表来定位。在需要访问某个页的数据时，先从哈希表中根据表空间+页号看看有没有对应的缓存页，如果有，则直接使用该缓存页，否则，从free链表中选一个空闲的缓存页，然后把磁盘中对应的页加载到该缓存页的位置。
+
+
+buffer pool中的最小单位是page，在innodb中定义三种page
+1) free  page: 此page未被使用，此种类型page位于free链表中
+2) clean page: 此page被使用，对应数据文件中的一个页面，但是页面没有被修改，此种类型page位于lru链表中
+3) dirty page: 此page被使用，对应数据文件中的一个页面，但是页面被修改过，此种类型page位于lru链表和flush链表中
+todo:
+有没有可能我的数据在lru链表里面被淘汰了, 还没flush到磁盘里面, 再去读可能会读出旧数据
+
+在Innodb中, buffer pool是通过三种双向链表来管理的
+1) free list
+这是因为BufferPool因为是以数组存储的方式，所以才会出现许多中间空闲的页
+那么这时会有一种叫做Free List链表管理空闲页
+
+为了管理好这个free链表，特意为这个链表定义了一个基节点，其中包含链表的头结点地址、尾结点地址以及当前链表中节点的数量等信息，这个基节点占用的内存空间并不包含在Buffer Pool申请的连续内存中。
+
+Free链表由基节点和子节点组成，子节点有控制块，控制块即是空闲页中的一个对象，利用它用来定位空闲页
+
+    基节点: 其中包含链表的头结点地址、尾结点地址以及当前链表中节点的数量等信息
+在后续要再从硬盘读取数据copy到BufferPool的时候，会直接到Free链表去找空闲页的位置
+todo: free 里面是怎么排序的
+
+
+2) flush list
+当BufferPool中的页发生改变时，会变成脏页，脏页会添加到Flush链表上去控制
+MySql数据库后台会有一个线程，专门定时去flush链表查找脏页，从而需要修改保存数据的时候，就直接将该脏页持久化到硬盘上
+
+3) lru list
+当BufferPool满了之后，会将不常用的页给淘汰掉，这种淘汰机制会有一个链表去控制，这种链表叫 Lru链表
+
+InnoDB提供一个看起来比较贴心的服务——预读，就是InnoDB认为执行当前的请求之后可能会读取某些页面，就预先把它们加载到Buffer Pool中，根据触发方式不同分为两种：
+
+
+数据库请求数据的时候，会将读请求交给文件系统，放入请求队列中；相关进程从请求队列中将读请求取出，根据需求到相关数据区(内存、磁盘)读取数据；取出的数据，放入响应队列中，最后数据库就会从响应队列中将数据取走，完成一次数据读操作过程。
+https://www.cnblogs.com/geaozhang/p/7397699.html#suiji
+todo: 这里面的区是怎么划分的?
+ans:
+InnoDB以64个page为一个extent
+
+1. 线性预读:(linear read-ahead)
+设计者提供了一个系统变量innodb_read_ahead_threshold，如果顺序访问了某个区的页面超过这个系统变量的值，就会触发一次异步读取下一个区中的全部页面到Buffer Pool的请求，异步读取意味着从磁盘中加载这些被预读的页面并不会影响当前工作线程正常执行
+
+如果一个extent中的被顺序读取的page超过或者等于该参数变量时，Innodb将会异步的将下一个extent读取到buffer pool中，innodb_read_ahead_threshold可以设置为0-64的任何值(因为一个extent中也就只有64页)，默认值为56，值越高，访问模式检查越严格
+
+2. 随机读取:(random read-ahead)
+如果Buffer Pool中已经缓存了某个区的 "13个连续" 的页面，不论这些页面是不是顺序读取的，都会触发一次异步读取本区所有其它页面到Buffer Pool的请求, innodb_random_read_ahead此功能默认关闭。
+
+由于随机预读方式给innodb code带来了一些不必要的复杂性，同时在性能也存在不稳定性，在5.5中已经将这种预读方式废弃，默认是OFF。若要启用此功能，即将配置变量设置innodb_random_read_ahead为ON
+
+原始的 lru链表 的缺点
+当查询的数据量比较大的时候，比如说全表扫描，每次都会替换掉BufferPool中的页，如果过大可能是全部都替换，很多热点数据页(经常访问的数据)也会被淘汰，当然也会很影响性能
+总结一下这两种情况：
+1. 加载到Buffer Pool的页不一定被用到；
+2. 如果非常多频率偏低的页被同时加载到Buffer Pool中，可能会把那些使用频率非常高的页从Buffer Pool中淘汰掉。
+
+
+| Head | 5/8 buffer_pool | tail | head | 3/8 buffer_pool | tail |
+为了解决这个问题，Innodb将Lru链表分成了5/8的热数据区域(young区域)和3/8的冷数据区域(old区域)
+1. 针对预读页面可能不进行后续访问情况的优化：当磁盘上某个页面在初次加载到Buffer Pool中的某个缓存页时，该缓存对应的控制块会被放到old区域的头部。这样针对预读到Buffer Pool却不进行后续访问的页面会被逐渐从old区域逐出，而不会影响young区域中被使用比较频繁的缓存页。(预读一般是1秒内)
+2. 针对全表扫描时，短时间内访问大量使用频率非常低的页面情况的优化。
+当有新的数据页要从磁盘读取出来存储在BufferPool时，会将冷数据区域最后一个淘汰，并将该页存储在冷数据区域的头节点
+
+移动规则:
+在进行全表扫描时，虽然首次被加载到Buffer Pool的页被放到old区域的头部，但是后续会被马上访问到，每次进行访问时又会把该页放到young区域的头部，这样仍然会把那些使用频率比较高的页面给顶下去。
+
+在对某个处在old区域的缓存页进行第一次访问时就在它对应的控制块中记录下来这个反问时间，如果后续的访问时间与第一次访问的时间在某个时间间隔每，那么该页面就不会被从old区域移动到young区域头部，否则将它移动到young区域与头部，通过系统变量innodb_old_blocks_time控制的。
+todo: 怎么标记冷数据页的起始位置
+
+
+todo: 为什么时间短反而不移动? 因为扫描频繁所以不方便移动?
+从冷数据区域移动到热数据区域的原则：
+1.
+如果对于冷数据区域一页数据的两次请求时间间隔<1秒，则不会移动
+因为InnoDB会认为是在做全表扫描
+2.
+如果对于冷数据区域一页数据的两次请求时间间隔>1秒，则会移动到热数据区域
+因为这时InnoDB会认为这是客户端频繁请求的数据，所以放入热数据区域
+
+更进一步优化LRU链表:
+对于young区域的缓存页来说，每次访问一个缓存页就要把它移动到LRU链表头部，这样频繁移动开销有点大，为了解决这个问题，规定只有处于young区域1/4的缓存页被访问时(后四分之一)，才会被移动到LRU链表头部。
+
+
+刷新脏页到磁盘
+后台有专门的线程每隔一段时间负责把脏页刷新到磁盘，这样可以不影响用户线程处理正常的请求：
+1. 从LRU链表的冷数据中刷新一部分页面到磁盘，后台线程会定时从LRU链表尾部开始扫描一些页面，扫描的页面数量通过系统变量量innodb_lru_scan_depth来指定，如从里面发现脏页，会把它们刷新到磁盘。
+2. 从flush链表中刷新一部分页面到磁盘
+后台线程也会定时从flush链表刷新一部分页面到磁盘，刷新的速率取决于当时系统是不是很繁忙，称为BUF_FLUSH_LIST。
+
+(因为是控制块, 所以只要改控制块状态就行了)
+
+有时候后台线程刷新脏页的进度比较慢，导致用户线程在准备加载一个磁盘页到Buffer Pool时没有可用的缓存页，这时就会尝试看看LRU链表尾部有没有可以直接释放掉的未修改页面，如果没有会不得不将LRU尾部的一个脏页同步到磁盘，这种刷新单个页面到磁盘中的刷新方式称为BUF_FLUSH_SINGLE_PAGE。
+有时候系统特别繁忙时，也会出现用户线程批量从flush链表中刷新脏页的情况，很显然在处理用户请求过程中刷新脏页是一种严重降低处理速度的行为。
+
+
+多个Buffer Pool实例
+在多线程的环境下，Buffer Pool中的各种链表都需要加锁处理保证同步，在Buffer Pool特别大而且多线程并发访问特别高的情况下，单一的Buffer Pool可能会影响请求的处理速度，此时，我们可以把它们拆分为若干个小的Buffer Pool，每个Buffer Pool都称为一个实例，它们是相互独立的，通过设置innodb_buffer_pool_instances的值来修改Buffer Pool实例的个数。
+当innodb_buffer_pool_size的值小于1G的时候设置多个实例是无效的，InnoDB会默认把innodb_buffer_pool_instances 的值修改为1
+
+Buffer Pool Instance都有自己的锁，信号量，物理块(Buffer chunks)以及逻辑链表(List)。即各个instance之间没有竞争关系，可以并发读取与写入
+
+每个Buffer Pool Instance有一个page hash链表，通过它，使用space_id和page_no就能快速找到已经被读入内存的数据页，而不用线性遍历LRU List去查找。注意这个hash表不是InnoDB的自适应哈希，自适应哈希是为了减少Btree的扫描，而page hash是为了避免扫描LRU List
+
+innodb_buffer_pool_chunk_size
+在5.7.5以及以后的版本中支持在服务器运行过程中调整Buffer Pool大小的功能，但是每次重新调整Buffer Pool大小时，都需要重新向操作系统申请一块连续的内存空间，然后将旧的Buffer Pool中的内容复制到这一块新空间，这是及其耗时的。所以设计者决定不再一次性为某个Buffer Pool实例向操作系统申请一大片连续的内存空间，而是以一个所谓的chunk为单位向操作系统申请空间，也就是Buffer Pool实例是由若干个chunk组成的，一个chunk代表一片连续的内存空间，里面包含了若干缓存页与其对应的控制块。
+
+即buffer pool里面有多个chunk
+我们在服务器运行期间调整Buffer Pool的大小时就是以chunk为单位增加或者删除内存空间，而不需要重新向操作系统申请一片大的内存，然后进行缓存页赋值
+
+
+-----------------------------------------
+qjl buffer pool:
+innodb_buffer_pool_instances: 8
+innodb_buffer_pool_size:
+
+103079215104 / 1024 / 1024 / 1024 = 96
+96 / 8 = 12G
+
+chunk size: 134217728 / 1024 / 1024  = 128M
+
+

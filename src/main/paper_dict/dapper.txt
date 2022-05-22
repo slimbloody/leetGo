@@ -1,6 +1,11 @@
 1. 当前面临的问题
 2. design goal, 怎么围绕这个design goal叙事的
 
+https://blog.csdn.net/vking_wang/article/details/89203639
+http://bigbully.github.io/Dapper-translation/
+https://www.cnblogs.com/rongfengliang/p/6209301.html
+https://blog.csdn.net/zhanlijun/article/details/13169771
+https://cloud.tencent.com/developer/article/1095104
 
 http://bigbully.github.io/Dapper-translation/
 https://blog.csdn.net/vking_wang/article/details/89203639
