@@ -1,0 +1,410 @@
+==========================
+java内存模型
+==========================
+todo:
+JMM 把分为主内存和工作内存
+静态变量在主内存, 线程在工作内存里面
+
+java内存结构 和 java内存模型是不一样的
+
+JMM 定义了一套在多线程读写共享数据时(成员变量,数组)时, 对数据的可见性,有序性,和原子性的规则和保障
+
+1. 原子性如何保证: 锁
+
+monitor 只有加锁以后才会生效, 里面有三块
+1. owner: 同一时刻只有能一个线程
+2. EntryList: 排队阻塞的队列, owner这边空了, EntryList里面的线程会来抢锁
+3. WaitSet: 执行了wait方法的都在里面了, notify了才会进entryList
+
+2. 可见性
+会把主存的值读到工作内存里面的高速缓存, 提高效率, 但是主存中的值变了怎么办
+
+它可以用来修饰成员变量和静态成员变量，他可以避免线程从自己的工作缓存中查找变量的值，必须到主存中获取它的值，线程操作 volatile 变量都是直接操作主存，保证了共享变量的可见性，但不能保证原子性
+仅用于一个写线程, 多个读线程的情况
+
+
+如果在前面示例的死循环中加入 System.out.println() 会发现即使不加 volatile 修饰符，线程 t 也 能正确看到对 run 变量的修改了
+volatile static boolean run = true;
+
+Thread t = new Thread(() -> {
+    while (run) {
+      System.out.println(1);
+    }
+});
+t.start();
+Thread.sleep(1000);
+run = false; // 线程t不会如预想的停下来
+
+println:
+public void println(int x) {
+    synchronized (this) {
+        print(x);
+        newLine();
+    }
+}
+this就是类锁
+https://blog.guolx.com/post/2017/memory-barrier-in-synchronized/
+
+synchronized 语句块既可以保证代码块的原子性,也同时保证代码块内变量的可见性.但缺点是synchronized是属于重量级操作,性能相对更低
+
+3. 有序性
+i++ 等价的指令:
+getstatic i // 获取静态变量i的值
+iconst_1    // 准备常量1
+iadd        // 自增
+putstatic i // 将修改后的值存入静态变量
+
+多线程可能会把这些指令错乱执行, 没有把四句当成一个原子句执行
+
+
+指令重排序:
+-----------------------------------------------------------
+int num = 0;
+boolean ready = false;
+// 线程1 执行此方法
+public void actor1(I_Result r) {
+    if(ready) {
+        r.r1 = num + num;
+    } else {
+        r.r1 = 1;
+    }
+}
+// 线程2 执行此方法
+public void actor2(I_Result r) {
+    num = 2;
+    ready = true;
+}
+
+-----------------------------------------------------------
+可能先执行线程2的ready=true, 然后执行线程1的 r.r1 = num + num; num 这个时候是0, r1的值就是0, 这个就是指令重排序
+
+volatile 修饰的变量，可以禁用指令重排
+volatile boolean ready = false;
+
+指令重排序里面有规则
+
+这种特性称之为指令重排，多线程下指令重排会影响正确性，例如著名的 double-checked locking 模式实现单例
+
+public class Singleton {
+    private Singleton() {
+    }
+
+    private volatile static Singleton INSTANCE = null;
+
+    // 加锁, 就是为了防止第一次创建的时候多个线程一起创建
+    // 后续读其实不需要锁了
+    // 所以在方法上面加锁, 锁的开销太大了
+    // 改到在里面加锁
+    public static Singleton getInstance() {
+        //实例没创建，才会进入内部的 synchronized 代码块
+        if (INSTANCE == null) {
+            //可能第一个线程在synchronized 代码块还没创建完对象时，第二个线程已经到了这一步，所以里面还需要加上判断
+            synchronized (Singleton.class) {
+                //也许有其他线程已经创建实例，所以再判断一次
+                if (INSTANCE == null) {
+                    INSTANCE = new Singleton();
+                }
+            }
+        }
+        return INSTANCE;
+    }
+}
+
+
+0: new #2           // class cn/itcast/jvm/t4/Singleton
+3: dup
+4: invokespecial #3 // Method "<init>":()V
+7: putstatic #4     // Field INSTANCE:Lcn/itcast/jvm/t4/Singleton;
+
+其中4 7 两步顺序不是固定的，也许 jvm 会优化为：先将引用地址赋值给 INSTANCE 变量后，再执行构造方法，如果两个线程 t1,t2 按如下时间顺序执行：
+
+时间1 t1 线程执行到 INSTANCE = new Singleton();
+时间2 t1 线程分配空间，为Singleton对象生成了引用地址（0 处）
+时间3 t1 线程将引用地址赋值给 INSTANCE，这时 INSTANCE != null（7 处）
+时间4 t2 线程进入getInstance() 方法，发现 INSTANCE != null（synchronized块外），直接
+返回 INSTANCE
+时间5 t1 线程执行Singleton的构造方法(4处)
+
+这时 t1 还未完全将构造方法执行完毕，如果在构造方法中要执行很多初始化操作，那么 t2 拿到的是将 是一个未初始化完毕的单例
+
+
+
+
+-----------------------------------------------------------
+happens before 规则
+-----------------------------------------------------------
+happens-before 规定了哪些写操作对其它线程的读操作可见，它是可见性与有序性的一套规则总结，抛开以下 happens-before 规则，JMM 并不能保证一个线程对共享变量的写，对于其它线程对该共享变量的读可见
+
+
+https://blog.csdn.net/qq_45966440/article/details/120824759:
+happens before 规则: 里面的变量都是指成员变量或静态成员变量
+1. 线程对 volatile 变量的写，对接下来其它线程对该变量的读可见
+2. 线程解锁 m 之前对变量的写，对于接下来对 m 加锁的其它线程对该变量的读可见
+3. 线程 start 前对变量的写，对该线程开始后对该变量的读可见
+```
+static int x;
+Thread t1 = new Thread(()->{
+    x = 10;
+},"t1");
+t1.start();
+t1.join();
+System.out.println(x);
+```
+4. 线程结束前对变量的写，对其它线程得知它结束后的读可见（比如其它线程调用 t1.isAlive() 或 t1.join()等待它结束）
+```
+static int x;
+public static void main(String[] args) {
+    Thread t2 = new Thread(()->{
+        while(true) {
+            if(Thread.currentThread().isInterrupted()) {
+                System.out.println(x);//0
+                break;
+            }
+        }
+    },"t2");
+    t2.start();
+    new Thread(()->{
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+        x = 10;
+        t2.interrupt();
+    },"t1").start();
+    while(!t2.isInterrupted()) {
+        Thread.yield();
+    }
+    System.out.println(x);//0
+}
+```
+
+5. 对变量默认值（0，false，null）的写，对其它线程对该变量的读可见
+6. 具有传递性，如果 x hb-> y 并且 y hb-> z 那么有 x hb-> z
+
+Thread.yield 从run状态编程ready状态
+
+
+====================
+CAS与原子类
+====================
+CAS 即 Compare and Swap ，它体现的一种乐观锁的思想
+
+
+// 需要不断尝试
+while(true) {
+    int 旧值 = 共享变量 ; // 比如拿到了当前值 0
+    int 结果 = 旧值 + 1; // 在旧值 0 的基础上增加 1 ，正确结果是 1
+    /*
+	这时候如果别的线程把共享变量改成了 5，本线程的正确结果 1 就作废了，这时候
+	compareAndSwap 返回 false，重新尝试，直到：
+	compareAndSwap 返回 true，表示我本线程做修改的同时，别的线程没有干扰
+	*/
+    if( compareAndSwap ( 旧值, 结果 )) {
+        // 成功，退出循环
+    }
+    //不一样，继续循环尝试
+}
+
+如果旧值相同则用结果修改, 因为要读到最新的变量, 所以一定是和volatile结合在一起的
+
+获取共享变量时, 为了保证该变量的可见性, 需要使用 volatile 修饰. 结合 CAS 和 volatile 可以实现无锁并发，适用于竞争不激烈、多核 CPU 的场景下。
+1. 因为没有使用 synchronized, 线程不会陷入阻塞, 也没有上下文切换的代价, 这是效率提升的因素之一
+2. 竞争激烈的话, 重试就会频繁发生, 效率反而受到影响
+3. 必须在多核cpu场景下, 线程没有阻塞, 重试是要用cpu时间的, 如果cpu只有一个, cas就无从谈起了, 其他线程修改的时候, 你想重试也没有cpu时间可用
+
+ABA问题: compareAndSet只能判断值一致, 但是没办法判断是否被修改过
+所以要加个版本号来判断, AtomicStampedReference
+很多时候不关心引用变量改了多少次, 只关心改过没有, 就有了 AtomicMarkableReference, 用个bool值记录就行了
+
+-----------------
+LongAdder
+-----------------
+关键域:
+// 累加单元数组, 懒惰初始化
+1. transient volatile Cell[] cells;
+// 基础值, 如果没有竞争, 则用cas累加这个域
+2. transient volatile long base;
+// 在cells创建或扩容时, 置为1, 表示加锁, cellBusy类似cas锁
+3. transient volatile int cellBusy;
+
+volatile: 保证可见性
+transient: 保证不会被序列化
+
+-----------------------------
+@sun.misc.Contended
+缓存行防止伪共享
+-----------------------------
+每个CPU都有独享的一级缓存, 二级缓存, 以及cpu共享的三级缓存, 三级缓存后面再跟内存
+
+从cpu到     大约需要的时钟周期(cycle)
+寄存器       1
+L1          3~4
+L2          10~20
+L3          40~45
+内存         120~240
+缓存行的单位是64bit(8byte), L2包括了L1的miss周期, L3包括了L2的miss周期
+内存访问还有TLB(虚地址页表缓存)miss的情况, 会增加少量周期
+
+因为 CPU 与 内存的速度差异很大, 需要靠预读数据至缓存来提升效率。
+而缓存以缓存行为单位, 每个缓存行对应着一块内存, 一般是 64 byte（8 个 long）
+缓存的加入会造成数据副本的产生, 即同一份数据会缓存在不同核心的缓存行中
+CPU 要保证数据的一致性, 如果某个 CPU 核心更改了数据, 其它 CPU 核心对应的整个缓存行必须失效
+
+@sun.misc.Contended 用来解决这个问题，它的原理是在使用此注解的对象或字段的前后各增加 128 字节大小的 padding(空白)，从而让 CPU 将对象预读至缓存时占用不同的缓存行，这样，不会造成对方缓存行的失效
+
+-----------------------------
+longAdder怎么实现的
+-----------------------------
+
+
+
+-----------------
+CAS底层实现
+-----------------
+反射拿到Unsafe调用CAS相关方法
+
+
+
+
+-----------------
+Monitor(管程)
+-----------------
+Monitor属性: WaitSet, EntryList, Owner
+
+32位虚拟机
+Object Header
+---------------------------------
+|MarkWord(32) | KlassWord(32)   |: 8Byte
+---------------------------------
+用了包装类型, 比如int只占4byte, 包装类会大很多, 一下就多了8个byte
+
+KlassWord: 找到类对象的指针
+
+MarkWord 结构
+----------------------------------------------------------------------
+|      MarkWord(32)                                 |   state        |
+----------------------------------------------------------------------
+|hashcode:25          | age: 4 | bias_lock:0 | 01   |Normal          |
+----------------------------------------------------------------------
+|thread:23 | epoch: 2 | age: 4 | bias_lock:0 | 01   |Biased          |
+----------------------------------------------------------------------
+|ptr_to_lock_record:30                       | 00   |LightWeight Lock|
+----------------------------------------------------------------------
+|ptr_to_heavyweight_monitor:30               | 10   |HeavyWeight Lock|
+----------------------------------------------------------------------
+|                                            | 11   |Marked for GC   |
+----------------------------------------------------------------------
+
+当我们调用synchronized关键字的时候, 就会把对象和Monitor(操作系统)关联, 靠指针地址(MarkWord)指向这个对象
+
+不加synchronized的对象不会关联Monitor, 不遵从以上规则
+
+----------------------
+synchronized字节码
+----------------------
+public static void main(java.lang.String[]);
+  Code:
+     0: getstatic     #2  // Field lock:Ljava/lang/Object; 拿到锁对象的引用
+     3: dup               // 复制一份
+     4: astore_1          // lock引用存储到 slot1 里面去
+     5: monitorenter      // 将Lock对象MarkWord置为Monitor指针
+    ------------------------------------
+    自增操作
+     6: getstatic     #3  // Field counter:I
+     9: iconst_1
+    10: iadd
+    11: putstatic     #3  // Field counter:I
+    ------------------------------------
+    14: aload_1           // 拿到存储的 slot1 引用对象, 再找到monitor
+    15: monitorexit       // 讲lock对象MarkWord重置, 唤醒EntryList
+
+    16: goto          24  // 去24 直接结束
+
+    19: astore_2          // 异常对象存储到 slot2里面
+    20: aload_1           // 加载lock引用地址
+    21: monitorexit       // 找到monitor做善后工作
+    22: aload_2           // 再找到异常
+    23: athrow            // 抛出异常
+
+    24: return
+  Exception table:
+     from    to  target type
+         6    16    19   any
+        19    22    19   any
+
+Exception table:是一个检测范围, 看哪些地方会出异常([from:to])
+
+-----------------
+synchronized介绍
+-----------------
+每个对象都有对象头(包括 class 指针和 Mark Word). MarkWord 平时存储这个对象的 哈希码,分代年龄; 当加锁时,这些信息就根据情况被替换为 标记位, 线程锁记录指针,重量级锁指针,线程ID 等内容
+
+轻量级锁
+如果一个对象虽然有多线程访问, 但多线程访问的时间是错开的(也就是没有竞争), 那么可以使用轻量级锁来优化
+
+-----------------
+synchronized优化
+-----------------
+线程里面怎么记录锁: Lock Record
+1. 轻量级锁: 如果一个对象虽然有多线程要加锁,但加锁的时间是错开的(也就是没有竞争),那么可以使用轻量级锁来优化
+
+
+
+--------------------------
+AQS(java.util.concurrent.locks AbstractQueuedSynchronizer)
+todo: 原文链接：https://blog.csdn.net/wwwzhouzy/article/details/119702170
+--------------------------
+AQS就是一个同步器，要做的事情就相当于一个锁，所以就会有两个动作：一个是获取，一个是释放。获取释放的时候该有一个东西来记住他是被用还是没被用，这个东西就是一个状态。如果锁被获取了，也就是被用了，还有很多其他的要来获取锁，总不能给全部拒绝了，这时候就需要他们排队，这里就需要一个队列。
+
+AQS的核心思想是：通过一个volatile修饰的int属性state代表同步状态，例如0是无锁状态，1是上锁状态。多线程竞争资源时，通过CAS的方式来修改state，例如从0修改为1，修改成功的线程即为资源竞争成功的线程，将其设为exclusiveOwnerThread，也称【工作线程】，资源竞争失败的线程会被放入一个FIFO的队列中并挂起休眠，当exclusiveOwnerThread线程释放资源后，会从队列中唤醒线程继续工作，循环往复。
+
+
+-----------------------------
+ThreadPoolExecutor容易漏掉的参数:
+keepAliveTime：救急线程空闲时的最大生存时间
+unit：时间单位
+
+拒绝策略:
+AbortPolicy：让调用者抛出 RejectedExecutionException 异常，这是默认策略
+CallerRunsPolicy：让调用者运行任务
+DiscardPolicy：放弃本次任务
+DiscardOldestPolicy：放弃队列中最早的任务，本任务取而代之
+
+
+线程池
+线程池状态和线程池中线程的数量由一个原子整型ctl来共同表示
+使用一个数来表示两个值的主要原因是：可以通过一次CAS同时更改两个属性的值
+====================
+todo:
+ready waitset entrylist owner 的关系, 图解
+
+
+
+JMM 模型
+线程运行原理: 栈帧图解
+Monitor 对象头
+Synchronized优化
+AQS
+hashMap
+concurrentHashMap
+原理
+functionalInterface只有一个方法, 其他的方法肯定是default的
+
+todo: 安全集合一样不安全
+todo: 怎么找死锁
+
+
+todo:
+https://www.bilibili.com/video/BV1yE411Z7AP?p=176&spm_id_from=pageDriver
+
+
+1、线程和进程的区别
+2、既然你说到线程切换上下文开销比进程大，为什么？
+3、操作系统父进程执行fork()命令，假如父进程拥有1G的资源，那么子进程会携带这些资源吗？
+10、TCP连接过程，如何实现拥塞控制？我说个没完，面试官说你不用说了，哈哈哈。
+
+4、sleep()方法如何被打断。
+5、运行态为什么会变成阻塞态？
+====================
+

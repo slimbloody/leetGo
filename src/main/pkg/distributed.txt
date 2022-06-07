@@ -85,5 +85,5 @@ REPLICATION
 另外呢，每更新一笔资料就发一次复本更新是很没有效率的，通常要累积一些更新或隔一段时间才会 batch update。
 常见的复制是有三个副本，除了原本的资料之外，同一个 rack 或 data center 一个副本， 另一个 rack 或 data center 再一个。
 那副本允不允许写入呢？多数资料系统是不允许的，也就是说，副本纯粹只是增加 read concurrency/efficiency/availabilty。同样是副本，同时只有一个 master 副本负责写入，其他的 slave 副本只负责 read request。
-也有允许副本写入的系统，像是 cassandra。多个互相冲突的写入会以写入的 timestamp订输赢 (所以 NTP 是必须的，但 NTP 也不能保证多台机器的时间完全一样)，Last write win。当然在还没协调前会存在有资料不一致的时间，那这就是应用必须要忍受的。
+也有允许副本写入的系统，像是 cassandra。多个互相冲突的写入会以写入的 timestamp定输赢 (所以 NTP 是必须的，但 NTP 也不能保证多台机器的时间完全一样)，Last write win。当然在还没协调前会存在有资料不一致的时间，那这就是应用必须要忍受的。
 

@@ -1,0 +1,463 @@
+### jvm的内存结构 ###
+
+=====================
+001 什么是jvm:
+=====================
+用jvm的好处
+1. 一次编写到处运行
+jvm屏蔽了字节码和底层操作系统的差异, 提供了一个一致的对外环境, jvm再去解释二维码
+2. 自动内存管理, 垃圾回收功能
+3. 数组下标越界检查(c语言就没有, 可能会覆盖其他代码的内存)
+4. 多态(虚方法表的机制实现的多态) todo:
+
+
+jvm
+    + 基础类库   -> jre
+    + 编译工具   -> jdk
+    + IDE工具    -> JavaSE
+    + 应用服务器 -> JavaEE
+
+
+=====================
+002 jvm有什么用:
+=====================
+1. 理解底层原理
+forEach 动态代理 都需要一些字节码技术才能理解
+2. 线上查故障:
+内存溢出, rt升高
+
+
+=====================
+004 什么是jvm:
+=====================
+
+
+java class(java二进制字节码) --------------> ClassLoader
+                                               ||
+java内存结构                                   ||
+-----------------------------------------------------------------------
+|MethodArea |  Heap |  Jvm Stacks  |  PC Register |  NativeMethodStack|
+-----------------------------------------------------------------------
+            ||                      ||
+            ||                      本地方法接口
+            ||                      ||
+执行引擎    ||                      ||
+------------------------------------------------
+interpret | jit compiler  | gc
+------------------------------------------------
+
+
+
+
+类放在方法区
+类创建的实例对象放在堆里面
+堆的对象调用方法时又会用到 JVM stacks, PC register, Native Method Stacks
+
+方法执行时的每行代码是有执行引擎中的解释器逐行执行
+方法中的热点代码, 频繁调用的方法, 由JIT 编译器优化后执行
+GC 会对堆中不用的对象进行回收
+需要和操作系统打交道就需要使用到 ###本地方法接口###
+
+
+=====================
+程序计数器
+=====================
+
+java源代码经过编译成 二进制字节码(机器码|jvm指令)
+必须经过解释器, 把每一条指令解释为机器码, 然后交给cpu执行
+
+
+
+PC是java对硬件的屏蔽和抽象, 物理上是通过寄存器实现的, 因为读写指令地址这个动作很频繁, 寄存器又是cpu里面存取最快的, 所以用寄存器来实现
+
+作用: 是记录下一条 jvm 指令的执行地址
+CPU里面有个调度器组件, 给每个线程分配时间片, 如果这个时间片内线程1没有执行完,就会把线程1的状态保存下来, 切换到线程2去...依次类推
+
+特点:
+1. 是线程私有的
+2. 唯一一个不会存在内存溢出的区域
+
+
+=====================
+虚拟机栈
+=====================
+1. 每个线程运行需要的内存空间,称为虚拟机栈, 有多个线程, 就有多个虚拟机栈
+2. 一个栈内由多个栈帧(Frame)组成,对应着每次调用方法时所占用的内存,即每个方法运行时需要的内存
+方法内什么东西占空间: 参数, 局部内存, (方法调用完以后的)返回地址(方法结束以后去哪执行后续的代码)
+方法调用结束以后, 就把栈帧内存释放掉
+3. 每个线程运行时只能有一个活动栈帧(即正在执行的方法)
+
+
+问题辨析：
+1. 垃圾回收是否涉及栈内存？
+不会。栈内存是方法调用产生的，方法调用结束后会弹出栈。
+2. 栈内存分配越大越好吗？
+不是.因为物理内存是一定的,栈内存越大,可以支持更多的递归调用,但是可执行的线程数就会越少.因为线程的大小是一定的
+3. 方法内的局部变量是否线程安全
+    1. 如果方法内部的变量没有逃离方法的作用访问，它是线程安全的
+    实际上就是看一个变量是被共享的还是被线程私有的
+    多线程执行会不会打印出现问题:
+    static void m1() {
+        int x = 0;
+        for (int i = 0; i < 5000; ++i) {
+            x++;
+        }
+        System.out.println(x);
+    }
+    不会, 因为x变量是每个栈私有的
+
+    如果x 改成static, 就是线程不安全的了, x变量对多个线程是共有的
+
+    2. 如果是局部变量引用了对象，并逃离了方法的访问，那就要考虑线程安全问题。
+
+
+    //会，其他线程可能会拿到这个线程的引用
+    public static StringBuilder m3() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(1);
+        sb.append(2);
+        sb.append(3);
+        return sb;
+    }
+    https://blog.csdn.net/qq_45966440/article/details/120824295
+    第三个方法如果发生指令乱序并且返回的对象被其他线程修改可能会触发问题
+    整个分析叫逃逸分析
+
+导致栈内存溢出的情况：
+    1. 栈帧过多导致栈内存溢出(栈太深了)
+    2. 栈帧过大导致栈内存溢出(一个栈帧的大小就超过了栈的大小)
+        循环引用就可能引起内存溢出;
+
+        Dept d = new Dept();
+        d.setName("Market");
+
+        Emp e1 = new Emp();
+        e1.setName("zhang");
+        e1.setDept(d);
+
+        Emp e2 = new Emp();
+        e2.setName("li");
+        e2.setDept(d);
+
+        d.setEmps(Arrays.asList(e1, e2));
+        ObjectMapper mapper = new ObjectMapper();
+        System.out.println(mapper.writeValueAsString(d));
+
+        用@JsonIgnore去掉引起循环依赖的属性
+
+=====================
+线程诊断
+=====================
+1. CPU占用过:
+top命令，查看是哪个进程占用CPU过高
+ps H -eo pid, tid（线程id）, %cpu | grep
+刚才通过top查到的进程号 通过ps命令进一步查看是哪个线程占用CPU过高
+
+jstack pid
+jstack里面打出来的进程编号 是16进制的, 可以通过jstack的信息, 看到具体是哪一行代码这么占空间
+
+2. 程序运行很长时间没有结果
+  static Object a;
+  static Object b;
+  Thread a = new Thread(() -> {
+    synchronized (a) {
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+      }
+      synchronized (b) {
+        System.out.printf("get both lock");
+      }
+    }
+  });
+
+  Thread b = new Thread(() -> {
+    synchronized (b) {
+      try {
+        Thread.sleep(500);
+      } catch (InterruptedException e) {
+      }
+      synchronized (a) {
+        System.out.printf("get both lock");
+      }
+    }
+  });
+
+可能多个线程发生死锁
+found one java-level deadlock
+看到哪两个线程有死锁, 两个线程哪行代码发生了死锁
+
+死锁: 互斥, 不可剥夺, 请求和保持, 循环等待
+
+
+
+=====================
+本地方法栈
+=====================
+由cpp代码写的方法, 跟操作系统底层打交道
+
+
+
+=====================
+堆
+=====================
+定义: 通过new关键字创建的对象都会被放在堆内存
+
+特点
+1. 所有线程共享，堆内存中的对象都需要考虑线程安全问题
+2. 有垃圾回收机制, 没有引用的对象就会被回收
+
+堆内存诊断
+
+jps:
+jmap: 只能查某一个时刻
+jmap -heap pid 看堆内存的占用
+jconsole: 监测时间段, 和prometheus很像
+jvisualvm:
+
+
+=====================
+方法区
+=====================
+java虚拟机中所有线程共享的区域
+存储了和类的结构相关的信息
+1. 类的 成员变量field
+2. method data 方法数据
+3. code for methods and constructors(成员方法和构造方法的代码部分)
+4. special methods: 类的构造器
+
+方法区在虚拟机启动的时候创建, 逻辑上是堆组成的一部分(概念上是堆的一部分, 但是不同jvm厂商可以自己去实现在哪里)
+
+eg: 方法区没有了,改成metaspace,从jvm内存移除了,用的是操作系统的内存, 垃圾回收就不给jvm处理了
+StringTable不放在方法区里面了, 放到堆里面去了
+
+
+=====================
+方法区内存溢出
+=====================
+1.8以后会导致元空间(metaspace)内存溢出
+
+类加载器: 加载类的二进制字节码
+创建类加载器, 可以动态加载类的字节码
+
+ClassWriter: 生成类的二进制字节码
+ClassWriter.visit(类的版本号, 类的访问修饰符, 类的名字, 包名, 类的父类, 类要实现的接口)
+ClassWriter.toByteArray()返回字节码数组
+ClassLoader.defineClass(): 只会触发类的加载, 不会触发类的连接
+一直ClassLoader.defineClass()就制造出溢出了
+
+=====================
+怎么看反编译的字节码
+=====================
+javap -c xxx.class 反编译字节码:
+
+二进制字节码:
+1. 类基本信息
+2. 常量池
+3. 类方法定义, 包含了虚拟机指令
+
+
+getstatic: 获取一个静态变量
+ldc:
+ldc指令将int、float或String型常量值从常量池中推送至栈顶
+Push item from run-time constant pool
+
+invokevirtual: 虚方法调用
+return: 结束
+
+
+0: getstatic #2: get哪个静态变量, 查常量池的表里面找第二个参数
+
+#2 = Fieldref    #21, #22 : 引用类型的的成员变量, 再去查#21, #22
+
+
+=====================
+运行时常量池
+=====================
+常量池：
+就是一张表，虚拟机指令根据这张常量表找到要执行的类名、方法名、参数类型、字面量信息(字符串, 基本的整数bool类型等)
+运行时常量池：
+常量池是 *.class 文件中的,当该类被加载以后,它的常量池信息就会放入运行时常量池,并把里面的符号地址(#2)变为真实地址
+
+
+
+=====================
+串池StringTable
+=====================
+LocalVariableTable: 局部变量表
+
+StringTable
+1. 常量池中的字符串仅是符号，只有在被用到时才会转化为对象
+    如果串池中没有该字符串对象，则放入
+    如果有该字符串对象，则直接使用该对象
+2. 利用串池的机制，来避免重复创建字符串对象
+3. 字符串"变量拼接"的原理是StringBuilder: s1 = s2 + s3
+StringBuilder.<init>: 是构造方法
+
+s1 = a
+s2 = b
+s3 = ab
+s4 = s1 + s2
+s3 == s4?
+不等 s3在StringTable里面, 但是s4在堆里面
+比较的不是String类型对象, 比较的是String类型的位置
+
+StringTable存的是字符串对象的引用, 而字符串对象本身存在堆中的
+
+4. 字符串"常量拼接"的原理是编译器优化
+s1 = "a"
+s2 = "b"
+s3 = "ab"
+s4 = s1 + s2
+s5 = "a" + "b"
+s3 == s5?
+javac在编译期做了优化, 结果已经在编译期间确定为ab
+s1 和 s2是变量, 所以只能在运行期间用stringbuilder动态拼接
+
+metaspace不在jvm 内存里面了, 操作系统来管
+StringTable不放在方法区里面了, 放到堆里面去了
+
+
+5. 可以使用intern方法，主动将串池中还没有的字符串对象放入串池中
+
+intern方法 1.8
+调用字符串对象的 intern 方法，会将该字符串对象尝试放入到串池中
+
+String s = new String("a") + new String("b");
+现在StringTable里面只有"a", "b",没有"ab", 因为"ab"是动态拼接出来的, 所以不入StringTable
+如果要把ab存入StringTable的话, 就用intern, 并把StringTable中的对象返回
+String s2 = s.intern();
+s2 == "ab" 相等
+
+
+如果串池中没有该字符串对象，则放入成功
+如果有该字符串对象，则放入失败
+无论放入是否成功，都会返回串池中的字符串对象
+注意：此时如果调用 intern 方法成功，堆内存与串池中的字符串对象是同一个对象；如果失败，则不是同一个对象
+
+
+===============================
+StringTable垃圾回收机制
+===============================
+StringTable:
+1. 永久代的内存回收效率很低, fullGC的时候才会垃圾回收
+2. StringTable里面对象产生比较频繁, 放在永久代很占老年代空间
+
+
+-XX:+UseGCOverheadLimit开关: 如果98%的时间花在垃圾回收, 只有2%的堆空间被回收了, 就会抛出一个OutOfMemoryError异常: GC overhead limit exceeded
+关闭这个开关, 可以演示堆空间不足的问题, 从而证明1.8StringTable用的是堆空间
+
+
+https://cloud.tencent.com/developer/article/1410980
+SymbolTable
+
+
+StringTable类似hashtable 数组 + 链表的实现:
+
+Number of buckets: 数组的个数
+Number of entries: 键值对个数
+Number of literals: 字符串有多少个
+Total footprint: 总的占用空间
+
+GC(Allocation Failure): 内存分配失败, 触发了一次垃圾回收
+
+如果直接是 String.valueOf(j).intern() for循环分配对象, 没有引用的话, GC的时候会被直接GC掉, 所以视频例子里面的10000次调用, 看到的Number of literals只有7000多
+
+===============================
+StringTable调优
+===============================
+1.-XX: StringTableSize=2000000
+本身是hashtable实现的, 实际上调优的就是hashtable的个数
+桶里面的东西多了, 时间肯定就长了, 大小至少为1009
+桶大了以后能减少hash冲突, 从而提升性能
+
+2. 考虑字符串对象是否入池, 去除重复的字符串对象
+比如: twitter用户的地址, 地址很多是重复的, 就直接用intern去存了
+
+
+===============================
+直接内存
+===============================
+1. 属于操作系统内存, 常见于NIO操作时, 用于数据缓冲区
+2. 分配回收成本较高, 但读写性能高
+
+java 本身不具备文件读写的能力, 要调用操作系统的函数, 即native方法, 这个时候要从用户态切到内核态
+内存上, 操作系统会在系统内存里面划分一块系统缓存区, 会从磁盘分次读取文件到系统缓存里面, 这个时候又会在虚拟机里面划分一块java的缓冲区, 这个时候又会把系统缓存里面的数据读到java缓冲区中, 才能被java读到, 两次复制很浪费时间
+
+direct memory: 直接内存是操作系统和Java代码都可以访问的一块区域,无需将代码从系统内存复制到Java堆内存,从而提高了效率
+
+3. 不受JVM内存回收管理
+
+释放原理:
+直接内存的回收不是通过JVM的垃圾回收来释放的，而是通过unsafe.freeMemory来手动释放
+
+通过
+
+//通过ByteBuffer申请1M的直接内存
+ByteBuffer byteBuffer = ByteBuffer.allocateDirect(_1M);
+申请直接内存，但JVM并不能回收直接内存中的内容，它是如何实现回收的呢？
+
+
+
+直接内存也会OOM
+分配和释放的原理:
+ByteBuffer.allocateDirect(xxx);
+
+
+
+
+1. Unsafe 对象不能直接使用, 所以要考反射拿到Unsafe对象
+public static Unsafe getUnsafe() {
+  try {
+    Field f = Unsafe.class.getDeclaredField("Unsafe");
+    f.setAccessible(true);
+    Unsafe unsafe = (Unsafe) f.get(null);
+    return unsafe;
+  } catch (NoSuchFieldException | IllegalAccessException e) {
+    throw new RuntimeException(e);
+  }
+}
+
+2. 分配内存:
+long base = unsafe.allocateMemory(xxx);
+unsafe.setMemory(base, xxx, (byte) 0);
+
+3. 释放内存
+unsafe.freeMemory(base);
+
+直接内存一定要手动释放
+
+那为什么我们使用ByteBuffer不用手动释放的?
+ByteBuffer byteBuffer = ByteBuffer.allocateDirect(_1M);
+byteBuffer = null;
+System.gc();
+这里使用的内存就直接减少了?
+
+ByteBuffer本身在Cleaner里面定义了一个回调任务对象, 会主动调用freeMemory方法.
+Cleaner是虚引用类型, 当他关联的对象被回收时, Cleaner会触发虚引用的clean方法,
+
+cleaner = Cleaner.create(this, new Deallocator(base, size, cap));
+this就是ByteBuffer, 关联上了ByteBuffer, 会触发Clean对象中的clean方法, 有个referenceHandler会去执行任务对象里面的 unsafe.freeMemory 方法
+
+使用了Unsafe类来完成直接内存的分配回收，回收需要主动调用freeMemory方法
+ByteBuffer的实现内部使用了Cleaner（虚引用）来检测ByteBuffer。一旦ByteBuffer被垃圾回收，那么会由ReferenceHandler来调用Cleaner的clean方法调用freeMemory来释放内存
+
+
+
+-XX:+DisableExplicitGC 禁止触发显式的old gc
+
+ByteBuffer byteBuffer = ByteBuffer.allocateDirect(_1M);
+byteBuffer = null;
+System.gc();
+如果加了这个参数, 直接内存的释放, 只能等到触发了gc的时候再回收
+
+所以用Unsafe.freeMemory去手动清理里面的内存
+
+
+==========================
+todo: java的内存是怎么分配的
+==========================
+
+
+
+

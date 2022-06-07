@@ -1,0 +1,306 @@
+===========================
+如何判断对象可以回收
+eclipse出品的 Memory Analyzer(MAT): 内存分析工具
+===========================
+
+1.如何判断对象可以回收
+1. 引用计数法(解决不了循环引用)
+2. 可达性分析: 扫描堆中的对象，看能否沿着GC Root对象为起点的引用链找到该对象，如果找不到，则表示可以回收
+  可以作为GC Root的对象
+  1. 虚拟机栈(栈帧中的本地变量表)中引用的对象
+  2. 方法区中类静态属性引用的对象
+  3. 方法区中常量引用的对象
+  4. 本地方法栈中JNI(即一般说的Native方法)引用的对象
+  5. 所有被同步锁(synchronized关键字)持有的对象
+
+
+MAT分类:
+1. System Class(启动类加载器加载的类)
+2. Native Stack(操作系统方法执行时, 引用的java对象可以作为root对象)
+3. Thread(活动线程中需要的对象; 线程运行时由一次次方法调用组成, 每次调用都有一个栈帧, 栈帧内所的对象可以作为根对象)
+4. Busy Monitor(同步锁机制, 加锁的东西就不能当垃圾, 不然谁来解锁)
+
+List<Object> l = new ArrayList();
+List<Object> l在活动栈帧里面, new ArrayList()在堆里面
+
+
+===================================
+jvm 四种引用
+===================================
+1. 强引用:
+  沿着GC root能找到, 就不会被回收
+2. 软引用
+  没有被强引用, 只有软引用, GC后发现内存还是不够就会被回收
+  可以配合"引用队列"来释放软引用自身
+3. 弱引用
+  没有被强引用, 只有弱引用, 只要垃圾回收机会被回收掉
+  可以配合"引用队列"来释放软引用自身
+
+    引用队列:
+    软引用自身也是一个对象, 如果在创建的时候分配了一个引用队列, 他所引用的对象被回收时, 软引用就会进入这个队列, 弱引用也是一样.
+    因为软引用, 弱引用自身也要占用一定的内存, 如果想对他俩占用的内存做进一步释放, 则需要通过引用队列找到他们俩, 再做进一步处理
+
+4. 虚引用 (ByteBuffer 直接内存)
+  必须配合【引用队列】使用，主要配合 ByteBuffer 使用，被引用对象回收时，会将"虚引用"入队， 由 ReferenceHandler 线程调用虚引用相关方法释放"直接内存"
+  如上图，B对象不再引用ByteBuffer对象，ByteBuffer就会被回收。但是直接内存中的内存还未被回收。这时需要将虚引用对象Cleaner放入引用队列中，然后调用它的clean方法来释放直接内存
+5. 终结器引用: finalize() 对象
+  无需手动编码，但其内部配合"引用队列"使用，在垃圾回收时,"终结器引用"入队（被引用对象暂时没有被回收），再由 finalizeHandler 线程通过【终结器引用】找到被引用对象并调用它的 finalize 方法，第二次 GC 时才能回收被引用对象
+  如上图，B对象不再引用A4对象。这时终结器对象就会被放入引用队列中，引用队列会根据它，找到它所引用的对象。然后调用被引用对象的finalize方法。调用以后，该对象就可以被垃圾回收了
+
+
+虚引用, 终结器引用 一定要配合引用队列使用, 创建的时候一定会关联一个引用队列
+
+虚引用(byteBuffer):
+在bytebuffer一旦没有强引用的时候, byteBuffer会被回收掉, 但是他被回收掉不够, 还要回收直接内存, 但是直接内存不被jvm管理, 所以在byteBuffer在被回收的时候, 要让虚引用对象进入引用队列, 而虚引用在的引用队列会由referenceHandler的线程定时来引用队列里面找有没有新入队的cleaner, 如果有就调用cleaner中的clean方法, 就会根据前面记录直接内存的地址, 调用Unsafe.freeMemory把直接内存释放掉
+
+终结器引用:
+所有的java对象都会继承自object父类, 都有finalize方法, 当对象重写了finalize方法并且没有强引用时, 就可以当成垃圾回收.
+终结方法什么时候被调用: 在终结器引用来调用, 当对象被垃圾回收时, 先把终结器对象放入引用队列, 再由一个优先级很低的线程, finalizeHandler在某些时机查看队列里面有没有终结器引用, 如果有, 就找到要作为垃圾回收的对象, 然后调用finalize方法, 下一次垃圾回收时就可以把对象占用的内存真正回收掉了.
+finalize工作效率有点低, 因为处理的线程优先级很低, 可能造成对象的finalize的方法迟迟得不到调用, 对象也迟迟不能被回收. 太复杂了
+
+
+软引用:
+资源紧张的时候释放掉, 等需要的时候再读取一次这些资源
+List<SoftReference<Byte[]>> list = new ArrayList();
+for (int i = 0; i < 5; i++) {
+    //关联了引用队列,当软引用所关联的byte数组被回收时，软引用自己就会加入到引用队列queue 中去
+    SoftReference<byte[]> ref = new SoftReference<>(new byte[_4MB],queue);
+    System.out.println(ref.get());
+    list.add(ref);
+    System.out.println(list.size());
+}
+
+for (SoftReference<byte[]> ref : list) {
+    System.out.println(ref.get());
+}
+
+第一次有, 但是结束以后再去循环一次就只有最后一个有了
+
+list和softReference之间是强引用, 但是SoftReference对byte数组就是软引用
+
+用 -XX:+PrintGCDetails来调用
+
+ergonomic
+英 [ˌɜːɡəˈnɒmɪk]  美 [ˌɜːrɡəˈnɑːmɪk]
+adj. 人类环境改造学的；人类工程学的
+
+前面的:
+1536K->496K(2048K) 表示：回收前该区域已使用的空间→回收后该区域使用的空间(该区域总空间)，这里是指新生代区域
+后面的:
+1536K->560K(7680K) 表示：回收前堆中已使用的空间→回收后堆中已使用的空间(堆的总空间)
+0.0024873 secs：表示 GC 进行的时间，单位为秒
+
+
+===================
+软引用队列
+===================
+上面的软引用的对象已经被清理掉了成了null, 软引用本身就没必要保留了, 想从list里面清除掉,要配合引用队列来清理了
+
+///使用引用队列，用于移除引用为空的软引用对象
+ReferenceQueue<byte[]> queue=new ReferenceQueue<>();
+
+//使用软引用对象 list和SoftReference是强引用，而SoftReference和byte数组则是软引用
+List<SoftReference<byte[]>> list = new ArrayList<>();
+
+for (int i = 0; i < 5; i++) {
+    //关联了引用队列,当软引用所关联的byte数组被回收时，软引用自己就会加入到引用队列queue 中去
+    SoftReference<byte[]> ref = new SoftReference<>(new byte[_4MB], queue);
+    System.out.println(ref.get());
+    list.add(ref);
+    System.out.println(list.size());
+}
+
+//获取队列中第一个软引用对象
+Reference<? extends byte[]> poll = queue.poll();
+
+//遍历引用队列，如果有元素，则移除
+while(poll!=null){
+    list.remove(poll);
+    poll=queue.poll();
+}
+
+System.out.println("=============");
+System.out.println("循环结束：" + list.size());
+for (SoftReference<byte[]> ref : list) {
+    System.out.println(ref.get());
+}
+
+===================
+弱引用
+===================
+每次垃圾回收都可以导致弱引用被回收, 但是不一定会把所有的弱引用回收, fullGC会回收所有的弱引用
+
+
+
+垃圾收集线程会在虚拟机抛出OutOfMemoryError之前回收软引用对象，而且虚拟机会尽可能优先回收长时间闲置不用的软引用对象。对那些刚构建的或刚使用过的较新的软对象会被虚拟机尽可能保留，这就是引入引用队列ReferenceQueue的原因。
+
+todo:
+弱引用怎么回收的
+
+
+
+
+
+===================
+垃圾回收
+===================
+标记-清除: 标记没有GCRoot的引用对象, 再清除
+速度快, 但是容易产生内存碎片
+
+标记-整理: 标记没有GCRoot的引用对象, 清理过程中, 把可用对象移动得紧凑一点, 让连续空间更多
+没有内存碎片, 但是整理的过程中要移动, 如果他的地址变了, 他的引用也要跟着改, 整个过程就耗时就长了
+
+复制: 标记以后, 把活着的对象从from区复制到to区, from区全部清空, 并且交换 from和to区
+优点: 没有内存碎片
+缺点: 会占用双倍的内存空间
+
+
+
+https://blog.csdn.net/Herishwater/article/details/123563120
+1. 分代是为了针对性处理
+  1. 弱分代假说(Weak Generational Hypothesis): 绝大多数对象都是朝生夕灭的。
+  2. 强分代假说(Strong Generational Hypothesis): 熬过越多次垃圾收集过程的对象就越难以消亡
+  3、跨代引用假说(Intergenerational Reference Hypothesis): 跨代引用相对于同代引用来说仅占极少数
+
+todo: 担保机制
+
+什么是空间分配担保？
+在发生 Minor GC 之前，虚拟机会检查老年代最大可用的连续空间是否大于新生代所有对象的总空间，
+如果大于，则此次 Minor GC 是安全的
+如果小于，则虚拟机会查看 HandlePromotionFailure 设置值是否允许担保失败。如果 HandlePromotionFailure=true，那么会继续检查老年代最大可用连续空间是否大于历次晋升到老年代的对象的平均大小，如果大于，则尝试进行一次 Minor GC，但这次 Minor GC 依然是有风险的；如果小于或者 HandlePromotionFailure=false，则改为进行一次 Full GC。
+
+为什么要进行空间担保:
+是因为新生代采用复制收集算法，假如大量对象在 Minor GC 后仍然存活（最极端情况为内存回收后新生代中所有对象均存活），而 Survivor 空间是比较小的，这时就需要老年代进行分配担保，把 Survivor 无法容纳的对象放到老年代。老年代要进行空间分配担保，前提是老年代得有足够空间来容纳这些对象，但一共有多少对象在内存回收后存活下来是不可预知的，因此只好取之前每次垃圾回收后晋升到老年代的对象大小的平均值作为参考。使用这个平均值与老年代剩余空间进行比较，来决定是否进行 Full GC 来让老年代腾出更多空间。
+
+
+minor gc STW:
+里面涉及到复制, 对象的地址会改变, 如果不STW会造成混乱, 只有STW以后用户线程才恢复运行, 但是minorGC相对来说比较快
+
+
+todo: 为什么老年代STW的时间更长?
+1. 存活对象比较多, 整理或者清除比较慢
+2. 老年代的对象不大容易被当成垃圾处理
+
+todo:
+-XX:InitialSurvivorRatio=ratio
+-XX:+UseAdaptiveSizePolicy
+会动态调整比例
+
+FullGC前先MinorGC: -XX:+ScavengeBeforeFullGC
+Parallel Scavenge（-XX:+UseParallelGC）框架下，默认是在要触发full GC前先执行一次young GC，并且两次GC之间能让应用程序稍微运行一小下，以期降低full GC的暂停时间（因为young GC会尽量清理了young gen的死对象，减少了full GC的工作量）。控制这个行为的VM参数是-XX:+ScavengeBeforeFullGC。
+
+
+
+Def new generation: 新生代(10M)
+=
+eden space: 伊甸园区(8M)
++
+from space: from区(1M)
++
+to space: to区(1M)
+
+
+todo: 静态成员变量, 静态常量, 常量池 在哪里分配
+todo: 内存溢出前自救
+
+
+进程内的线程OOM不会导致java进程OOM, OOM会清空线程占用的堆内存, 从而不影响其他线程执行, 因为发生OOM之前要进行gc
+如果主线程抛异常退出了，子线程还能运行么？
+
+ok，这个问题要从子线程和主线程的关系讲起:
+线程不像进程，一个进程中的线程之间是没有父子之分的，都是平级关系。即线程都是一样的, 退出了一个不会影响另外一个。
+
+因此，答案是如果主线程抛异常退出了，子线程还能运行。
+但是有一个例外情况，如果这些子线程都是守护线程，那么子线程会随着主线程结束而结束。
+
+
+===================
+垃圾回收器
+===================
+安全点：让其他线程都在这个点停下来，以免垃圾回收时移动对象地址，使得其他线程找不到被移动的对象
+todo later: 安全点有哪些位置
+
+1. 串行(单线程): 适合内存较小，CPU核数较少
+因为是串行的,所以只有一个垃圾回收线程.且在该线程执行回收工作时,其他线程进入阻塞状态
+
+
+2. 吞吐量优先:
+UseParallelGC, UseParallelOldGC
+开多个线程回收, 所以垃圾回收的时候CPU的使用率会特别高
+
+通过调整堆的大小来达到目标
+-XX:GCTimeRatio= 调整垃圾回收时间和总时间的占比:1/(1 + ratio)
+一般都是调大堆, 减少垃圾回收的次数来控制总时间的占比
+
+这两个参数实际上是冲突的,堆大了,GC的时间肯定变长了, 要想让单次GC时间短, 肯定要把堆变小
+-XX:MacGCPauseMillis=
+
+
+3. 响应时间优先
+年轻代用 -XX:+ParNewGC
+-XX: +UseConMarkSweepGC(工作在老年代)
+如果并发失败, 就会退化到 SerialOld
+
+
+CMS工作流程:
+1. 所有线程运行到安全点
+2. 垃圾回收线程先做初始标记, 标记所有的GCRoot对象(STW)
+3. 垃圾回收线程做并发标记, 让其他工作线程再运行
+4. 重新标记(工作线程在并发标记时又可能产生新的对象或者改变了对象引用, 对垃圾回收有干扰)(所以要STW)
+5. 并发清理
+
+
+-XX:ParallelGCThreads=n: 并行线程数
+-XX:ConGCThreads=thread: 并发线程数: 一般是并行线程数的四分之一, 剩下的线程数要给工作线程用
+
+todo: 三色标记, 浮动垃圾处理
+
+浮动垃圾:
+并发清理的时候,其他用户线程可以产生新的垃圾, 这部分新垃圾就叫浮动垃圾, 留给下一次清理的时候来做; 不能等到堆内存不足了再做垃圾回收,要预留一点空间给这些浮动垃圾
+-XX:CMSInitiatingOccupancyFraction=percent
+80: 老年代占比到了80就开始回收, 预留空间给浮动垃圾
+
+-XX:+CMSScavengeBeforeRemark: 重新标记阶段: 新生代对象的对象会引用老年代的对象, 要扫描整个堆, 通过新生代引用去扫描一遍老年代的对象做可达性分析, 这个对性能影响很大, 因为新生代创建的对象比较多, 且朝生夕灭, 就算找到
+
+
+
+https://www.zhihu.com/question/61090975
+在初始化标记阶段，为了最⼤限度地减少STW的时间开销，我们可以使⽤:
+-XX:+CMSParallelInitialMarkEnabled
+
+在重新标记阶段，因为重新标记的内存范围是整个堆，包含_young_gen和_old_gen。为什么要扫描新⽣代呢，因为对于⽼年代中的对象，如果被新⽣代中的对象引⽤，那么就会被视为存活对象，因此对于⽼年代来说，引⽤了⽼年代中对象的新⽣代的对象，也会被⽼年代视作“GC ROOTS”。如果我们分析gc⽇志发现 ReMark阶段发⽣STW的时间过⻓，我们就可以开启：
+-XX:+CMSScavengeBeforeRemark
+
+它的作⽤是在重新标记之前对年轻代做⼀次minor GC，这样yong gen中剩余待标记的对象数量相⽐gc之前势必下降很多(只剩下存活的obj，⼤量死亡的obj被GC⼲掉了)，剩余被视作“GC ROOTS”的对象数量骤减，如此Remark的⼯作量就少很多，重新标记的时间开销也会减少；当然这⾥Remark减少的时间和YGC的时间开销要做⼀个权衡，根据实践结果选择是否要开启CMSScavengeBeforeRemark；
+
+同样在Remark中我们也可以根据实际情况选择是否开启并⾏化Flag：
+-XX:+CMSParallelRemarkEnabled
+
+
+CMS是标记清除算法, 可能因为碎片过多导致将来分配对象时造成并发失败, CMS就会退化成 -SerialOld, 碎片减少了才能继续工作
+如果退化了, 垃圾回收的时间一下就会飙升上来
+
+
+================
+G1
+================
+JDK9 取消了CMS垃圾回收器, 默认用G1了
+1. 同时注重了吞吐量(Throughput)和低延迟(Low latency), 默认暂停目标是200ms
+2. 超大堆内存（内存大的），会将堆内存划分为多个大小相等的区域
+3. 整体上是标记-整理算法，两个区域之间是复制算法
+
+-XX:+UseG1GC
+-XX:G1HeapRegionSize=size
+-XX:MaxGCPauseMillis=time
+
+
+================
+GC调优
+================
+java -XX:PrintFlagsFinal -version | findstr "GC"
+
+
+
+
+
+
